@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="240" height="240" rx="32" fill="#18181B"/>
+  <g>
+    <ellipse cx="120" cy="180" rx="60" ry="18" fill="#262626"/>
+    <circle cx="120" cy="100" r="48" fill="#fff"/>
+    <circle cx="120" cy="100" r="36" fill="#E0E7EF"/>
+    <ellipse cx="120" cy="100" rx="24" ry="12" fill="#A5B4FC"/>
+    <rect x="90" y="140" width="60" height="32" rx="16" fill="#fff" stroke="#A5B4FC" stroke-width="2"/>
+    <rect x="105" y="150" width="30" height="8" rx="4" fill="#A5B4FC"/>
+    <circle cx="120" cy="100" r="8" fill="#6366F1"/>
+    <rect x="110" y="110" width="20" height="6" rx="3" fill="#6366F1"/>
+    <rect x="110" y="120" width="20" height="4" rx="2" fill="#A5B4FC"/>
+    <rect x="110" y="128" width="20" height="4" rx="2" fill="#A5B4FC"/>
+    <rect x="110" y="136" width="20" height="4" rx="2" fill="#A5B4FC"/>
+    <rect x="110" y="144" width="20" height="4" rx="2" fill="#A5B4FC"/>
+    <rect x="110" y="152" width="20" height="4" rx="2" fill="#A5B4FC"/>
+    <rect x="110" y="160" width="20" height="4" rx="2" fill="#A5B4FC"/>
+  </g>
+  <text x="50%" y="220" text-anchor="middle" fill="#A5B4FC" font-size="18" font-family="Arial, sans-serif">Welcome!</text>
+</svg>

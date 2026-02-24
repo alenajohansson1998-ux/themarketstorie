@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/daily-global-overview",
+      "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/daily-crypto-update",
+      "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/daily-commodities-geopolitical-report",
+      "schedule": "30 4 * * *"
+    }
+  ]
+}

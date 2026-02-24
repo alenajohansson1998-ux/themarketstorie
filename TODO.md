@@ -1,0 +1,4 @@
+- [x] Update app/dashboard/page.tsx: Add Create Article to sidebar with Plus icon, using router.push('/dashboard/create-article')
+- [x] Update app/dashboard/articles/page.tsx: Expand sidebar to full list (Dashboard, My Articles, Create Article, Profile, Quick Actions, Recent Activity, Alerts Feed, Logout), use router.push for all, highlight My Articles
+- [x] Update app/dashboard/create-article/page.tsx: Ensure sidebar matches full list, highlight Create Article, use router.push for others
+- [x] Import Plus icon from lucide-react in all three files

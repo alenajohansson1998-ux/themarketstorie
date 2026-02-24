@@ -1,0 +1,4 @@
+slug,title,description,filters,static_items,computed_type,refresh_seconds,visibility
+top-movers,Top Movers,Instruments with highest price movement today,{},AAPL.NASDAQ,GOOGL.NASDAQ,dynamic,300,public
+tech-stocks,Technology Stocks,Leading technology companies,{},AAPL.NASDAQ,GOOGL.NASDAQ,MSFT.NASDAQ,static,0,public
+watchlist,My Watchlist,Personal watchlist of interesting instruments,{},TSLA.NASDAQ,NVDA.NASDAQ,static,0,private
