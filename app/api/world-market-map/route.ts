@@ -202,7 +202,7 @@ async function fetchCountryChange(
   polygonApiKey: string,
   finnhubApiKey: string,
   mapping: IndexMapping
-) {
+): Promise<{ change: number | null; source: "polygon" | "finnhub" | null }> {
   if (polygonApiKey) {
     for (const ticker of mapping.polygonTickers) {
       const value = await fetchDailyChangePercent(polygonApiKey, ticker);
@@ -221,7 +221,7 @@ async function fetchCountryChange(
     }
   }
 
-  return { change: null, source: null as const };
+  return { change: null, source: null };
 }
 
 async function fetchWorldMarketMapData(): Promise<MarketMapResponse> {

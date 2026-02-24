@@ -1,13 +1,12 @@
 "use client";
 import React from "react";
-import { FaEdit, FaFileAlt, FaHome, FaUser, FaQuestionCircle, FaRobot } from "react-icons/fa";
+import { FaEdit, FaFileAlt, FaHome, FaUser, FaQuestionCircle } from "react-icons/fa";
 import Link from "next/link";
 
 const editorLinks = [
   { label: "Dashboard", icon: <FaHome />, href: "/dashboard" },
   { label: "Create Post", icon: <FaEdit />, href: "/editor/posts/new" },
   { label: "Manage Posts", icon: <FaFileAlt />, href: "/editor/posts" },
-  { label: "AI Articles", icon: <FaRobot />, href: "/admin/articles" },
   { label: "Profile", icon: <FaUser />, href: "/editor/profile" },
   { label: "Help", icon: <FaQuestionCircle />, href: "/editor/help" },
 ];
