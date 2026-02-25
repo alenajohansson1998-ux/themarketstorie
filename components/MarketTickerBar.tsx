@@ -110,12 +110,12 @@ const MarketTickerBar: React.FC<MarketTickerBarProps> = ({ data }) => {
         width: '100%',
         background: '#fff',
         color: '#222',
-        height: 32,
+        height: 26,
         display: 'flex',
         alignItems: 'center',
         overflow: 'hidden',
         userSelect: 'none',
-        fontSize: 13,
+        fontSize: 12,
         fontFamily: 'Inter, Arial, sans-serif',
         fontWeight: 500,
         letterSpacing: 0.1,
@@ -152,8 +152,8 @@ const MarketTickerBar: React.FC<MarketTickerBarProps> = ({ data }) => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 height: '100%',
-                padding: '0 18px',
-                gap: 7,
+                padding: '0 14px',
+                gap: 6,
                 whiteSpace: 'nowrap',
                 cursor: 'pointer',
                 transition: 'background 0.2s',
@@ -163,7 +163,7 @@ const MarketTickerBar: React.FC<MarketTickerBarProps> = ({ data }) => {
             >
               {/* Asset icon (optional) */}
               {item.iconUrl && (
-                <Image src={item.iconUrl} alt={item.symbol} width={16} height={16} style={{ marginRight: 6, borderRadius: 8 }} />
+                <Image src={item.iconUrl} alt={item.symbol} width={14} height={14} style={{ marginRight: 5, borderRadius: 7 }} />
               )}
               <span style={{ color: '#222', fontWeight: 600, marginRight: 4 }}>{item.symbol}</span>
               <span style={{ color: '#374151', opacity: 0.92, marginRight: 4 }}>${item.price?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
