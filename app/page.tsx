@@ -66,7 +66,7 @@ export default function Home() {
           {/* Add ticker bar directly after hero banner, before all main content */}
           <TickerBarClientWrapper />
           <FeaturedAiArticlesSection />
-          <div className="mx-auto w-full max-w-screen-2xl px-4 md:px-6 xl:px-8">
+          <div className="w-full px-4 md:px-6 xl:px-8">
             {/* SEO H1 Heading */}
             <div className="w-full mt-6">
               <h1 className="text-4xl font-extrabold text-black mb-4 tracking-tight text-center drop-shadow-sm">
