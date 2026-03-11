@@ -14,6 +14,7 @@ import NewsCategoryGrid from '../components/NewsCategoryGrid';
 import StockMarketsCategoryGrid from '../components/StockMarketsCategoryGrid';
 import TickerBarClientWrapper from '../components/TickerBarClientWrapper';
 import HeroBanner from '../components/HeroBanner';
+import FeaturedAiArticlesSection from '../components/FeaturedAiArticlesSection';
 
 
 import React, { useEffect, useState } from 'react';
@@ -64,24 +65,26 @@ export default function Home() {
           <HeroBanner />
           {/* Add ticker bar directly after hero banner, before all main content */}
           <TickerBarClientWrapper />
-          {/* SEO H1 Heading */}
-          <div className="w-full px-4 mt-6">
-            <h1 className="text-4xl font-extrabold text-black mb-4 tracking-tight text-center drop-shadow-sm">
-              Smart Market Insights for Investors, Traders & Analysts
-            </h1>
-          </div>
-          {/* Top News Grid Section */}
-          <div className="bg-white py-6 border-b border-gray-200 w-full">
-            <div className="w-full px-4">
-              <h2 className="text-2xl font-bold text-black mb-4 tracking-tight">Today&apos;s Top Market Stories</h2>
-              <HomeTopNewsGrid />
-              <p className="mt-4 text-base text-gray-700 w-full text-left">
-                TheMarketStories is a trusted financial news platform offering live stock market updates, in-depth market analysis, and real-time insights across global and Indian markets. We cover equities, cryptocurrencies, commodities, economic events, and technical analysis to help traders and investors understand market movements and identify opportunities with confidence.
-              </p>
+          <FeaturedAiArticlesSection />
+          <div className="mx-auto w-full max-w-screen-2xl px-4 md:px-6 xl:px-8">
+            {/* SEO H1 Heading */}
+            <div className="w-full mt-6">
+              <h1 className="text-4xl font-extrabold text-black mb-4 tracking-tight text-center drop-shadow-sm">
+                Smart Market Insights for Investors, Traders & Analysts
+              </h1>
             </div>
-          </div>
-          <div className="w-full px-4">
-            <HomeBodyLayout>
+            {/* Top News Grid Section */}
+            <div className="bg-white py-6 border-b border-gray-200 w-full rounded-2xl shadow-sm">
+              <div className="w-full px-4 md:px-6">
+                <h2 className="text-2xl font-bold text-black mb-4 tracking-tight">Today&apos;s Top Market Stories</h2>
+                <HomeTopNewsGrid />
+                <p className="mt-4 text-base text-gray-700 w-full text-left">
+                  TheMarketStories is a trusted financial news platform offering live stock market updates, in-depth market analysis, and real-time insights across global and Indian markets. We cover equities, cryptocurrencies, commodities, economic events, and technical analysis to help traders and investors understand market movements and identify opportunities with confidence.
+                </p>
+              </div>
+            </div>
+            <div className="w-full mt-8">
+              <HomeBodyLayout>
               {/* News Section */}
               <section className="mb-12">
                 <h2 className="text-2xl font-bold text-black mb-4">Live Stock Market Charts & Technical Analysis</h2>
@@ -152,7 +155,8 @@ export default function Home() {
                   </div>
                 )}
               </section>
-            </HomeBodyLayout>
+              </HomeBodyLayout>
+            </div>
           </div>
         </main>
       {/* Custom Scrollbar Style */}
