@@ -121,15 +121,15 @@ export default function FeaturedAiArticlesSection() {
   }
 
   return (
-    <section className="w-full bg-white px-4 py-8 md:px-6 md:py-12 xl:px-8">
-      <div className="mx-auto w-full max-w-screen-2xl">
+    <section className="w-full bg-white px-4 py-6 md:px-6 md:py-8 xl:px-8">
+      <div className="w-full">
         <h2 className="mb-4 text-2xl font-black uppercase tracking-tight text-black sm:text-3xl md:mb-6 md:text-4xl">
           Featured AI News
         </h2>
 
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-[#101014] shadow-sm md:rounded-[22px] xl:rounded-[26px]">
-          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_400px]">
-            <div className="relative min-h-[260px] sm:min-h-[360px] lg:min-h-[520px] xl:min-h-[560px]">
+        <div className="overflow-hidden rounded-2xl bg-[#101014] md:rounded-[22px] xl:rounded-[26px]">
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_380px]">
+            <div className="relative min-h-[200px] sm:min-h-[260px] lg:min-h-[360px] xl:min-h-[400px]">
               {featured ? (
                 <Link href={buildArticleHref(featured)} className="group block h-full">
                   <div className="absolute inset-0">
@@ -185,7 +185,7 @@ export default function FeaturedAiArticlesSection() {
               ) : null}
             </div>
 
-            <aside className="flex min-h-[240px] flex-col bg-[#0c0c10] p-4 text-white sm:p-5 lg:p-6 xl:min-h-[520px]">
+            <aside className="flex min-h-[200px] flex-col bg-[#0c0c10] p-4 text-white sm:p-5 lg:p-6 xl:min-h-[360px]">
               <div className="mb-4 border-b border-white/10 pb-4 lg:mb-5">
                 <h3 className="text-xl font-light tracking-tight text-white sm:text-2xl lg:text-3xl">
                   AI Market Briefing
