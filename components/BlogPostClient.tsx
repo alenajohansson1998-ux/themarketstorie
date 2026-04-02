@@ -71,6 +71,52 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+function formatAnchorLabel(href: string): string {
+  try {
+    const url = new URL(href);
+    const hostname = url.hostname.replace(/^www\./i, '');
+    const pathSegments = url.pathname
+      .split('/')
+      .filter(Boolean)
+      .slice(0, 2);
+
+    if (pathSegments.length === 0) {
+      return hostname;
+    }
+
+    return `${hostname}/${pathSegments.join('/')}`;
+  } catch {
+    return href.replace(/^https?:\/\//i, '');
+  }
+}
+
+function normalizeAnchorText(html: string): string {
+  if (!html) return '';
+
+  return html.replace(
+    /<a\b([^>]*)href="([^"]+)"([^>]*)>([\s\S]*?)<\/a>/gi,
+    (match, beforeHref: string, href: string, afterHref: string, innerHtml: string) => {
+      const plainText = innerHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!plainText) {
+        return match;
+      }
+
+      const normalizedText = plainText.replace(/\/+$/, '');
+      const normalizedHref = href.trim().replace(/\/+$/, '');
+      const looksLikeRawUrl =
+        /^https?:\/\//i.test(plainText) ||
+        normalizedText.toLowerCase() === normalizedHref.toLowerCase();
+
+      if (!looksLikeRawUrl) {
+        return match;
+      }
+
+      const label = escapeHtml(formatAnchorLabel(href));
+      return `<a${beforeHref}href="${href}"${afterHref}>${label}</a>`;
+    }
+  );
+}
+
 function normalizeArticleContent(content: string): string {
   const trimmed = content.trim();
   if (!trimmed) return '';
@@ -150,15 +196,15 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
   // State for all tags
   const [allTags, setAllTags] = useState<{ _id: string; name: string; slug: string }[]>([]);
   const sanitizedExternalContent = useMemo(
-    () => sanitizeRichHtml(normalizeArticleContent(externalNews?.content || '')),
+    () => normalizeAnchorText(sanitizeRichHtml(normalizeArticleContent(externalNews?.content || ''))),
     [externalNews?.content]
   );
   const sanitizedPostContent = useMemo(
-    () => sanitizeRichHtml(normalizeArticleContent(post?.content || '')),
+    () => normalizeAnchorText(sanitizeRichHtml(normalizeArticleContent(post?.content || ''))),
     [post?.content]
   );
   const sanitizedAiArticleContent = useMemo(
-    () => sanitizeRichHtml(normalizeArticleContent(aiArticle?.content || '')),
+    () => normalizeAnchorText(sanitizeRichHtml(normalizeArticleContent(aiArticle?.content || ''))),
     [aiArticle?.content]
   );
 
@@ -397,8 +443,8 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
     return (
       <>
         <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-center items-start gap-8">
-            <div className="relative w-full md:max-w-3xl">
+          <div className="w-full flex flex-col md:flex-row items-start gap-8">
+            <div className="relative w-full md:min-w-0 md:flex-1">
               <div className="hidden xl:block absolute -left-28 top-0 w-20">
                 <div className="sticky top-32 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
                   <ShareButtons
@@ -508,9 +554,9 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
     const articleTags = Array.isArray(aiArticle.tags) ? aiArticle.tags : [];
     return (
       <>
-        <main className="min-h-screen bg-gray-50 py-20 px-2 sm:px-8 lg:px-16">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-center items-start gap-14">
-            <div className="relative w-full md:max-w-4xl">
+        <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+          <div className="w-full flex flex-col md:flex-row items-start gap-8 lg:gap-10">
+            <div className="relative w-full md:min-w-0 md:flex-1">
               <div className="hidden xl:block absolute -left-28 top-0 w-20">
                 <div className="sticky top-32 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
                   <ShareButtons
@@ -523,11 +569,11 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
                   />
                 </div>
               </div>
-              <article className="w-full bg-white rounded-3xl shadow-2xl p-16 border border-gray-100 min-h-[900px]">
-                <h1 className="text-4xl font-extrabold mb-8 leading-tight text-gray-900">
+              <article className="w-full min-h-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xl sm:rounded-3xl sm:p-6 lg:p-10">
+                <h1 className="mb-6 text-2xl font-extrabold leading-tight text-gray-900 sm:text-3xl lg:mb-8 lg:text-4xl">
                   {aiArticle.title}
                 </h1>
-                <div className="flex flex-wrap items-center gap-4 text-base text-gray-500 mb-8">
+                <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-gray-500 sm:text-base lg:mb-8">
                   <span className="flex items-center">
                     <User className="inline w-5 h-5 mr-2" />
                     {aiArticle.author?.name || 'AI Desk'}
@@ -591,9 +637,9 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
   if (post) {
     return (
       <>
-        <main className="min-h-screen bg-gray-50 py-20 px-2 sm:px-8 lg:px-16">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-center items-start gap-14">
-            <div className="relative w-full md:max-w-4xl">
+        <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+          <div className="w-full flex flex-col md:flex-row items-start gap-8 lg:gap-10">
+            <div className="relative w-full md:min-w-0 md:flex-1">
               <div className="hidden xl:block absolute -left-28 top-0 w-20">
                 <div className="sticky top-32 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
                   <ShareButtons
@@ -606,9 +652,9 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
                   />
                 </div>
               </div>
-            <article className="w-full bg-white rounded-3xl shadow-2xl p-16 border border-gray-100 min-h-[1200px]">
-              <h1 className="text-4xl font-extrabold mb-8 leading-tight text-gray-900">{post.title}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-base text-gray-500 mb-8">
+            <article className="w-full min-h-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xl sm:rounded-3xl sm:p-6 lg:p-10">
+              <h1 className="mb-6 text-2xl font-extrabold leading-tight text-gray-900 sm:text-3xl lg:mb-8 lg:text-4xl">{post.title}</h1>
+              <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-gray-500 sm:text-base lg:mb-8">
                 {post.author ? (
                   <Link
                     href={post.author.slug ? `/author/${post.author.slug}` : `/author/${post.author._id}`}

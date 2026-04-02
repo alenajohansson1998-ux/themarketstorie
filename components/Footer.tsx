@@ -5,7 +5,7 @@ export default function Footer({ className = "" }) {
     <footer className={`w-full bg-black text-gray-300 text-sm ${className}`}>
       
       {/* FULL WIDTH CONTENT */}
-      <div className="px-8 py-12">
+      <div className="site-shell px-8 py-12">
 
         {/* Brand */}
         <div className="mb-2">

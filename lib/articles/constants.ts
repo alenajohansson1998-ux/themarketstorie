@@ -8,6 +8,14 @@ export const ARTICLE_TYPES = [
 
 export type ArticleType = (typeof ARTICLE_TYPES)[number];
 
+export const ARTICLE_CATEGORY_SLUG_BY_TYPE: Record<ArticleType, string> = {
+  global: "global-markets",
+  crypto: "crypto",
+  commodity: "commodities",
+  business: "business-deals",
+  geopolitical: "geopolitics",
+};
+
 export const ARTICLE_STATUSES = ["draft", "review", "published"] as const;
 export type ArticleStatus = (typeof ARTICLE_STATUSES)[number];
 

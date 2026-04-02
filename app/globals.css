@@ -76,6 +76,10 @@
   --glass-radius: 22px;
   --glass-shadow: 0 4px 32px 0 rgba(30,32,37,0.08), 0 1.5px 6px 0 rgba(30,32,37,0.04);
   --font-sans: 'Inter', sans-serif;
+  --site-max-7xl: 76rem;
+  --site-max-6xl: 69rem;
+  --site-max-5xl: 61rem;
+  --site-max-4xl: 53rem;
 }
 
 
@@ -256,6 +260,28 @@ body, p, td, th, .meta, .caption {
 .live-ticker__sep {
   margin-left: 0.35rem;
   color: #d1d5db;
+}
+
+.site-shell {
+  width: 100%;
+  max-width: none;
+  margin-inline: auto;
+}
+
+.max-w-7xl {
+  max-width: none;
+}
+
+.max-w-6xl {
+  max-width: none;
+}
+
+.max-w-5xl {
+  max-width: none;
+}
+
+.max-w-4xl {
+  max-width: none;
 }
 
 @keyframes ticker-marquee {

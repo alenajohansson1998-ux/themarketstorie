@@ -15,6 +15,7 @@ import StockMarketsCategoryGrid from '../components/StockMarketsCategoryGrid';
 import TickerBarClientWrapper from '../components/TickerBarClientWrapper';
 import HeroBanner from '../components/HeroBanner';
 import FeaturedAiArticlesSection from '../components/FeaturedAiArticlesSection';
+import WorldMarketHeatMapSection from '../components/WorldMarketHeatMapSection';
 
 
 import React, { useEffect, useState } from 'react';
@@ -60,40 +61,41 @@ export default function Home() {
         <link rel="canonical" href="https://themarketstories.com/" />
       </Head>
       <div className="min-h-screen flex flex-col custom-scrollbar">
-        <main className="flex-1 bg-gray-50 py-6 w-full pt-0">
+        <main className="flex-1 w-full bg-gray-50 pb-4 pt-0 sm:pb-6">
           {/* Hero Banner at the very top */}
           <HeroBanner />
           {/* Add ticker bar directly after hero banner, before all main content */}
           <TickerBarClientWrapper />
           <FeaturedAiArticlesSection />
-          <div className="w-full px-4 md:px-6 xl:px-8">
+          <div className="site-shell w-full px-4 md:px-6 xl:px-8">
             {/* SEO H1 Heading */}
-            <div className="w-full mt-6">
-              <h1 className="text-4xl font-extrabold text-black mb-4 tracking-tight text-center drop-shadow-sm">
+            <div className="mt-5 w-full sm:mt-6">
+              <h1 className="mb-4 text-center text-3xl font-extrabold tracking-tight text-black drop-shadow-sm sm:text-4xl">
                 Smart Market Insights for Investors, Traders & Analysts
               </h1>
             </div>
             {/* Top News Grid Section */}
-            <div className="bg-white py-6 border-b border-gray-200 w-full rounded-2xl shadow-sm">
+            <div className="w-full rounded-2xl border-b border-gray-200 bg-white py-4 shadow-sm sm:py-6">
               <div className="w-full px-4 md:px-6">
-                <h2 className="text-2xl font-bold text-black mb-4 tracking-tight">Today&apos;s Top Market Stories</h2>
+                <h2 className="mb-4 text-xl font-bold tracking-tight text-black sm:text-2xl">Today&apos;s Top Market Stories</h2>
                 <HomeTopNewsGrid />
                 <p className="mt-4 text-base text-gray-700 w-full text-left">
                   TheMarketStories is a trusted financial news platform offering live stock market updates, in-depth market analysis, and real-time insights across global and Indian markets. We cover equities, cryptocurrencies, commodities, economic events, and technical analysis to help traders and investors understand market movements and identify opportunities with confidence.
                 </p>
               </div>
             </div>
+            <WorldMarketHeatMapSection />
             <div className="w-full mt-8">
               <HomeBodyLayout>
               {/* News Section */}
               <section className="mb-12">
-                <h2 className="text-2xl font-bold text-black mb-4">Live Stock Market Charts & Technical Analysis</h2>
+                <h2 className="mb-4 text-xl font-bold text-black sm:text-2xl">Live Stock Market Charts & Technical Analysis</h2>
                 <TradingViewChart />
               </section>
               <div className="border-b border-gray-300 my-8"></div>
               {/* Stock Markets Category Grid */}
               <section className="mb-12">
-                <h2 className="text-2xl font-bold text-black mb-4">Latest Stock Market News</h2>
+                <h2 className="mb-4 text-xl font-bold text-black sm:text-2xl">Latest Stock Market News</h2>
                 <p className="seo-subtext mb-6">
                   Breaking updates, market-moving headlines, and real-time stock market developments.
                 </p>
@@ -102,7 +104,7 @@ export default function Home() {
               <div className="border-b border-gray-300 my-8"></div>
               {/* Markets Overview */}
               <section className="mb-12">
-                <h2 className="text-2xl font-bold text-black mb-4">Market Performance Overview</h2>
+                <h2 className="mb-4 text-xl font-bold text-black sm:text-2xl">Market Performance Overview</h2>
                 <p className="seo-text mb-6">
                   Track real-time market performance across global stock indices, commodities, and cryptocurrencies. This section provides live prices, daily changes, and percentage movements to help investors quickly assess overall market trends and identify key opportunities across major asset classes.
                 </p>
@@ -121,7 +123,7 @@ export default function Home() {
               <div className="border-b border-gray-300 my-8"></div>
               {/* Analysis & Opinion */}
               <section className="mb-12">
-                <h2 className="text-2xl font-bold text-black mb-4">Market Analysis & Expert Opinions</h2>
+                <h2 className="mb-4 text-xl font-bold text-black sm:text-2xl">Market Analysis & Expert Opinions</h2>
                 <AnalysisOpinionSection />
               </section>
               <div className="border-b border-gray-300 my-8"></div>

@@ -11,7 +11,7 @@ interface TradingViewChartProps {
 
 export default function TradingViewChart({
   symbol = "NASDAQ:AAPL",
-  height = 600,
+  height = 620,
   theme = "dark",
   interval = "1",
 }: TradingViewChartProps) {
@@ -32,10 +32,12 @@ export default function TradingViewChart({
     return () => {
       document.body.removeChild(script);
     };
-  }, [symbol]);
+  }, [symbol, height, theme, interval]);
 
   const createWidget = () => {
     if (!containerRef.current || !(window as any).TradingView) return;
+
+    containerRef.current.innerHTML = "";
 
     new (window as any).TradingView.widget({
       container_id: containerRef.current.id,
@@ -61,7 +63,7 @@ export default function TradingViewChart({
     <div
       id="tv_chart_container"
       ref={containerRef}
-      style={{ width: "100%", height }}
+      style={{ width: "100%", height, minHeight: 520 }}
     />
   );
 }

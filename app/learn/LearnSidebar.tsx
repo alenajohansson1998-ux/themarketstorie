@@ -4,7 +4,7 @@ const MarketSidebar = dynamic(() => import("@/app/components/sidebar/MarketSideb
 
 export default function LearnSidebar() {
   return (
-    <aside className="hidden lg:block w-[360px] min-h-screen p-3 space-y-4 border-l bg-white sticky top-0">
+    <aside className="sticky top-0 hidden w-full max-w-[320px] shrink-0 bg-white xl:block">
       <MarketSidebar />
     </aside>
   );

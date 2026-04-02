@@ -78,7 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="antialiased pt-34 layout-flex" suppressHydrationWarning={true}>
+      <body className="layout-flex antialiased pt-24 sm:pt-28 md:pt-34" suppressHydrationWarning={true}>
         <Providers>
           {!isAdmin && <Header />}
           {!isAdmin && <LiveTicker />}

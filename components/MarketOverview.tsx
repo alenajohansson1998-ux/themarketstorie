@@ -159,7 +159,7 @@ function MarketOverview() {
 
   if (loading) {
     return (
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin" />
           <span className="ml-2">Loading market data...</span>
@@ -170,7 +170,7 @@ function MarketOverview() {
 
   if (error) {
     return (
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="flex items-center justify-center h-64 text-red-600">
           <span>{error}</span>
         </div>
@@ -283,14 +283,14 @@ function MarketOverview() {
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex flex-col lg:flex-row gap-6">
+    <Card className="p-4 sm:p-6">
+      <div className="flex flex-col gap-6 lg:flex-row">
         {/* Left: Market Table (60%) */}
         <div className="w-full lg:w-3/5 min-w-0">
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-bold">Markets</h2>
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-1 text-green-600 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center space-x-1 text-sm text-green-600">
                 <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
                 <span>Live</span>
               </div>
@@ -319,8 +319,8 @@ function MarketOverview() {
           </div>
 
           {/* Market data table - Spreadsheet style */}
-          <div className="overflow-x-auto border-2 border-blue-500 rounded-lg">
-            <table className="w-full border-collapse text-sm">
+          <div className="overflow-x-auto rounded-lg border-2 border-blue-500">
+            <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
                 <tr className="bg-[#efe7df] text-gray-800">
                   <th className="border px-3 py-2 text-left">Name</th>
@@ -415,18 +415,18 @@ function MarketOverview() {
           </div>
         </div>
         {/* Right: TradingView Chart Section (40%) */}
-        <div className="w-full lg:w-2/5 shrink-0 flex flex-col items-center justify-start">
-          <div className="bg-white rounded-lg shadow pt-22 p-4 w-full flex flex-col items-center">
+        <div className="flex w-full shrink-0 flex-col items-center justify-start lg:w-2/5">
+          <div className="flex w-full flex-col items-center rounded-lg bg-white p-4 pt-4 shadow sm:pt-6">
             <span className="font-semibold mb-2">Bitcoin Price Chart</span>
             <div className="w-full" style={{ minWidth: 0 }}>
               <iframe
                 title="TradingView BTCUSDT Chart"
                 src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_12345&amp;symbol=BINANCE:BTCUSDT&amp;interval=D&amp;hidesidetoolbar=1&amp;symboledit=1&amp;saveimage=1&amp;toolbarbg=f1f3f6&amp;studies=[]&amp;theme=light&amp;style=1&amp;timezone=Etc/UTC&amp;withdateranges=1&amp;hidevolume=1&amp;allow_symbol_change=1&amp;hideideas=1&amp;studies_overrides={}&amp;overrides={}&amp;enabled_features=[]&amp;disabled_features=[]&amp;locale=en"
                 width="100%"
-                height="400"
+                height="360"
                 allowFullScreen
                 frameBorder="0"
-                style={{ border: 0, borderRadius: 8, width: '80%', minHeight: 320 }}
+                style={{ border: 0, borderRadius: 8, width: "100%", minHeight: 260 }}
               ></iframe>
             </div>
             <span className="text-xs text-gray-500 mt-2">Powered by TradingView</span>

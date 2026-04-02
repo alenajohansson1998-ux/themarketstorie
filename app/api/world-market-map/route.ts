@@ -1,23 +1,18 @@
 import { NextResponse } from "next/server";
 
+import countryGeoMetadata from "@/data/country-geo-metadata.json";
+import {
+  WORLD_MARKET_CONFIG,
+  type MarketCountryCode,
+  type WorldMarketConfigEntry,
+} from "@/lib/worldMarketConfig";
+
 export const revalidate = 60;
 export const runtime = "nodejs";
 
-type CountryCode =
-  | "US"
-  | "CA"
-  | "BR"
-  | "MX"
-  | "GB"
-  | "DE"
-  | "FR"
-  | "JP"
-  | "CN"
-  | "IN"
-  | "AU"
-  | "KR";
-
-type MarketMapResponse = Partial<Record<CountryCode, number>>;
+type MarketMapValues = Record<string, number>;
+type MarketMapSource = "polygon" | "finnhub" | "mixed" | "none";
+type CountryGeoMetadataMap = Record<string, [string, string, string]>;
 
 interface AggResult {
   c?: number;
@@ -28,74 +23,33 @@ interface PolygonAggResponse {
   results?: AggResult[];
 }
 
-interface IndexMapping {
-  indexSymbol: string;
-  polygonTickers: string[];
-  finnhubSymbols: string[];
+interface FinnhubQuoteResponse {
+  dp?: number;
 }
 
-const COUNTRY_INDEX_MAP: Record<CountryCode, IndexMapping> = {
-  US: {
-    indexSymbol: "^GSPC",
-    polygonTickers: ["I:SPX", "I:GSPC"],
-    finnhubSymbols: ["SPY"],
-  },
-  CA: {
-    indexSymbol: "^GSPTSE",
-    polygonTickers: ["I:SPTSX", "I:GSPTSE"],
-    finnhubSymbols: ["EWC"],
-  },
-  BR: {
-    indexSymbol: "^BVSP",
-    polygonTickers: ["I:IBOV", "I:BVSP"],
-    finnhubSymbols: ["EWZ"],
-  },
-  MX: {
-    indexSymbol: "^MXX",
-    polygonTickers: ["I:MXX"],
-    finnhubSymbols: ["EWW"],
-  },
-  GB: {
-    indexSymbol: "^FTSE",
-    polygonTickers: ["I:UKX", "I:FTSE"],
-    finnhubSymbols: ["EWU"],
-  },
-  DE: {
-    indexSymbol: "^GDAXI",
-    polygonTickers: ["I:DAX", "I:GDAXI"],
-    finnhubSymbols: ["EWG"],
-  },
-  FR: {
-    indexSymbol: "^FCHI",
-    polygonTickers: ["I:CAC", "I:FCHI"],
-    finnhubSymbols: ["EWQ"],
-  },
-  JP: {
-    indexSymbol: "^N225",
-    polygonTickers: ["I:N225", "I:NKY"],
-    finnhubSymbols: ["EWJ"],
-  },
-  CN: {
-    indexSymbol: "000001.SS",
-    polygonTickers: ["I:000001", "I:SSEC"],
-    finnhubSymbols: ["MCHI"],
-  },
-  IN: {
-    indexSymbol: "^BSESN",
-    polygonTickers: ["I:SENSEX", "I:BSESN"],
-    finnhubSymbols: ["INDA"],
-  },
-  AU: {
-    indexSymbol: "^AXJO",
-    polygonTickers: ["I:XJO", "I:AXJO"],
-    finnhubSymbols: ["EWA"],
-  },
-  KR: {
-    indexSymbol: "^KS11",
-    polygonTickers: ["I:KOSPI", "I:KS11"],
-    finnhubSymbols: ["EWY"],
-  },
-};
+interface MarketMapMeta {
+  count: number;
+  directCount: number;
+  proxyCount: number;
+  source: MarketMapSource;
+  directCodes: string[];
+  hasPolygonKey?: boolean;
+  hasFinnhubKey?: boolean;
+}
+
+interface MarketMapApiResponse {
+  values: MarketMapValues;
+  meta: MarketMapMeta;
+}
+
+const COUNTRY_GEO_METADATA = countryGeoMetadata as unknown as CountryGeoMetadataMap;
+
+const COUNTRY_META_BY_CODE = Object.entries(COUNTRY_GEO_METADATA).reduce<
+  Record<string, { numericCode: string; region: string; subregion: string }>
+>((acc, [numericCode, [countryCode, region, subregion]]) => {
+  acc[countryCode] = { numericCode, region, subregion };
+  return acc;
+}, {});
 
 const POLYGON_BASE_URL = "https://api.polygon.io";
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
@@ -104,13 +58,12 @@ const CACHE_TTL_MS = 55_000;
 let memoryCache:
   | {
       expiresAt: number;
-      data: MarketMapResponse;
-      source: "polygon" | "finnhub" | "mixed" | "none";
-      inflight?: Promise<MarketMapResponse>;
+      payload: MarketMapApiResponse;
+      inflight?: Promise<MarketMapApiResponse>;
     }
   | undefined;
 
-let lastSource: "polygon" | "finnhub" | "mixed" | "none" = "none";
+let lastSource: MarketMapSource = "none";
 
 function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -122,6 +75,86 @@ function clamp(value: number, min: number, max: number): number {
 
 function toFixedNumber(value: number, digits = 2): number {
   return Number(value.toFixed(digits));
+}
+
+function averageNumbers(values: number[]): number | null {
+  if (!values.length) {
+    return null;
+  }
+
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return toFixedNumber(total / values.length);
+}
+
+function addBucketValue(bucket: Map<string, number[]>, key: string, value: number) {
+  if (!key) {
+    return;
+  }
+
+  const existing = bucket.get(key);
+  if (existing) {
+    existing.push(value);
+  } else {
+    bucket.set(key, [value]);
+  }
+}
+
+function buildFilledCountryValues(directValues: Record<string, number>): MarketMapValues {
+  const subregionBuckets = new Map<string, number[]>();
+  const regionBuckets = new Map<string, number[]>();
+  const globalValues: number[] = [];
+
+  for (const [countryCode, value] of Object.entries(directValues)) {
+    const meta = COUNTRY_META_BY_CODE[countryCode];
+    if (!meta || !Number.isFinite(value)) {
+      continue;
+    }
+
+    globalValues.push(value);
+    addBucketValue(subregionBuckets, meta.subregion, value);
+    addBucketValue(regionBuckets, meta.region, value);
+  }
+
+  const subregionAverages = new Map<string, number>();
+  const regionAverages = new Map<string, number>();
+
+  for (const [key, values] of subregionBuckets.entries()) {
+    const average = averageNumbers(values);
+    if (typeof average === "number") {
+      subregionAverages.set(key, average);
+    }
+  }
+
+  for (const [key, values] of regionBuckets.entries()) {
+    const average = averageNumbers(values);
+    if (typeof average === "number") {
+      regionAverages.set(key, average);
+    }
+  }
+
+  const globalAverage = averageNumbers(globalValues);
+  const output: MarketMapValues = {};
+
+  for (const [numericCode, [countryCode, region, subregion]] of Object.entries(COUNTRY_GEO_METADATA)) {
+    if (region === "Antarctic") {
+      continue;
+    }
+
+    const directValue = directValues[countryCode];
+    if (typeof directValue === "number" && Number.isFinite(directValue)) {
+      output[numericCode] = directValue;
+      continue;
+    }
+
+    const proxyValue =
+      subregionAverages.get(subregion) ?? regionAverages.get(region) ?? globalAverage;
+
+    if (typeof proxyValue === "number" && Number.isFinite(proxyValue)) {
+      output[numericCode] = proxyValue;
+    }
+  }
+
+  return output;
 }
 
 async function fetchDailyChangePercent(
@@ -169,10 +202,6 @@ async function fetchDailyChangePercent(
   return toFixedNumber(clamp(pct, -25, 25));
 }
 
-interface FinnhubQuoteResponse {
-  dp?: number;
-}
-
 async function fetchFinnhubChangePercent(
   apiKey: string,
   symbol: string
@@ -201,7 +230,7 @@ async function fetchFinnhubChangePercent(
 async function fetchCountryChange(
   polygonApiKey: string,
   finnhubApiKey: string,
-  mapping: IndexMapping
+  mapping: WorldMarketConfigEntry
 ): Promise<{ change: number | null; source: "polygon" | "finnhub" | null }> {
   if (polygonApiKey) {
     for (const ticker of mapping.polygonTickers) {
@@ -224,17 +253,29 @@ async function fetchCountryChange(
   return { change: null, source: null };
 }
 
-async function fetchWorldMarketMapData(): Promise<MarketMapResponse> {
+async function fetchWorldMarketMapData(): Promise<MarketMapApiResponse> {
   const polygonApiKey =
     process.env.POLYGON_API_KEY || process.env.NEXT_PUBLIC_POLYGON_API_KEY || "";
   const finnhubApiKey = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_KEY || "";
 
   if (!polygonApiKey && !finnhubApiKey) {
     lastSource = "none";
-    return {};
+    return {
+      values: {},
+      meta: {
+        count: 0,
+        directCount: 0,
+        proxyCount: 0,
+        source: "none",
+        directCodes: [],
+      },
+    };
   }
 
-  const entries = Object.entries(COUNTRY_INDEX_MAP) as Array<[CountryCode, IndexMapping]>;
+  const entries = Object.entries(WORLD_MARKET_CONFIG) as Array<
+    [MarketCountryCode, WorldMarketConfigEntry]
+  >;
+
   let polygonCount = 0;
   let finnhubCount = 0;
 
@@ -245,20 +286,26 @@ async function fetchWorldMarketMapData(): Promise<MarketMapResponse> {
     })
   );
 
-  const output: MarketMapResponse = {};
+  const directValues: Record<string, number> = {};
+  const directCodes: string[] = [];
+
   for (const item of settled) {
     if (item.status !== "fulfilled") {
       continue;
     }
 
     const { countryCode, change, source } = item.value;
-    if (typeof change === "number" && Number.isFinite(change)) {
-      output[countryCode] = change;
-      if (source === "polygon") {
-        polygonCount += 1;
-      } else if (source === "finnhub") {
-        finnhubCount += 1;
-      }
+    if (typeof change !== "number" || !Number.isFinite(change)) {
+      continue;
+    }
+
+    directValues[countryCode] = change;
+    directCodes.push(countryCode);
+
+    if (source === "polygon") {
+      polygonCount += 1;
+    } else if (source === "finnhub") {
+      finnhubCount += 1;
     }
   }
 
@@ -272,14 +319,26 @@ async function fetchWorldMarketMapData(): Promise<MarketMapResponse> {
     lastSource = "none";
   }
 
-  return output;
+  const values = buildFilledCountryValues(directValues);
+  const count = Object.keys(values).length;
+
+  return {
+    values,
+    meta: {
+      count,
+      directCount: directCodes.length,
+      proxyCount: Math.max(count - directCodes.length, 0),
+      source: lastSource,
+      directCodes,
+    },
+  };
 }
 
-async function getCachedWorldMarketMapData(): Promise<MarketMapResponse> {
+async function getCachedWorldMarketMapData(): Promise<MarketMapApiResponse> {
   const now = Date.now();
 
   if (memoryCache && memoryCache.expiresAt > now) {
-    return memoryCache.data;
+    return memoryCache.payload;
   }
 
   if (memoryCache?.inflight) {
@@ -287,27 +346,49 @@ async function getCachedWorldMarketMapData(): Promise<MarketMapResponse> {
   }
 
   const inflight = fetchWorldMarketMapData()
-    .then((data) => {
+    .then((payload) => {
       memoryCache = {
-        data,
-        source: lastSource,
+        payload,
         expiresAt: Date.now() + CACHE_TTL_MS,
       };
-      return data;
+      return payload;
     })
     .catch((error) => {
       console.error("[world-market-map] fetch failed:", error);
+      const fallbackPayload =
+        memoryCache?.payload ||
+        ({
+          values: {},
+          meta: {
+            count: 0,
+            directCount: 0,
+            proxyCount: 0,
+            source: "none",
+            directCodes: [],
+          },
+        } satisfies MarketMapApiResponse);
+
       memoryCache = {
-        data: memoryCache?.data || {},
-        source: memoryCache?.source || "none",
+        payload: fallbackPayload,
         expiresAt: Date.now() + 10_000,
       };
-      return memoryCache.data;
+
+      return fallbackPayload;
     });
 
   memoryCache = {
-    data: memoryCache?.data || {},
-    source: memoryCache?.source || "none",
+    payload:
+      memoryCache?.payload ||
+      ({
+        values: {},
+        meta: {
+          count: 0,
+          directCount: 0,
+          proxyCount: 0,
+          source: "none",
+          directCodes: [],
+        },
+      } satisfies MarketMapApiResponse),
     expiresAt: 0,
     inflight,
   };
@@ -316,18 +397,15 @@ async function getCachedWorldMarketMapData(): Promise<MarketMapResponse> {
 }
 
 export async function GET(request: Request) {
-  const data = await getCachedWorldMarketMapData();
-  const count = Object.keys(data).length;
+  const payload = await getCachedWorldMarketMapData();
   const { searchParams } = new URL(request.url);
   const isDebug = searchParams.get("debug") === "1";
 
-  if (isDebug) {
-    return NextResponse.json(
-      {
-        data,
+  const responsePayload = isDebug
+    ? {
+        ...payload,
         meta: {
-          count,
-          source: memoryCache?.source || lastSource,
+          ...payload.meta,
           hasPolygonKey: Boolean(
             process.env.POLYGON_API_KEY || process.env.NEXT_PUBLIC_POLYGON_API_KEY
           ),
@@ -335,20 +413,15 @@ export async function GET(request: Request) {
             process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_KEY
           ),
         },
-      },
-      {
-        headers: {
-          "Cache-Control": "no-store",
-        },
       }
-    );
-  }
+    : payload;
 
-  return NextResponse.json(data, {
+  return NextResponse.json(responsePayload, {
     headers: {
-      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-      "X-Market-Map-Source": memoryCache?.source || lastSource,
-      "X-Market-Map-Count": String(count),
+      "Cache-Control": isDebug ? "no-store" : "public, s-maxage=60, stale-while-revalidate=120",
+      "X-Market-Map-Source": payload.meta.source,
+      "X-Market-Map-Count": String(payload.meta.count),
+      "X-Market-Map-Direct-Count": String(payload.meta.directCount),
     },
   });
 }

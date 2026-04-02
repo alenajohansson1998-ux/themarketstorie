@@ -1,14 +1,8 @@
 import mongoose from "mongoose";
 import Category from "@/models/Category";
-import { ArticleType } from "./constants";
+import { ArticleType, ARTICLE_CATEGORY_SLUG_BY_TYPE } from "./constants";
 
-export const CATEGORY_SLUG_BY_TYPE: Record<ArticleType, string> = {
-  global: "global-markets",
-  crypto: "crypto",
-  commodity: "commodities",
-  business: "business-deals",
-  geopolitical: "geopolitics",
-};
+export const CATEGORY_SLUG_BY_TYPE = ARTICLE_CATEGORY_SLUG_BY_TYPE;
 
 export const DEFAULT_ARTICLE_CATEGORIES = [
   { name: "Global Markets", slug: CATEGORY_SLUG_BY_TYPE.global },

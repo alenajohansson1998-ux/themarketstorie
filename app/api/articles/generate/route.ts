@@ -2,17 +2,17 @@ import { getServerSession } from "next-auth/next";
 import { NextRequest, NextResponse } from "next/server";
 import { authConfig } from "@/auth.config";
 import { isArticleType, ArticleType } from "@/lib/articles/constants";
+import {
+  buildArticleWritingContext,
+  type ArticleGenerateMode,
+} from "@/lib/articles/generationContext";
 import { getArticlePrompt } from "@/lib/articles/prompts";
 import { canManageArticles } from "@/lib/articles/workflow";
 import { sanitizeRichHtml } from "@/lib/sanitizeHtml";
 import { toSlug } from "@/lib/articles/slug";
 
 type AIProvider = "auto" | "openai" | "gemini";
-type GenerateMode =
-  | "default"
-  | "daily_market_overview"
-  | "daily_crypto_update"
-  | "daily_commodities_geopolitical_report";
+type GenerateMode = ArticleGenerateMode;
 
 interface GenerateRequestBody {
   title?: string;
@@ -311,6 +311,170 @@ function extractJsonObject(raw: string): Record<string, unknown> {
   }
 }
 
+function cleanupGeneratedText(value: string): string {
+  if (!value) return "";
+
+  const replacements: Array<[RegExp, string]> = [
+    [/â€™/g, "'"],
+    [/â€˜/g, "'"],
+    [/â€œ/g, '"'],
+    [/â€/g, '"'],
+    [/â€“/g, "-"],
+    [/â€”/g, "-"],
+    [/â€¦/g, "..."],
+    [/â€¢/g, "*"],
+    [/Â/g, ""],
+    [/Ã©/g, "e"],
+    [/Ã¨/g, "e"],
+    [/Ãª/g, "e"],
+    [/Ã¡/g, "a"],
+    [/Ã /g, "a"],
+    [/Ã¢/g, "a"],
+    [/Ã¤/g, "a"],
+    [/Ã¶/g, "o"],
+    [/Ã³/g, "o"],
+    [/Ã²/g, "o"],
+    [/Ã´/g, "o"],
+    [/Ã¼/g, "u"],
+    [/Ãº/g, "u"],
+    [/Ã¹/g, "u"],
+    [/Ã±/g, "n"],
+    [/Ã§/g, "c"],
+    [/\u00a0/g, " "],
+  ];
+
+  let clean = value;
+  for (const [pattern, replacement] of replacements) {
+    clean = clean.replace(pattern, replacement);
+  }
+
+  return clean.replace(/\s+\n/g, "\n").trim();
+}
+
+function normalizeGeneratedTitle(value: string): string {
+  const original = cleanupGeneratedText(value).replace(/\s+/g, " ").trim();
+  if (!original) return "";
+
+  const prefixPatterns = [
+    /^crypto and digital assets update:\s*/i,
+    /^crypto market update:\s*/i,
+    /^daily crypto update:\s*/i,
+    /^global markets today:\s*/i,
+    /^global market update:\s*/i,
+    /^commodities and geopolitical risk report:\s*/i,
+    /^commodities weekly report:\s*/i,
+    /^market wrap:\s*/i,
+    /^federal reserve outlook drives global markets:\s*/i,
+  ];
+
+  let normalized = original;
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const pattern of prefixPatterns) {
+      if (pattern.test(normalized)) {
+        normalized = normalized.replace(pattern, "").trim();
+        changed = true;
+      }
+    }
+  }
+
+  normalized = normalized.replace(/^[-:–—\s]+/, "").trim();
+  return normalized || original;
+}
+
+function escapeHtmlText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatSourceLabel(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./i, "");
+    if (host === "news.google.com") {
+      return "Google News";
+    }
+    const path = parsed.pathname.replace(/\/+$/g, "");
+    const query = parsed.search ? parsed.search.slice(0, 20) : "";
+    const compact = `${host}${path}${query}`;
+    return compact.length > 88 ? `${compact.slice(0, 85)}...` : compact;
+  } catch {
+    return url;
+  }
+}
+
+function normalizeInlineAnchorLabels(html: string): string {
+  return html.replace(
+    /<a([^>]*)href="([^"]+)"([^>]*)>(https?:\/\/[^<]+)<\/a>/gi,
+    (_match, beforeHref: string, href: string, afterHref: string) =>
+      `<a${beforeHref}href="${href}"${afterHref}>${escapeHtmlText(formatSourceLabel(href))}</a>`
+  );
+}
+
+function normalizeSourcesSection(html: string): string {
+  const sectionPattern =
+    /<h2>\s*Sources\s*&(?:amp;)?\s*References\s*<\/h2>\s*<ul>([\s\S]*?)<\/ul>/i;
+  const match = html.match(sectionPattern);
+
+  if (!match) {
+    return html;
+  }
+
+  const listHtml = match[1] || "";
+  const anchors = [...listHtml.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
+  const seen = new Set<string>();
+  const items: string[] = [];
+
+  for (const anchor of anchors) {
+    const href = cleanupGeneratedText(anchor[1] || "");
+    if (!isHttpsUrl(href) || seen.has(href)) {
+      continue;
+    }
+
+    seen.add(href);
+    items.push(
+      `<li><a href="${escapeHtmlText(
+        href
+      )}" target="_blank" rel="noopener noreferrer">${escapeHtmlText(
+        formatSourceLabel(href)
+      )}</a></li>`
+    );
+  }
+
+  if (items.length === 0) {
+    return html.replace(sectionPattern, "");
+  }
+
+  return html.replace(
+    sectionPattern,
+    `<h2>Sources &amp; References</h2><ul>${items.join("")}</ul>`
+  );
+}
+
+function finalizeGeneratedHtml(inputHtml: string, title: string): string {
+  let clean = cleanupGeneratedText(inputHtml || "");
+  const normalizedTitle = normalizeGeneratedTitle(title);
+
+  if (/<h1\b/i.test(clean)) {
+    clean = clean.replace(
+      /<h1\b[^>]*>[\s\S]*?<\/h1>/i,
+      `<h1>${escapeHtmlText(normalizedTitle)}</h1>`
+    );
+  } else {
+    clean = `<h1>${escapeHtmlText(normalizedTitle)}</h1>${clean}`;
+  }
+
+  clean = normalizeInlineAnchorLabels(clean);
+  clean = normalizeSourcesSection(clean);
+
+  return sanitizeRichHtml(clean);
+}
+
 function normalizeGeneratedDraft(
   rawObject: Record<string, unknown>,
   fallbackTitle: string
@@ -320,28 +484,30 @@ function normalizeGeneratedDraft(
       ? (rawObject.seo as Record<string, unknown>)
       : {};
 
-  const title = getString(rawObject.title) || fallbackTitle;
-  const slug = toSlug(getString(rawObject.slug) || title);
-  const htmlInput = getString(rawObject.contentHtml) || getString(rawObject.content);
-  const content = sanitizeRichHtml(htmlInput);
+  const title = normalizeGeneratedTitle(getString(rawObject.title) || fallbackTitle);
+  const slug = toSlug(cleanupGeneratedText(getString(rawObject.slug)) || title);
+  const htmlInput = cleanupGeneratedText(
+    getString(rawObject.contentHtml) || getString(rawObject.content)
+  );
+  const content = finalizeGeneratedHtml(htmlInput, title);
   if (!content.trim()) {
     throw new Error("AI did not return usable article content");
   }
 
-  const excerptInput = getString(rawObject.excerpt);
+  const excerptInput = cleanupGeneratedText(getString(rawObject.excerpt));
   const excerpt = excerptInput
     ? stripHtml(sanitizeRichHtml(excerptInput))
     : stripHtml(content).slice(0, 220);
 
-  const tags = getStringArray(rawObject.tags);
-  const imageQuery = getString(rawObject.imageQuery) || title;
+  const tags = getStringArray(rawObject.tags).map((item) => cleanupGeneratedText(item));
+  const imageQuery = cleanupGeneratedText(getString(rawObject.imageQuery) || title);
   const metaTitle =
-    getString(rawObject.metaTitle) ||
-    getString(seoObject.metaTitle) ||
+    normalizeGeneratedTitle(getString(rawObject.metaTitle)) ||
+    normalizeGeneratedTitle(getString(seoObject.metaTitle)) ||
     title.slice(0, 65);
   const metaDescription =
-    getString(rawObject.metaDescription) ||
-    getString(seoObject.metaDescription) ||
+    cleanupGeneratedText(getString(rawObject.metaDescription)) ||
+    cleanupGeneratedText(getString(seoObject.metaDescription)) ||
     excerpt.slice(0, 160);
 
   return {
@@ -358,7 +524,19 @@ function normalizeGeneratedDraft(
   };
 }
 
-function buildDefaultPrompt(title: string, type: ArticleType): string {
+function buildSourceGroundingRules(context: string): string {
+  return `Verified context snapshot (use this as the only source for factual claims and links):
+${context || "No verified context was provided. Keep the article high-level and avoid specific unsupported facts, numbers, or quotes."}
+
+Grounding rules:
+- Every concrete event, statistic, timeline, quote, and source URL must come from the verified context above.
+- If the context does not support a detail, omit that detail instead of guessing.
+- Only use HTTPS links that already appear in the verified context.
+- Do not invent prices, percentage moves, official statements, analyst quotes, or publication links.
+- When adding anchors, use readable source labels instead of printing the raw URL as anchor text.`;
+}
+
+function buildDefaultPrompt(title: string, type: ArticleType, context: string): string {
   const basePrompt = getArticlePrompt(type);
   const today = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
@@ -371,6 +549,8 @@ function buildDefaultPrompt(title: string, type: ArticleType): string {
 
 Specific topic title: "${title}"
 Date context: ${today}
+
+${buildSourceGroundingRules(context)}
 
 Return ONLY valid JSON (no markdown, no code block) with this exact shape:
 {
@@ -386,22 +566,24 @@ Return ONLY valid JSON (no markdown, no code block) with this exact shape:
 
 Output rules:
 - Keep the title market-news professional.
+- Do not start the title with boilerplate labels like "Crypto Market Update:", "Crypto and Digital Assets Update:", "Global Markets Today:", or "Commodities Weekly Report:".
 - Provide slug as short SEO-friendly lowercase URL slug with hyphens only.
 - Provide imageQuery as 3 to 8 concise keywords suitable for finding a finance-related cover image.
 - contentHtml must be full rich HTML using headings and paragraphs:
   - Use one <h1> and multiple <h2> sections.
   - Use <p> for body text.
   - Optional <ul><li> where useful.
-- Include 3 to 6 natural in-text references using <a href="https://..."> anchors from trusted sources only.
-- End contentHtml with: <h2>Sources & References</h2> followed by a <ul> of the referenced links.
-- Use only real, publicly reachable HTTPS URLs. Never fabricate links.
+- Include 3 to 8 natural in-text references only when the verified context supports them.
+- End contentHtml with: <h2>Sources & References</h2> followed by a <ul> of the same links used in the article.
+- Use only real, publicly reachable HTTPS URLs already present in the verified context.
 - Do not include script/style/iframe.
 - Avoid generic AI disclaimers.
+- Keep unsupported commentary qualitative rather than numeric.
 - Keep excerpt between 25 and 45 words.
 - Keep metaTitle under 65 chars and metaDescription under 160 chars.`;
 }
 
-function buildDailyMarketOverviewPrompt(title: string): string {
+function buildDailyMarketOverviewPrompt(title: string, context: string): string {
   const today = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     year: "numeric",
@@ -414,6 +596,8 @@ function buildDailyMarketOverviewPrompt(title: string): string {
 Primary article context date: ${today}
 Working title seed: "${title}"
 
+${buildSourceGroundingRules(context)}
+
 Requirements:
 - Use a professional financial newsroom style.
 - Avoid repetition.
@@ -421,8 +605,8 @@ Requirements:
 - Use real index names.
 - Do not include disclaimers.
 - Do not use emojis.
-- Include natural in-text reference links from trusted sources (official institutions, exchanges, central banks, regulators, major financial publications).
-- Do not fabricate links.
+- Use natural in-text reference links only when they appear in the verified context.
+- Do not fabricate links or unsupported numbers.
 
 Write the article with this structure:
 Introduction:
@@ -483,10 +667,11 @@ Return ONLY valid JSON (no markdown, no code block) with this exact shape:
 
 Output rules:
 - Title must be strong and SEO-friendly about Federal Reserve rate expectations, Treasury yields movement, and global equity performance.
+- Do not prefix the title with labels like "Global Markets Today:" or "Federal Reserve Outlook Drives Global Markets:".
 - metaDescription must be 155 to 165 characters.
 - slug must be short, lowercase, and hyphen-separated.
 - contentHtml must include headings, paragraphs, and natural anchor links.
-- Use only publicly reachable HTTPS URLs.`;
+- Use only publicly reachable HTTPS URLs already present in verified context.`;
 }
 
 function buildDailyCryptoUpdatePrompt(title: string, context: string): string {
@@ -509,8 +694,7 @@ Focus:
 - Regulation headlines
 - Global crypto risk sentiment
 
-Verified data snapshot (highest priority facts and links):
-${context || "No structured snapshot provided. Use only broadly verifiable facts and avoid specific unsupported numbers."}
+${buildSourceGroundingRules(context)}
 
 Write the article with this structure:
 Introduction:
@@ -557,10 +741,11 @@ Return ONLY valid JSON (no markdown, no code block) with this exact shape:
 
 Output rules:
 - Create an SEO-friendly title around crypto market momentum and risk sentiment.
+- Do not prefix the title with labels like "Crypto Market Update:" or "Crypto and Digital Assets Update:".
 - Ensure metaDescription is 155 to 165 characters.
 - slug must be short, lowercase, and hyphen-separated.
 - Use real coin tickers (BTC, ETH, etc.) and natural anchor links.
-- Use only publicly reachable HTTPS links.
+- Use only publicly reachable HTTPS links already present in verified context.
 - Do not fabricate links or unsupported numeric claims.`;
 }
 
@@ -587,8 +772,7 @@ Required focus:
 - China demand outlook
 - Major geopolitical developments
 
-Verified data snapshot (highest priority facts and links):
-${context || "No structured snapshot provided. Use only broadly verifiable facts and avoid unsupported specific numbers."}
+${buildSourceGroundingRules(context)}
 
 Write the article with this structure:
 Introduction:
@@ -635,10 +819,11 @@ Return ONLY valid JSON (no markdown, no code block) with this exact shape:
 
 Output rules:
 - Use a strong SEO-friendly title for commodities and geopolitical risk.
+- Do not prefix the title with labels like "Commodities Weekly Report:" or "Commodities and Geopolitical Risk Report:".
 - metaDescription must be 155 to 165 characters.
 - slug must be short, lowercase, and hyphen-separated.
 - contentHtml must include natural anchor links to trusted sources.
-- Use only publicly reachable HTTPS URLs.
+- Use only publicly reachable HTTPS URLs already present in verified context.
 - Do not fabricate links or unsupported numeric claims.`;
 }
 
@@ -649,7 +834,7 @@ function buildPrompt(input: {
   context: string;
 }): string {
   if (input.mode === "daily_market_overview") {
-    return buildDailyMarketOverviewPrompt(input.title);
+    return buildDailyMarketOverviewPrompt(input.title, input.context);
   }
   if (input.mode === "daily_crypto_update") {
     return buildDailyCryptoUpdatePrompt(input.title, input.context);
@@ -657,7 +842,7 @@ function buildPrompt(input: {
   if (input.mode === "daily_commodities_geopolitical_report") {
     return buildDailyCommoditiesGeopoliticalPrompt(input.title, input.context);
   }
-  return buildDefaultPrompt(input.title, input.type);
+  return buildDefaultPrompt(input.title, input.type, input.context);
 }
 
 async function callOpenAI(prompt: string, apiKey: string): Promise<string> {
@@ -829,7 +1014,12 @@ export async function POST(req: NextRequest) {
     const provider: AIProvider =
       body.provider === "openai" || body.provider === "gemini" ? body.provider : "auto";
     const mode = parseGenerateMode(body.mode);
-    const context = getString(body.context).slice(0, 12000);
+    const context = await buildArticleWritingContext({
+      title,
+      type,
+      mode,
+      providedContext: getString(body.context).slice(0, 12000),
+    });
 
     const openAiKey = process.env.OPENAI_API_KEY || "";
     const geminiKey =

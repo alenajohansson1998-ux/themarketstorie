@@ -204,7 +204,7 @@ export default function BlogPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="hidden lg:block w-[300px] shrink-0">
+          <div className="hidden w-full max-w-[300px] shrink-0 xl:block">
             <MarketSidebar />
           </div>
         </div>

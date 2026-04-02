@@ -55,6 +55,11 @@ interface NavItem {
   isActive: boolean;
 }
 
+interface HeaderLink {
+  name: string;
+  href: string;
+}
+
 interface Post {
   _id: string;
   title: string;
@@ -65,12 +70,30 @@ interface Post {
   createdAt: string;
 }
 
+const FALLBACK_PRIMARY_NAV: HeaderLink[] = [
+  { name: 'Markets', href: '/markets' },
+  { name: 'Brokers', href: '/brokers' },
+  { name: 'Tools', href: '/tools' },
+  { name: 'Learn', href: '/learn' },
+  { name: 'Screener', href: '/screener' },
+];
+
+const MOBILE_SECONDARY_LINKS: HeaderLink[] = [
+  { name: 'Blog', href: '/blog' },
+  { name: 'About', href: '/about' },
+  { name: 'Contact', href: '/contact' },
+  { name: 'Terms & Conditions', href: '/terms' },
+  { name: 'Privacy Policy', href: '/privacy' },
+  { name: 'Subscription', href: '/subscription' },
+];
+
+const MOBILE_SECONDARY_LINK_HREFS = new Set(MOBILE_SECONDARY_LINKS.map((item) => item.href));
+
 export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   // isMoreDropdownOpen: false | 'blog' | 'more'
   const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState<false | 'blog' | 'more'>(false);
-  const [headerCategories, setHeaderCategories] = useState<Category[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [subHeaderCategories, setSubHeaderCategories] = useState<Category[]>([]);
   const [navItems, setNavItems] = useState<NavItem[]>([]);
@@ -84,6 +107,10 @@ export default function Header() {
   const profileDropdownRef = useRef<HTMLDivElement>(null);
   const moreDropdownRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const activeNavItems = navItems
+    .filter((item) => item.isActive && !MOBILE_SECONDARY_LINK_HREFS.has(item.href))
+    .map((item) => ({ name: item.name, href: item.href }));
+  const primaryNavItems = activeNavItems.length > 0 ? activeNavItems : FALLBACK_PRIMARY_NAV;
 
   const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
@@ -130,7 +157,7 @@ export default function Header() {
         setIsProfileDropdownOpen(false);
       }
       if (moreDropdownRef.current && !moreDropdownRef.current.contains(event.target as Node)) {
-        if (isMoreDropdownOpen) setIsMoreDropdownOpen(false);
+        setIsMoreDropdownOpen(false);
       }
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsSearchDropdownOpen(false);
@@ -143,20 +170,8 @@ export default function Header() {
     };
   }, []);
 
-  // Fetch header categories and nav items
+  // Fetch header data
   useEffect(() => {
-    async function fetchMainHeaderCategories() {
-      try {
-        const response = await fetch('/api/categories/header');
-        if (response.ok) {
-          const data = await response.json();
-          setHeaderCategories(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch main header categories:', error);
-      }
-    }
-
     async function fetchAllCategories() {
       try {
         const response = await fetch('/api/cms/categories');
@@ -194,14 +209,12 @@ export default function Header() {
     }
 
     // Fetch immediately on mount
-    fetchMainHeaderCategories();
     fetchAllCategories();
     fetchSubHeaderCategories();
     fetchNavItems();
 
     // Set up interval to fetch every 10 seconds
     const interval = setInterval(() => {
-      fetchMainHeaderCategories();
       fetchAllCategories();
       fetchSubHeaderCategories();
       fetchNavItems();
@@ -229,7 +242,7 @@ export default function Header() {
           WebkitBackdropFilter: 'blur(var(--glass-blur))',
           background: 'rgba(5, 5, 7, 0.97)',
         }}>
-          <div className="w-full px-4 py-3 relative flex items-center justify-center">
+          <div className="site-shell px-4 py-3 relative flex items-center justify-center">
             {/* NY Time right-aligned absolute */}
             <div className="hidden md:flex items-center absolute right-4 top-1/2 -translate-y-1/2">
               <NYTime />
@@ -264,24 +277,30 @@ export default function Header() {
               </button>
             </div>
             <nav className="flex flex-col gap-2 px-4 py-4">
-              <Link href="/markets" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>Markets</Link>
-              <Link href="/brokers" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>Brokers</Link>
-              <Link href="/tools" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>Tools</Link>
-              <Link href="/learn" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>Learn</Link>
-              <Link href="/blog" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>Blog</Link>
-              <Link href="/screener" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>Screener</Link>
-              <Link href="/about" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>About</Link>
-              <Link href="/contact" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>Contact</Link>
-              <Link href="/terms" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>Terms & Conditions</Link>
-              <Link href="/privacy" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>Privacy Policy</Link>
-              <Link href="/subscription" className="py-2 text-white" onClick={()=>setIsMobileMenuOpen(false)}>Subscription</Link>
+              {primaryNavItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="py-2 text-white"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+              {MOBILE_SECONDARY_LINKS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="py-2 text-white"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
               {session?.user ? (
                 <button onClick={()=>{signOut(); setIsMobileMenuOpen(false);}} className="py-2 text-white text-left">Logout</button>
               ) : (
-                <>
-                  <button onClick={()=>{setIsAuthModalOpen(true); setIsMobileMenuOpen(false);}} className="py-2 text-white text-left">Sign In</button>
-                  <button onClick={()=>{setIsAuthModalOpen(true); setIsMobileMenuOpen(false);}} className="py-2 text-white text-left">Free Sign Up</button>
-                </>
+                <button onClick={()=>{setIsAuthModalOpen(true); setIsMobileMenuOpen(false);}} className="py-2 text-white text-left">Sign In</button>
               )}
             </nav>
           </div>
@@ -295,79 +314,86 @@ export default function Header() {
           padding: 0,
           background: 'rgba(36,36,40,0.96)',
         }}>
-          <div className="w-full px-4 py-2">
+          <div className="site-shell px-4 py-2">
             <nav className="flex items-center justify-between text-sm" style={{ color: '#ccc' }}>
               <div className="flex items-center justify-between w-full">
                 {/* LEFT: Static Navigation */}
                 <div className="flex gap-5 items-center whitespace-nowrap flex-1 min-w-0">
-                  <Link href="/markets" className="glass-hover shrink-0" style={{ color: '#fff', fontWeight: 500 }}>Markets</Link>
-                  <Link href="/brokers" className="glass-hover shrink-0" style={{ color: '#fff', fontWeight: 500 }}>Brokers</Link>
-                  <Link href="/tools" className="glass-hover shrink-0" style={{ color: '#fff', fontWeight: 500 }}>Tools</Link>
-                  <Link href="/learn" className="glass-hover shrink-0" style={{ color: '#fff', fontWeight: 500 }}>Learn</Link>
-                  <Link href="/screener" className="glass-hover shrink-0" style={{ color: '#fff', fontWeight: 500 }}>Screener</Link>
-                  <div className="relative">
-                    <button
-                      className="glass-hover shrink-0 flex items-center gap-1"
+                  {primaryNavItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="glass-hover shrink-0"
                       style={{ color: '#fff', fontWeight: 500 }}
-                      onClick={() => setIsMoreDropdownOpen(isMoreDropdownOpen === 'blog' ? false : 'blog')}
                     >
-                      Blog <ChevronDown size={16} />
-                    </button>
-                    {isMoreDropdownOpen === 'blog' && (
-                      <div
-                        className="absolute left-0 top-full mt-2 w-56 glass shadow-lg z-50"
-                        style={{ background: 'rgba(36,36,40,0.97)', color: '#fff' }}
-                        onMouseLeave={() => setIsMoreDropdownOpen(false)}
+                      {item.name}
+                    </Link>
+                  ))}
+                  <div className="flex items-center gap-5 shrink-0" ref={moreDropdownRef}>
+                    <div className="relative">
+                      <button
+                        className="glass-hover shrink-0 flex items-center gap-1"
+                        style={{ color: '#fff', fontWeight: 500 }}
+                        onClick={() => setIsMoreDropdownOpen(isMoreDropdownOpen === 'blog' ? false : 'blog')}
                       >
-                        <Link href="/blog" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
-                          All Blog Posts
-                        </Link>
-                        <div className="border-t border-gray-700 my-1" />
-                        {allCategories.length === 0 && (
-                          <div className="px-4 py-2 text-xs text-gray-400">No categories</div>
-                        )}
-                        {allCategories.map(category => (
-                          <Link
-                            key={category._id}
-                            href={`/category/${category.slug}`}
-                            className="block px-4 py-2 text-sm glass-hover"
-                            style={{ color: '#fff' }}
-                            onClick={() => setIsMoreDropdownOpen(false)}
-                          >
-                            {category.name}
+                        Blog <ChevronDown size={16} />
+                      </button>
+                      {isMoreDropdownOpen === 'blog' && (
+                        <div
+                          className="absolute left-0 top-full mt-2 w-56 glass shadow-lg z-50"
+                          style={{ background: 'rgba(36,36,40,0.97)', color: '#fff' }}
+                          onMouseLeave={() => setIsMoreDropdownOpen(false)}
+                        >
+                          <Link href="/blog" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
+                            All Blog Posts
                           </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <button
-                      className="glass-hover shrink-0 flex items-center gap-1"
-                      style={{ color: '#fff', fontWeight: 500 }}
-                      onClick={() => setIsMoreDropdownOpen(isMoreDropdownOpen === 'more' ? false : 'more')}
-                    >
-                      More <ChevronDown size={16} />
-                    </button>
-                    {isMoreDropdownOpen === 'more' && (
-                      <div
-                        className="absolute left-0 top-full mt-2 w-48 glass shadow-lg z-50"
-                        style={{ background: 'rgba(36,36,40,0.97)', color: '#fff' }}
-                        onMouseLeave={() => setIsMoreDropdownOpen(false)}
+                          <div className="border-t border-gray-700 my-1" />
+                          {allCategories.length === 0 && (
+                            <div className="px-4 py-2 text-xs text-gray-400">No categories</div>
+                          )}
+                          {allCategories.map(category => (
+                            <Link
+                              key={category._id}
+                              href={`/category/${category.slug}`}
+                              className="block px-4 py-2 text-sm glass-hover"
+                              style={{ color: '#fff' }}
+                              onClick={() => setIsMoreDropdownOpen(false)}
+                            >
+                              {category.name}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <button
+                        className="glass-hover shrink-0 flex items-center gap-1"
+                        style={{ color: '#fff', fontWeight: 500 }}
+                        onClick={() => setIsMoreDropdownOpen(isMoreDropdownOpen === 'more' ? false : 'more')}
                       >
-                        <Link href="/about" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
-                          About
-                        </Link>
-                        <Link href="/contact" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
-                          Contact
-                        </Link>
-                        <Link href="/terms" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
-                          Terms & Conditions
-                        </Link>
-                        <Link href="/privacy" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
-                          Privacy Policy
-                        </Link>
-                      </div>
-                    )}
+                        More <ChevronDown size={16} />
+                      </button>
+                      {isMoreDropdownOpen === 'more' && (
+                        <div
+                          className="absolute left-0 top-full mt-2 w-48 glass shadow-lg z-50"
+                          style={{ background: 'rgba(36,36,40,0.97)', color: '#fff' }}
+                          onMouseLeave={() => setIsMoreDropdownOpen(false)}
+                        >
+                          <Link href="/about" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
+                            About
+                          </Link>
+                          <Link href="/contact" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
+                            Contact
+                          </Link>
+                          <Link href="/terms" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
+                            Terms & Conditions
+                          </Link>
+                          <Link href="/privacy" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
+                            Privacy Policy
+                          </Link>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {/* RIGHT: Search and Actions */}
@@ -428,10 +454,6 @@ export default function Header() {
                       </div>
                     )}
                   </div>
-                  {/* Actions */}
-                  <button className="glass glass-hover px-3 py-1.5 font-medium" style={{ color: '#fff', background: 'rgba(36,36,40,0.92)' }}>
-                    Upgrade
-                  </button>
                   {session?.user ? (
                     <div className="relative" ref={profileDropdownRef}>
                       <button
@@ -505,22 +527,13 @@ export default function Header() {
                       )}
                     </div>
                   ) : (
-                    <>
-                      <button
-                        onClick={() => setIsAuthModalOpen(true)}
-                        className="px-4 py-2 text-white focus:outline-none"
-                        style={{ background: 'transparent', borderRadius: 0, boxShadow: 'none' }}
-                      >
-                        Sign In
-                      </button>
-                      <button
-                        onClick={() => setIsAuthModalOpen(true)}
-                        className="px-4 py-2 text-white focus:outline-none"
-                        style={{ background: 'transparent', borderRadius: 0, boxShadow: 'none' }}
-                      >
-                        Free Sign Up
-                      </button>
-                    </>
+                    <button
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="px-4 py-2 text-white focus:outline-none"
+                      style={{ background: 'transparent', borderRadius: 0, boxShadow: 'none' }}
+                    >
+                      Sign In
+                    </button>
                   )}
                 </div>
               </div>
@@ -534,21 +547,25 @@ export default function Header() {
           borderRadius: 0,
           boxShadow: 'none',
           padding: 0,
-          background: 'rgba(24,24,28,0.92)',
+          background: '#ffffff',
+          borderTop: '1px solid #e5e7eb',
+          borderBottom: '1px solid #e5e7eb',
         }}>
-          <div className="w-full px-4 py-2 overflow-x-auto">
-            <nav className="flex gap-5 text-xs whitespace-nowrap" style={{ color: '#bbb' }}>
-              {subHeaderCategories.map(category => (
-                <Link
-                  key={category._id}
-                  href={`/category/${category.slug}`}
-                  className="glass-hover"
-                  style={{ color: '#fff', fontWeight: 500 }}
-                >
-                  {category.name}
-                </Link>
-              ))}
-            </nav>
+          <div className="w-full overflow-x-auto">
+            <div className="site-shell px-4 py-2">
+              <nav className="flex w-max min-w-full gap-5 text-xs whitespace-nowrap" style={{ color: '#111827' }}>
+                {subHeaderCategories.map(category => (
+                  <Link
+                    key={category._id}
+                    href={`/category/${category.slug}`}
+                    className="glass-hover"
+                    style={{ color: '#111111', fontWeight: 500 }}
+                  >
+                    {category.name}
+                  </Link>
+                ))}
+              </nav>
+            </div>
           </div>
         </div>
       </header>

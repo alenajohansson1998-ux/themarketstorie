@@ -6,10 +6,20 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Copy, FileText, Save } from "lucide-react";
 import { Editor as TinyMCEEditor } from "@tinymce/tinymce-react";
+import { ARTICLE_CATEGORY_SLUG_BY_TYPE, type ArticleType } from "@/lib/articles/constants";
 
-type ArticleType = "global" | "crypto" | "commodity" | "business" | "geopolitical";
 type ArticleStatus = "draft" | "review" | "published";
 type AIProvider = "auto" | "openai" | "gemini";
+
+interface CategoryOption {
+  _id: string;
+  name: string;
+  slug: string;
+  parent?: {
+    name?: string;
+    slug?: string;
+  } | null;
+}
 
 const TYPE_OPTIONS: Array<{ label: string; value: ArticleType }> = [
   { label: "Global Market", value: "global" },
@@ -61,6 +71,9 @@ export default function NewAdminArticlePage() {
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState<ArticleType>("global");
+  const [category, setCategory] = useState(ARTICLE_CATEGORY_SLUG_BY_TYPE.global);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [content, setContent] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [tags, setTags] = useState("");
@@ -89,6 +102,50 @@ export default function NewAdminArticlePage() {
       router.push("/");
     }
   }, [status, canEdit, router]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCategories() {
+      try {
+        setCategoriesLoading(true);
+        const res = await fetch("/api/cms/categories?includeParent=true", { cache: "no-store" });
+        const payload = await res.json();
+
+        if (!active) return;
+        if (!res.ok || !payload.success || !Array.isArray(payload.data)) {
+          setCategories([]);
+          return;
+        }
+
+        setCategories(payload.data as CategoryOption[]);
+      } catch (err) {
+        console.error("Failed to load categories", err);
+        if (active) {
+          setCategories([]);
+        }
+      } finally {
+        if (active) {
+          setCategoriesLoading(false);
+        }
+      }
+    }
+
+    void loadCategories();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (categories.length === 0) return;
+    if (category && categories.some((item) => item.slug === category)) return;
+
+    const defaultSlug = ARTICLE_CATEGORY_SLUG_BY_TYPE[type];
+    setCategory(
+      categories.some((item) => item.slug === defaultSlug) ? defaultSlug : categories[0]?.slug || ""
+    );
+  }, [categories, type, category]);
 
   useEffect(() => {
     let active = true;
@@ -244,6 +301,7 @@ export default function NewAdminArticlePage() {
         body: JSON.stringify({
           title,
           type,
+          category,
           content,
           excerpt,
           image,
@@ -277,6 +335,18 @@ export default function NewAdminArticlePage() {
 
   if (status === "loading") {
     return <div className="w-full p-8 text-slate-600">Loading...</div>;
+  }
+
+  function handleTypeChange(nextType: ArticleType) {
+    const previousDefault = ARTICLE_CATEGORY_SLUG_BY_TYPE[type];
+    const nextDefault = ARTICLE_CATEGORY_SLUG_BY_TYPE[nextType];
+    setType(nextType);
+
+    const hasCurrentCategory = categories.some((item) => item.slug === category);
+    const hasNextDefault = categories.some((item) => item.slug === nextDefault);
+    if (!hasCurrentCategory || !category || category === previousDefault) {
+      setCategory(hasNextDefault ? nextDefault : categories[0]?.slug || "");
+    }
   }
 
   return (
@@ -366,12 +436,31 @@ export default function NewAdminArticlePage() {
               <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
               <select
                 value={type}
-                onChange={(e) => setType(e.target.value as ArticleType)}
+                onChange={(e) => handleTypeChange(e.target.value as ArticleType)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
               >
                 {TYPE_OPTIONS.map((item) => (
                   <option key={item.value} value={item.value}>
                     {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                disabled={categoriesLoading || categories.length === 0}
+              >
+                <option value="">
+                  {categoriesLoading ? "Loading categories..." : "Select category"}
+                </option>
+                {categories.map((item) => (
+                  <option key={item._id} value={item.slug}>
+                    {item.parent?.name ? `${item.parent.name} / ${item.name}` : item.name}
                   </option>
                 ))}
               </select>

@@ -6,9 +6,16 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Copy, Save } from "lucide-react";
 import { Editor as TinyMCEEditor } from "@tinymce/tinymce-react";
+import { ARTICLE_CATEGORY_SLUG_BY_TYPE, type ArticleType } from "@/lib/articles/constants";
 
-type ArticleType = "global" | "crypto" | "commodity" | "business" | "geopolitical";
 type ArticleStatus = "draft" | "review" | "published";
+
+interface CategoryOption {
+  _id: string;
+  name: string;
+  slug: string;
+  parent?: { name?: string; slug?: string } | null;
+}
 
 interface ArticleData {
   _id: string;
@@ -108,6 +115,9 @@ export default function AdminArticleDetailPage() {
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState<ArticleType>("global");
+  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
@@ -135,6 +145,50 @@ export default function AdminArticleDetailPage() {
     }
   }, [status, canEdit, router]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadCategories() {
+      try {
+        setCategoriesLoading(true);
+        const res = await fetch("/api/cms/categories?includeParent=true", { cache: "no-store" });
+        const payload = await res.json();
+
+        if (!active) return;
+        if (!res.ok || !payload.success || !Array.isArray(payload.data)) {
+          setCategories([]);
+          return;
+        }
+
+        setCategories(payload.data as CategoryOption[]);
+      } catch (err) {
+        console.error("Failed to load categories", err);
+        if (active) {
+          setCategories([]);
+        }
+      } finally {
+        if (active) {
+          setCategoriesLoading(false);
+        }
+      }
+    }
+
+    void loadCategories();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (categories.length === 0) return;
+    if (category && categories.some((item) => item.slug === category)) return;
+
+    const defaultSlug = ARTICLE_CATEGORY_SLUG_BY_TYPE[type];
+    setCategory(
+      categories.some((item) => item.slug === defaultSlug) ? defaultSlug : categories[0]?.slug || ""
+    );
+  }, [categories, type, category]);
+
   const fetchArticle = useCallback(async () => {
     if (!articleId) return;
     try {
@@ -156,6 +210,7 @@ export default function AdminArticleDetailPage() {
       setArticle(item);
       setTitle(item.title || "");
       setType(item.type || "global");
+      setCategory(item.category?.slug || ARTICLE_CATEGORY_SLUG_BY_TYPE[item.type || "global"] || "");
       setExcerpt(item.excerpt || "");
       setContent(item.content || "");
       setTags((item.tags || []).join(", "));
@@ -215,6 +270,7 @@ export default function AdminArticleDetailPage() {
         body: JSON.stringify({
           title,
           type,
+          category,
           excerpt,
           content,
           tags: parsedTags,
@@ -236,6 +292,9 @@ export default function AdminArticleDetailPage() {
       setArticle(updated);
       setTitle(updated.title || "");
       setType(updated.type || "global");
+      setCategory(
+        updated.category?.slug || ARTICLE_CATEGORY_SLUG_BY_TYPE[updated.type || "global"] || ""
+      );
       setExcerpt(updated.excerpt || "");
       setContent(updated.content || "");
       setTags((updated.tags || []).join(", "));
@@ -267,6 +326,18 @@ export default function AdminArticleDetailPage() {
 
   if (status === "loading" || loading) {
     return <div className="w-full p-8 text-slate-600">Loading article...</div>;
+  }
+
+  function handleTypeChange(nextType: ArticleType) {
+    const previousDefault = ARTICLE_CATEGORY_SLUG_BY_TYPE[type];
+    const nextDefault = ARTICLE_CATEGORY_SLUG_BY_TYPE[nextType];
+    setType(nextType);
+
+    const hasCurrentCategory = categories.some((item) => item.slug === category);
+    const hasNextDefault = categories.some((item) => item.slug === nextDefault);
+    if (!hasCurrentCategory || !category || category === previousDefault) {
+      setCategory(hasNextDefault ? nextDefault : categories[0]?.slug || "");
+    }
   }
 
   if (!article) {
@@ -366,12 +437,31 @@ export default function AdminArticleDetailPage() {
               <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
               <select
                 value={type}
-                onChange={(e) => setType(e.target.value as ArticleType)}
+                onChange={(e) => handleTypeChange(e.target.value as ArticleType)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
               >
                 {TYPE_OPTIONS.map((item) => (
                   <option key={item.value} value={item.value}>
                     {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                disabled={categoriesLoading || categories.length === 0}
+              >
+                <option value="">
+                  {categoriesLoading ? "Loading categories..." : "Select category"}
+                </option>
+                {categories.map((item) => (
+                  <option key={item._id} value={item.slug}>
+                    {item.parent?.name ? `${item.parent.name} / ${item.name}` : item.name}
                   </option>
                 ))}
               </select>

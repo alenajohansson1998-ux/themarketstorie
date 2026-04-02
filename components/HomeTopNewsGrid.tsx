@@ -58,14 +58,14 @@ const HomeTopNewsGrid: React.FC = () => {
 
   return (
     /* HEADER OFFSET FIX */
-    <section className="w-full px-4 mb-8 pt-10">
-      <div className="grid grid-cols-1 md:grid-cols-[50%_25%_25%] gap-6">
+    <section className="mb-6 w-full px-0 pt-4 sm:pt-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.7fr)_minmax(260px,0.7fr)]">
 
         {/* LEFT COLUMN */}
         <div className="space-y-4">
 
           {/* FEATURED POST */}
-          <div className="relative rounded-lg shadow overflow-hidden h-[420px] group">
+          <div className="group relative h-[320px] overflow-hidden rounded-lg shadow sm:h-[380px] lg:h-[420px]">
             {featured ? (
               <Link
                 href={`/${featured.category?.slug}/${featured.slug}`}
@@ -149,7 +149,7 @@ const HomeTopNewsGrid: React.FC = () => {
         </div>
 
         {/* MIDDLE COLUMN */}
-        <div className="bg-white rounded-lg shadow p-4 flex flex-col min-h-[350px]">
+        <div className="flex min-h-[280px] flex-col rounded-lg bg-white p-4 shadow sm:min-h-[320px]">
           <h3 className="text-lg font-semibold mb-4">Trending Posts</h3>
           {loading ? (
             <div className="flex-1 flex items-center justify-center text-gray-400">
@@ -177,7 +177,7 @@ const HomeTopNewsGrid: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN */}
-        <div className="bg-white rounded-lg shadow p-4 flex flex-col min-h-[350px]">
+        <div className="flex min-h-[280px] flex-col rounded-lg bg-white p-4 shadow sm:min-h-[320px]">
           <h3 className="text-lg font-semibold mb-4">Latest Posts</h3>
           {loading ? (
             <div className="flex-1 flex items-center justify-center text-gray-400">

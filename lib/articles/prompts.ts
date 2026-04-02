@@ -36,6 +36,7 @@ Tone:
 Professional financial journalism.
 Avoid generic AI tone.
 Do not fabricate specific numbers unless realistic.
+Do not start the title with boilerplate labels like "Global Markets Today:" or "Market Update:".
 Word count: 900-1200 words.
 
 ${REFERENCE_LINK_REQUIREMENTS}`,
@@ -62,6 +63,7 @@ Structure:
 Tone:
 Analytical, realistic, investor-focused.
 Avoid hype language.
+Do not start the title with boilerplate labels like "Crypto Market Update:" or "Crypto and Digital Assets Update:".
 900-1100 words.
 
 ${REFERENCE_LINK_REQUIREMENTS}`,
@@ -84,6 +86,7 @@ Structure:
 
 Professional tone.
 Focus on economic impact.
+Do not start the title with boilerplate labels like "Commodities Weekly Report:" or "Commodity Market Update:".
 900-1000 words.
 
 ${REFERENCE_LINK_REQUIREMENTS}`,
@@ -97,6 +100,7 @@ Include:
 - Long-term implications
 
 Professional business journalism style.
+Do not start the title with boilerplate labels like "Business Update:".
 800-1000 words.
 
 ${REFERENCE_LINK_REQUIREMENTS}`,
@@ -117,6 +121,7 @@ Explain how this affects:
 Structured with H2 sections.
 Avoid sensational tone.
 Analytical only.
+Do not start the title with boilerplate labels like "Geopolitical Update:".
 
 ${REFERENCE_LINK_REQUIREMENTS}`,
 };

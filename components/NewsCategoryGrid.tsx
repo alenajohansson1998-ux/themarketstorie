@@ -24,8 +24,8 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts }) => {
   if (!posts || posts.length === 0) {
     return (
       <section className="w-full mb-8">
-        <h2 className="text-2xl font-bold mb-6">News Category</h2>
-        <div className="h-[340px] lg:h-[360px] flex items-center justify-center text-gray-400 bg-white rounded-xl shadow-sm">
+        <h2 className="mb-6 text-2xl font-bold">News Category</h2>
+        <div className="flex h-[260px] items-center justify-center rounded-xl bg-white text-gray-400 shadow-sm sm:h-[320px] lg:h-[360px]">
           No news posts available.
         </div>
       </section>
@@ -36,18 +36,17 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts }) => {
 
   return (
     <section className="w-full mb-8">
-      <h2 className="text-2xl font-bold mb-6">News Category</h2>
+      <h2 className="mb-6 text-2xl font-bold">News Category</h2>
 
       {/* GRID: 40 / 20 / 40 */}
-      <div className="grid grid-cols-1 lg:grid-cols-[40%_20%_40%] gap-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.7fr)_minmax(0,1fr)]">
         {/* LEFT – FEATURED (40%) */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
           {featured ? (
             <>
               <Link
                 href={`/${featured.category?.slug}/${featured.slug}`}
-                className="block relative w-full h-[340px] lg:h-[360px]"
-                style={{ minHeight: '260px' }}
+                className="relative block h-[260px] w-full sm:h-[320px] lg:h-[360px]"
               >
                 {featured.coverImage ? (
                   <img
@@ -77,11 +76,11 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts }) => {
                 </div>
               </Link>
 
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <Link
                   href={`/${featured.category?.slug}/${featured.slug}`}
                 >
-                  <h3 className="text-2xl font-bold leading-tight hover:underline">
+                  <h3 className="text-xl font-bold leading-tight hover:underline sm:text-2xl">
                     {featured.title}
                   </h3>
                 </Link>
@@ -91,7 +90,7 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts }) => {
               </div>
             </>
           ) : (
-            <div className="h-[340px] lg:h-[360px] flex items-center justify-center text-gray-400">
+            <div className="flex h-[260px] items-center justify-center text-gray-400 sm:h-[320px] lg:h-[360px]">
               Loading...
             </div>
           )}
@@ -134,7 +133,7 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts }) => {
         </div>
 
         {/* RIGHT – MANUAL AD (40%) */}
-        <aside className="hidden lg:block">
+        <aside className="hidden xl:block">
           <div className="sticky top-24">
             <div className="bg-white rounded-xl shadow-sm p-4 border">
               <span className="block text-xs text-gray-400 mb-2">
