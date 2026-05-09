@@ -1,11 +1,13 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { formatDate } from '@/lib/cms-utils-client';
-import { User, Calendar, FolderOpen, Eye, Heart, MessageCircle, Send, ExternalLink } from 'lucide-react';
+import { User, Calendar, FolderOpen, Eye, ExternalLink } from 'lucide-react';
 import ShareButtons from '@/components/ShareButtons';
 import RelatedPostsCard from '@/components/RelatedPostsCard';
+import Image from 'next/image';
+import ArticleSidebar from '@/components/ArticleSidebar';
+import LikeCommentSection from '@/components/LikeCommentSection';
 import { newsAPI, type NewsArticle } from '@/lib/api/news';
 import { sanitizeRichHtml } from '@/lib/sanitizeHtml';
 
@@ -53,13 +55,6 @@ interface ExternalNews {
 interface BlogPostClientProps {
   category: string;
   slug: string;
-}
-
-interface CommentItem {
-  id: string;
-  author: string;
-  text: string;
-  timestamp: string;
 }
 
 function escapeHtml(value: string): string {
@@ -163,38 +158,13 @@ function normalizeArticleContent(content: string): string {
 }
 
 export default function BlogPostClient({ category, slug }: BlogPostClientProps) {
-    useEffect(() => {
-      const fetchAllTags = async () => {
-        try {
-          const response = await fetch('/api/cms/tags');
-          const data = await response.json();
-          if (data.success) {
-            setAllTags(data.data);
-          }
-        } catch (error) {
-          console.error('Failed to fetch all tags:', error);
-        }
-      };
-      fetchAllTags();
-    }, []);
-  const { data: session } = useSession();
-  // State variables
   const [post, setPost] = useState<Post | null>(null);
   const [aiArticle, setAiArticle] = useState<AIArticle | null>(null);
   const [externalNews, setExternalNews] = useState<ExternalNews | null>(null);
-  const [allBlogs, setAllBlogs] = useState<Post[]>([]);
   const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isExternalNews, setIsExternalNews] = useState(false);
-  const [likes, setLikes] = useState(0);
-  const [hasLiked, setHasLiked] = useState(false);
-  const [likesLoading, setLikesLoading] = useState(false);
-  const [comments, setComments] = useState<CommentItem[]>([]);
-  const [newComment, setNewComment] = useState("");
-  const [commentsLoading, setCommentsLoading] = useState(false);
-  // State for all tags
-  const [allTags, setAllTags] = useState<{ _id: string; name: string; slug: string }[]>([]);
   const sanitizedExternalContent = useMemo(
     () => normalizeAnchorText(sanitizeRichHtml(normalizeArticleContent(externalNews?.content || ''))),
     [externalNews?.content]
@@ -210,17 +180,8 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
 
   useEffect(() => {
     fetchPost();
-    fetchAllBlogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, slug]);
-
-  useEffect(() => {
-    if (post?._id) {
-      fetchLikes();
-      fetchComments();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post?._id]);
 
   useEffect(() => {
     if (externalNews) {
@@ -228,17 +189,7 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
     }
   }, [externalNews]);
 
-  const fetchAllBlogs = async () => {
-    try {
-      const response = await fetch('/api/cms/posts?status=published&sort=-createdAt&limit=10');
-      const data = await response.json();
-      if (data.success) {
-        setAllBlogs(data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch all blogs:', error);
-    }
-  };
+
 
   const fetchPost = async () => {
     try {
@@ -340,100 +291,6 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
     } catch {}
   };
 
-  // Like and Comment handlers
-  const fetchLikes = async () => {
-    if (!post?._id) return;
-    try {
-      const response = await fetch(`/api/blog/${post._id}/likes`);
-      const data = await response.json();
-      if (data.success) {
-        setLikes(data.likes);
-        setHasLiked(data.hasLiked);
-      }
-    } catch (error) {
-      console.error('Failed to fetch likes:', error);
-    }
-  };
-
-  const fetchComments = async () => {
-    if (!post?._id) return;
-    try {
-      const response = await fetch(`/api/blog/${post._id}/comments`);
-      const data = await response.json();
-      if (data.success) {
-        const mappedComments: CommentItem[] = (Array.isArray(data.comments) ? data.comments : []).map(
-          (comment: { _id: string; userName: string; text: string; createdAt: string }) => ({
-            id: comment._id,
-            author: comment.userName,
-            text: comment.text,
-            timestamp: new Date(comment.createdAt).toLocaleString(),
-          })
-        );
-        setComments(mappedComments);
-      }
-    } catch (error) {
-      console.error('Failed to fetch comments:', error);
-    }
-  };
-
-  const handleLike = async () => {
-    if (!hasLiked && post?._id) {
-      try {
-        setLikesLoading(true);
-        const response = await fetch(`/api/blog/${post._id}/likes`, {
-          method: 'POST',
-        });
-        const data = await response.json();
-        if (data.success) {
-          setLikes(data.likes);
-          setHasLiked(true);
-        }
-      } catch (error) {
-        console.error('Failed to like post:', error);
-      } finally {
-        setLikesLoading(false);
-      }
-    }
-  };
-
-  const handleCommentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newComment.trim() && session?.user?.name && post?._id) {
-      try {
-        setCommentsLoading(true);
-        const response = await fetch(`/api/blog/${post._id}/comments`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: newComment.trim()
-          }),
-        });
-        const data = await response.json();
-        if (data.success) {
-          // Add the saved comment to the state
-          const savedComment = {
-            id: data.comment._id,
-            author: data.comment.userName,
-            text: data.comment.text,
-            timestamp: new Date(data.comment.createdAt).toLocaleString()
-          };
-          setComments(prev => [...prev, savedComment]);
-          setNewComment('');
-        } else {
-          console.error('Failed to post comment:', data.message);
-          alert('Failed to post comment: ' + data.message);
-        }
-      } catch (error) {
-        console.error('Error posting comment:', error);
-        alert('Error posting comment. Please try again.');
-      } finally {
-        setCommentsLoading(false);
-      }
-    }
-  };
-
   if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
   if (!post && !externalNews && !aiArticle) return null;
@@ -443,19 +300,10 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
     return (
       <>
         <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
-          <div className="w-full flex flex-col md:flex-row items-start gap-8">
-            <div className="relative w-full md:min-w-0 md:flex-1">
-              <div className="hidden xl:block absolute -left-28 top-0 w-20">
-                <div className="sticky top-32 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
-                  <ShareButtons
-                    title={externalNews.title}
-                    url={typeof window !== "undefined" ? window.location.href : ""}
-                    compact
-                    vertical
-                  />
-                </div>
-              </div>
-            <article className="w-full bg-white rounded-2xl shadow-lg p-6 md:p-8 border border-gray-100">
+          <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-10">
+            <div className="w-full min-w-0 flex-1">
+            <article className="w-full bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-gray-100">
               {/* Render external news content here */}
               <h1 className="text-3xl font-bold mb-4">{externalNews.title}</h1>
               <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
@@ -495,51 +343,11 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
                 </div>
             </article>
             </div>
-            {/* Sidebar always on top for mobile, right for desktop */}
-            <aside className="w-full max-w-sm flex flex-col gap-6 lg:sticky lg:top-24 order-1 lg:order-none mb-8 lg:mb-0">
-              {/* Latest Blogs */}
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100" style={{ minHeight: '350px' }}>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">Latest Blogs</h3>
-                <div className="space-y-4">
-                  {allBlogs.map((blog) => (
-                    <div key={blog._id} className="border-b border-gray-100 pb-4 last:border-b-0">
-                      <Link
-                        href={`/${blog.category.slug}/${blog.slug}`}
-                        className="block hover:text-blue-600 transition-colors"
-                      >
-                        <h4 className="font-medium text-sm text-gray-900 line-clamp-2 mb-1">
-                          {blog.title}
-                        </h4>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span>{formatDate(blog.createdAt)}</span>
-                          <span aria-hidden="true">|</span>
-                          <span>{blog.views} views</span>
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Popular Tags */}
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100" style={{ minHeight: '120px' }}>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">Popular Tags</h3>
-                <div className="flex flex-wrap gap-2">
-                  {allTags.length > 0 ? (
-                    allTags.map((tag) => (
-                      <Link
-                        key={tag._id}
-                        href={`/tag/${tag.slug}`}
-                        className="text-xs bg-blue-50 px-3 py-1 rounded-full text-blue-700 font-semibold shadow-sm hover:bg-blue-100 transition"
-                      >
-                        #{tag.name}
-                      </Link>
-                    ))
-                  ) : (
-                    <span className="text-xs text-gray-400">No tags</span>
-                  )}
-                </div>
-              </div>
-            </aside>
+            {/* Sidebar */}
+            <div className="w-full lg:w-80 xl:w-96 shrink-0">
+              <ArticleSidebar />
+            </div>
+          </div>
           </div>
           <RelatedPostsCard posts={relatedPosts} />
         </main>
@@ -553,83 +361,80 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
     const articleCategoryName = aiArticle.category?.name || articleCategorySlug;
     const articleTags = Array.isArray(aiArticle.tags) ? aiArticle.tags : [];
     return (
-      <>
-        <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-          <div className="w-full flex flex-col md:flex-row items-start gap-8 lg:gap-10">
-            <div className="relative w-full md:min-w-0 md:flex-1">
-              <div className="hidden xl:block absolute -left-28 top-0 w-20">
-                <div className="sticky top-32 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
-                  <ShareButtons
-                    title={aiArticle.title}
-                    url={`https://themarketstories.com/${articleCategorySlug}/${aiArticle.slug}`}
-                    image={aiArticle.image}
-                    excerpt={aiArticle.excerpt}
-                    compact
-                    vertical
-                  />
-                </div>
-              </div>
-              <article className="w-full min-h-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xl sm:rounded-3xl sm:p-6 lg:p-10">
-                <h1 className="mb-6 text-2xl font-extrabold leading-tight text-gray-900 sm:text-3xl lg:mb-8 lg:text-4xl">
-                  {aiArticle.title}
-                </h1>
-                <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-gray-500 sm:text-base lg:mb-8">
-                  <span className="flex items-center">
-                    <User className="inline w-5 h-5 mr-2" />
-                    {aiArticle.author?.name || 'AI Desk'}
-                  </span>
-                  <span className="flex items-center">
-                    <Calendar className="inline w-5 h-5 mr-2" />
-                    {formatDate(aiArticle.publishedAt || aiArticle.createdAt)}
-                  </span>
+      <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-10">
+
+            {/* Article */}
+            <div className="w-full min-w-0 flex-1">
+              <article className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 lg:p-10">
+                <div className="mb-3">
                   <Link
                     href={`/category/${articleCategorySlug}`}
-                    className="flex items-center text-blue-600 hover:underline"
+                    className="inline-block rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
                   >
-                    <FolderOpen className="inline w-5 h-5 mr-2" />
                     {articleCategoryName}
                   </Link>
                 </div>
+                <h1 className="mb-5 text-2xl font-extrabold leading-tight text-gray-900 sm:text-3xl lg:text-4xl">
+                  {aiArticle.title}
+                </h1>
+                <div className="mb-6 flex flex-wrap items-center gap-4 text-sm text-gray-500 border-b border-gray-100 pb-5">
+                  <span className="flex items-center gap-1.5">
+                    <User className="w-4 h-4" />
+                    {aiArticle.author?.name || 'AI Desk'}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4" />
+                    {formatDate(aiArticle.publishedAt || aiArticle.createdAt)}
+                  </span>
+                </div>
                 {aiArticle.image && (
-                  <div className="w-full aspect-video mb-10 flex items-center justify-center">
-                    <img
+                  <div className="relative w-full aspect-video mb-8 overflow-hidden rounded-xl border border-gray-100 shadow-sm">
+                    <Image
                       src={aiArticle.image}
                       alt={aiArticle.title}
-                      className="w-full h-full object-cover rounded-2xl border border-gray-200 shadow"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 860px"
+                      priority
                     />
                   </div>
                 )}
                 <div
-                  className="blog-content max-w-none mb-10 text-gray-900"
+                  className="blog-content max-w-none mb-8 text-gray-800"
                   dangerouslySetInnerHTML={{ __html: sanitizedAiArticleContent }}
                 />
-                {articleTags.length > 0 ? (
-                  <div className="mb-12">
-                    <h4 className="font-semibold mb-3 text-gray-800">Tags:</h4>
-                    <div className="flex flex-wrap gap-3">
-                      {articleTags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-xs bg-blue-100 px-3 py-1 rounded-full text-blue-700 font-semibold shadow-sm"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
+                {articleTags.length > 0 && (
+                  <div className="mb-8 flex flex-wrap gap-2 border-t border-gray-100 pt-6">
+                    {articleTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs border border-gray-200 px-3 py-1 rounded-full text-gray-600"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
                   </div>
-                ) : null}
-                <div className="border-t pt-6 mt-10">
+                )}
+                <div className="border-t border-gray-100 pt-6">
                   <ShareButtons
                     title={aiArticle.title}
                     url={`https://themarketstories.com/${articleCategorySlug}/${aiArticle.slug}`}
                   />
                 </div>
+                <LikeCommentSection postId={aiArticle._id} />
               </article>
             </div>
+
+            {/* Sidebar */}
+            <div className="w-full lg:w-80 xl:w-96 shrink-0">
+              <ArticleSidebar excludeSlug={aiArticle.slug} />
+            </div>
+
           </div>
-          <RelatedPostsCard posts={relatedPosts} />
-        </main>
-      </>
+        </div>
+      </main>
     );
   }
 
@@ -638,21 +443,10 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
     return (
       <>
         <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-          <div className="w-full flex flex-col md:flex-row items-start gap-8 lg:gap-10">
-            <div className="relative w-full md:min-w-0 md:flex-1">
-              <div className="hidden xl:block absolute -left-28 top-0 w-20">
-                <div className="sticky top-32 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
-                  <ShareButtons
-                    title={post.title}
-                    url={`https://themarketstories.com/${post.category.slug}/${post.slug}`}
-                    image={post.coverImage}
-                    excerpt={post.excerpt}
-                    compact
-                    vertical
-                  />
-                </div>
-              </div>
-            <article className="w-full min-h-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-2xl sm:rounded-3xl sm:p-6 lg:p-10">
+          <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-10">
+            <div className="w-full min-w-0 flex-1">
+            <article className="w-full min-h-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 lg:p-10">
               <h1 className="mb-6 text-2xl font-extrabold leading-tight text-gray-900 sm:text-3xl lg:mb-8 lg:text-4xl">{post.title}</h1>
               <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-gray-500 sm:text-base lg:mb-8">
                 {post.author ? (
@@ -675,8 +469,15 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
                 <span className="flex items-center"><Eye className="inline w-5 h-5 mr-2" />{post.views} views</span>
               </div>
               {post.coverImage && (
-                <div className="w-full aspect-video mb-10 flex items-center justify-center">
-                  <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover rounded-2xl border border-gray-200 shadow" />
+                <div className="relative w-full aspect-video mb-10 overflow-hidden rounded-2xl border border-gray-200 shadow">
+                  <Image
+                    src={post.coverImage}
+                    alt={post.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 900px"
+                    priority
+                  />
                 </div>
               )}
               <div className="blog-content max-w-none mb-10 text-gray-900" dangerouslySetInnerHTML={{ __html: sanitizedPostContent }} />
@@ -693,56 +494,7 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
                   )}
                 </div>
               </div>
-              {/* Like and Comment Section - Updated Format */}
-              <div className="mb-8">
-                <button
-                  onClick={handleLike}
-                  disabled={likesLoading || hasLiked}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-lg text-base font-semibold transition mb-4 shadow-sm ${hasLiked ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-700 hover:bg-red-50'}`}
-                  style={{ minWidth: 110 }}
-                >
-                  <Heart className="w-5 h-5 mr-1" />
-                  {likes} Like{likes !== 1 ? '' : ''}
-                </button>
-
-                <div className="flex items-center gap-2 mb-2 mt-2">
-                  <MessageCircle className="w-5 h-5 text-gray-700" />
-                  <span className="font-bold text-lg text-gray-900">Comments ({comments.length})</span>
-                </div>
-
-                <form onSubmit={handleCommentSubmit} className="mb-6">
-                  <textarea
-                    value={newComment}
-                    onChange={e => setNewComment(e.target.value)}
-                    placeholder="Write a comment..."
-                    className="w-full border border-gray-400 rounded-lg px-4 py-3 text-base shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    rows={3}
-                    disabled={commentsLoading}
-                    style={{ minHeight: 60 }}
-                  />
-                  <button
-                    type="submit"
-                    className="w-full mt-4 bg-gray-500 text-white px-5 py-3 rounded-md hover:bg-gray-600 transition text-base font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
-                    disabled={commentsLoading || !newComment.trim()}
-                  >
-                    <Send className="w-5 h-5 mr-2" /> Post
-                  </button>
-                </form>
-
-                {comments.length === 0 && (
-                  <div className="text-center text-gray-400 text-base mb-4">No comments yet. Be the first to comment!</div>
-                )}
-
-                <div className="space-y-6">
-                  {comments.map(comment => (
-                    <div key={comment.id} className="bg-gray-50 rounded-xl p-5 border border-gray-200 shadow-sm">
-                      <div className="font-semibold text-base mb-1 text-gray-800">{comment.author}</div>
-                      <div className="text-gray-700 text-base mb-1">{comment.text}</div>
-                      <div className="text-xs text-gray-400">{comment.timestamp}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <LikeCommentSection postId={post._id} />
                 <div className="border-t pt-6 mt-10">
                   <ShareButtons
                     title={post.title}
@@ -751,53 +503,12 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
                 </div>
             </article>
             </div>
-            {/* Sidebar always on top for mobile, right for desktop */}
-            <aside className="w-full max-w-sm flex flex-col gap-6 lg:sticky lg:top-24 order-1 lg:order-none mb-8 lg:mb-0">
-              {/* Latest Blogs */}
-              <div className="bg-white rounded-2xl shadow-lg p-5 border border-gray-100" style={{ minHeight: '320px' }}>
-                <h3 className="text-lg font-bold mb-5 text-gray-900">Latest Blogs</h3>
-                <div className="space-y-5">
-                  {allBlogs.map((blog) => (
-                    <div key={blog._id} className="border-b border-gray-100 pb-4 last:border-b-0">
-                      <Link
-                        href={`/${blog.category.slug}/${blog.slug}`}
-                        className="block hover:text-blue-600 transition-colors"
-                      >
-                        <h4 className="font-medium text-sm text-gray-900 line-clamp-2 mb-1">
-                          {blog.title}
-                        </h4>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span>{formatDate(blog.createdAt)}</span>
-                          <span aria-hidden="true">|</span>
-                          <span>{blog.views} views</span>
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Popular Tags */}
-              <div className="bg-white rounded-2xl shadow-lg p-5 border border-gray-100" style={{ minHeight: '120px' }}>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">Popular Tags</h3>
-                <div className="flex flex-wrap gap-2">
-                  {allTags.length > 0 ? (
-                    allTags.map((tag) => (
-                      <Link
-                        key={tag._id}
-                        href={`/tag/${tag.slug}`}
-                        className="text-xs bg-blue-50 px-3 py-1 rounded-full text-blue-700 font-semibold shadow-sm hover:bg-blue-100 transition"
-                      >
-                        #{tag.name}
-                      </Link>
-                    ))
-                  ) : (
-                    <span className="text-xs text-gray-400">No tags</span>
-                  )}
-                </div>
-              </div>
-            </aside>
+            {/* Sidebar */}
+            <div className="w-full lg:w-80 xl:w-96 shrink-0">
+              <ArticleSidebar excludeSlug={post.slug} />
+            </div>
           </div>
-          <RelatedPostsCard posts={relatedPosts} />
+          </div>
         </main>
       </>
     );

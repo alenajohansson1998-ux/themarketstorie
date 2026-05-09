@@ -177,6 +177,17 @@ export async function PUT(
       article.aiGenerated = body.aiGenerated;
     }
 
+    if (body.scheduledAt !== undefined) {
+      if (body.scheduledAt === null || body.scheduledAt === "") {
+        article.scheduledAt = null;
+      } else {
+        const parsed = new Date(body.scheduledAt as string);
+        if (!isNaN(parsed.getTime())) {
+          article.scheduledAt = parsed;
+        }
+      }
+    }
+
     if (typeof body.type === "string") {
       if (!isArticleType(body.type)) {
         return NextResponse.json({ success: false, error: "Invalid article type" }, { status: 400 });

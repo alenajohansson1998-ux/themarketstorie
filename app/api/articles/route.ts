@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
     const type = typeof body.type === "string" ? body.type : "";
     const image = typeof body.image === "string" ? body.image : "";
     const statusInput = typeof body.status === "string" ? body.status : "";
-    const aiGenerated = body.aiGenerated !== false;
+    const aiGenerated = Boolean(body.aiGenerated);
     const seo = typeof body.seo === "object" && body.seo ? body.seo : {};
 
     if (!title || !contentInput || !isArticleType(type)) {

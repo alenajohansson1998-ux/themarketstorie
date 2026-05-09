@@ -8,7 +8,7 @@ import { Copy, Save } from "lucide-react";
 import { Editor as TinyMCEEditor } from "@tinymce/tinymce-react";
 import { ARTICLE_CATEGORY_SLUG_BY_TYPE, type ArticleType } from "@/lib/articles/constants";
 
-type ArticleStatus = "draft" | "review" | "published";
+type ArticleStatus = "draft" | "review" | "published" | "archived";
 
 interface CategoryOption {
   _id: string;
@@ -34,6 +34,8 @@ interface ArticleData {
   };
   category?: { name?: string; slug?: string };
   author?: { name?: string; slug?: string };
+  aiGenerated: boolean;
+  scheduledAt?: string | null;
   updatedAt: string;
   publishedAt?: string;
 }
@@ -95,6 +97,7 @@ const TINYMCE_INIT = {
 function statusBadge(status: ArticleStatus): string {
   if (status === "published") return "bg-green-100 text-green-700";
   if (status === "review") return "bg-amber-100 text-amber-700";
+  if (status === "archived") return "bg-red-100 text-red-700";
   return "bg-slate-100 text-slate-700";
 }
 
@@ -124,6 +127,8 @@ export default function AdminArticleDetailPage() {
   const [image, setImage] = useState("");
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
+  const [aiGenerated, setAiGenerated] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState("");
 
   const canEdit =
     status === "authenticated" &&
@@ -217,6 +222,16 @@ export default function AdminArticleDetailPage() {
       setImage(item.image || "");
       setMetaTitle(item.seo?.metaTitle || "");
       setMetaDescription(item.seo?.metaDescription || "");
+      setAiGenerated(item.aiGenerated ?? false);
+      if (item.scheduledAt) {
+        const d = new Date(item.scheduledAt);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        setScheduledAt(
+          `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+        );
+      } else {
+        setScheduledAt("");
+      }
       setLogs(logPayload?.success ? logPayload.data || [] : []);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to fetch article";
@@ -276,6 +291,8 @@ export default function AdminArticleDetailPage() {
           tags: parsedTags,
           image,
           status: targetStatus,
+          aiGenerated,
+          scheduledAt: scheduledAt || null,
           seo: {
             metaTitle,
             metaDescription,
@@ -301,6 +318,16 @@ export default function AdminArticleDetailPage() {
       setImage(updated.image || "");
       setMetaTitle(updated.seo?.metaTitle || "");
       setMetaDescription(updated.seo?.metaDescription || "");
+      setAiGenerated(updated.aiGenerated ?? false);
+      if (updated.scheduledAt) {
+        const d = new Date(updated.scheduledAt);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        setScheduledAt(
+          `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+        );
+      } else {
+        setScheduledAt("");
+      }
 
       const logRes = await fetch(`/api/articles/${articleId}/logs`, { cache: "no-store" });
       const logPayload = await logRes.json();
@@ -412,6 +439,26 @@ export default function AdminArticleDetailPage() {
             <Save size={16} />
             Save Changes
           </button>
+          {article.status !== "archived" && (
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => saveArticle("archived")}
+              className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-60"
+            >
+              Archive
+            </button>
+          )}
+          {article.status === "archived" && (
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => saveArticle("draft")}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              Restore to Draft
+            </button>
+          )}
         </div>
       </div>
 
@@ -476,6 +523,35 @@ export default function AdminArticleDetailPage() {
               />
             </div>
 
+            <div className="flex items-center gap-2">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={aiGenerated}
+                  onChange={(e) => setAiGenerated(e.target.checked)}
+                  className="rounded border-slate-300"
+                />
+                Mark as AI-generated
+              </label>
+            </div>
+
+            {(article.status === "draft" || article.status === "review") && (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Schedule Publish (optional)
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  Leave empty to publish manually. Set a future date/time to auto-publish.
+                </p>
+              </div>
+            )}
+
             <div className="md:col-span-2">
               <label className="mb-1 block text-sm font-medium text-slate-700">Excerpt</label>
               <textarea
@@ -510,20 +586,30 @@ export default function AdminArticleDetailPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">SEO Meta Title</label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-700">SEO Meta Title</label>
+                <span className={`text-xs ${metaTitle.length > 65 ? "text-red-600 font-semibold" : "text-slate-400"}`}>
+                  {metaTitle.length}/65
+                </span>
+              </div>
               <input
                 value={metaTitle}
                 onChange={(e) => setMetaTitle(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none ${metaTitle.length > 65 ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-slate-400"}`}
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">SEO Meta Description</label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-700">SEO Meta Description</label>
+                <span className={`text-xs ${metaDescription.length > 160 ? "text-red-600 font-semibold" : "text-slate-400"}`}>
+                  {metaDescription.length}/160
+                </span>
+              </div>
               <input
                 value={metaDescription}
                 onChange={(e) => setMetaDescription(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none ${metaDescription.length > 160 ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-slate-400"}`}
               />
             </div>
           </div>

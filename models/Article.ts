@@ -26,6 +26,7 @@ export interface IArticle extends Document {
   status: ArticleStatus;
   aiGenerated: boolean;
   publishedAt?: Date | null;
+  scheduledAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,8 +65,9 @@ const ArticleSchema = new mongoose.Schema<IArticle>(
       default: "draft",
       index: true,
     },
-    aiGenerated: { type: Boolean, default: true },
+    aiGenerated: { type: Boolean, default: false },
     publishedAt: { type: Date, default: null },
+    scheduledAt: { type: Date, default: null, index: true },
   },
   { timestamps: true }
 );

@@ -54,6 +54,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         {/* Favicon */}
         <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32" />
+        {/* RSS Feed */}
+        <link rel="alternate" type="application/rss+xml" title="The Market Stories — RSS Feed" href="/feed.xml" />
         {/* SEO Meta Tags */}
         <meta name="keywords" content="financial news, stock market, market analysis, investment, brokers, trading tools, economic calendar, global markets, finance blog, market stories" />
         <meta property="og:title" content="The Market Stories | Financial News, Analysis & Tools" />

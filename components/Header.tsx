@@ -28,6 +28,7 @@ function NYTime() {
         fontVariantNumeric: 'tabular-nums',
       }}
       aria-label="New York time"
+      suppressHydrationWarning
     >
       {formatted}
     </span>
@@ -115,7 +116,7 @@ export default function Header() {
   const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       if (searchQuery.trim()) {
-        router.push(`/blog?search=${encodeURIComponent(searchQuery.trim())}`);
+        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
         setIsSearchDropdownOpen(false);
       }
     }

@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Users, UserCheck, UserPlus, Shield, Trash2, Edit, FolderPlus, Folder, Home, User, Settings, Bell, TrendingUp, LogOut } from 'lucide-react';
+import { Users, UserCheck, UserPlus, Shield, Trash2, Edit, FolderPlus, Folder, Home, User, Settings, Bell, TrendingUp, LogOut, Heart, MessageCircle } from 'lucide-react';
 
 type UserRole = 'admin' | 'editor' | 'user';
 interface User {
@@ -24,6 +24,14 @@ interface Stats {
   recentUsers: number;
   googleUsers: number;
   credentialUsers: number;
+}
+
+interface RecentComment {
+  _id: string;
+  postId: string;
+  userName: string;
+  text: string;
+  createdAt: string;
 }
 
 interface Category {
@@ -45,6 +53,9 @@ export default function AdminDashboard() {
   const [contactRequestsCount, setContactRequestsCount] = useState<number>(0);
   const [recentPosts, setRecentPosts] = useState<any[]>([]);
   const [recentContacts, setRecentContacts] = useState<any[]>([]);
+  const [totalLikes, setTotalLikes] = useState(0);
+  const [totalComments, setTotalComments] = useState(0);
+  const [recentComments, setRecentComments] = useState<RecentComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   // Category management state
@@ -118,6 +129,7 @@ export default function AdminDashboard() {
     fetchContactRequestsCount();
     fetchRecentPosts();
     fetchRecentContacts();
+    fetchEngagement();
   }, [session, status, router]);
 
   const fetchStats = async () => {
@@ -280,6 +292,37 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchEngagement = async () => {
+    try {
+      const response = await fetch('/api/admin/engagement');
+      if (response.ok) {
+        const data = await response.json();
+        setTotalLikes(data.totalLikes ?? 0);
+        setTotalComments(data.totalComments ?? 0);
+        setRecentComments(Array.isArray(data.recentComments) ? data.recentComments : []);
+      }
+    } catch (error) {
+      console.error('Error fetching engagement stats:', error);
+    }
+  };
+
+  const deleteComment = async (commentId: string) => {
+    if (!confirm('Delete this comment?')) return;
+    try {
+      const response = await fetch('/api/admin/engagement', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commentId }),
+      });
+      if (response.ok) {
+        setRecentComments((prev) => prev.filter((c) => c._id !== commentId));
+        setTotalComments((prev) => prev - 1);
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
+  };
+
   if (status === 'loading' || loading) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -299,7 +342,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
         <div className="bg-white shadow rounded-lg p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-500">TOTAL USERS</span>
@@ -315,6 +358,22 @@ export default function AdminDashboard() {
           </div>
           <div className="text-3xl font-bold text-gray-900">{postsCount}</div>
           <div className="text-xs text-gray-500 mt-2">Total posts published</div>
+        </div>
+        <div className="bg-white shadow rounded-lg p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-500">TOTAL LIKES</span>
+            <Heart className="w-5 h-5 text-red-500" />
+          </div>
+          <div className="text-3xl font-bold text-gray-900">{totalLikes}</div>
+          <div className="text-xs text-gray-500 mt-2">Across all articles</div>
+        </div>
+        <div className="bg-white shadow rounded-lg p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-500">TOTAL COMMENTS</span>
+            <MessageCircle className="w-5 h-5 text-indigo-500" />
+          </div>
+          <div className="text-3xl font-bold text-gray-900">{totalComments}</div>
+          <div className="text-xs text-gray-500 mt-2">Across all articles</div>
         </div>
         <div className="bg-white shadow rounded-lg p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
@@ -381,6 +440,19 @@ export default function AdminDashboard() {
                   ),
                   date: req.createdAt ? new Date(req.createdAt).getTime() : 0,
                 })),
+                ...recentComments.slice(0, 5).map((comment) => ({
+                  type: 'comment',
+                  key: comment._id,
+                  content: (
+                    <div key={comment._id} className="flex items-center gap-3 bg-indigo-50 rounded-lg px-4 py-2">
+                      <MessageCircle className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <span className="font-medium shrink-0">Comment:</span>
+                      <span className="truncate text-gray-700">{comment.userName}: {comment.text}</span>
+                      <span className="ml-auto text-xs text-gray-500 shrink-0">{new Date(comment.createdAt).toLocaleString()}</span>
+                    </div>
+                  ),
+                  date: new Date(comment.createdAt).getTime(),
+                })),
               ]
                 .sort((a, b) => b.date - a.date)
                 .slice(0, 5)
@@ -396,6 +468,46 @@ export default function AdminDashboard() {
             <Link href="/admin/contact-requests" className="block bg-purple-100 hover:bg-purple-200 text-purple-900 font-semibold px-4 py-3 rounded-lg">View Contact Requests</Link>
           </div>
         </div>
+      </div>
+
+      {/* Recent Comments Management */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-indigo-500" />
+            <h2 className="text-lg font-semibold text-gray-900">
+              Recent Comments <span className="text-sm font-normal text-gray-400">({totalComments} total)</span>
+            </h2>
+          </div>
+        </div>
+        {recentComments.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-6">No comments yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {recentComments.map((comment) => (
+              <div key={comment._id} className="flex items-start gap-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-700 font-bold text-sm">
+                  {comment.userName.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-sm font-semibold text-gray-800">{comment.userName}</span>
+                    <span className="text-xs text-gray-400">{new Date(comment.createdAt).toLocaleString()}</span>
+                  </div>
+                  <p className="text-sm text-gray-700 truncate">{comment.text}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Post ID: {comment.postId}</p>
+                </div>
+                <button
+                  onClick={() => deleteComment(comment._id)}
+                  className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
+                  title="Delete comment"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -206,7 +206,7 @@ export default function WorldMarketHeatMap({
         setDirectCodes(nextDirectCodes);
         setCount(responseCount);
       } catch (err) {
-        if (!active || controller.signal.aborted) return;
+        if (!active || controller.signal.aborted || err?.name === "AbortError") return;
         const message = err instanceof Error ? err.message : "Failed to load market data";
         setError(message);
       } finally {
@@ -220,7 +220,7 @@ export default function WorldMarketHeatMap({
 
     return () => {
       active = false;
-      controller.abort();
+      controller.abort("unmount");
     };
   }, []);
 

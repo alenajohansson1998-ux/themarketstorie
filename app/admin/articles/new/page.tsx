@@ -85,6 +85,7 @@ export default function NewAdminArticlePage() {
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [aiUsed, setAiUsed] = useState(false);
   const [aiProvider, setAiProvider] = useState<AIProvider>("auto");
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
@@ -260,6 +261,9 @@ export default function NewAdminArticlePage() {
         setImage(generated.image.trim());
       }
 
+      // mark that generated content was used so the article metadata reflects AI provenance
+      setAiUsed(true);
+
       const providerUsed = typeof generated.provider === "string" ? generated.provider : aiProvider;
       const imageSource =
         typeof generated.imageSource === "string" && generated.imageSource
@@ -307,7 +311,7 @@ export default function NewAdminArticlePage() {
           image,
           tags: parsedTags,
           status: targetStatus,
-          aiGenerated: true,
+          aiGenerated: aiUsed,
           seo: {
             metaTitle,
             metaDescription,
@@ -413,6 +417,16 @@ export default function NewAdminArticlePage() {
                   Auto-fill on title blur
                 </label>
 
+                <label className="mb-1 inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={aiUsed}
+                    onChange={(e) => setAiUsed(e.target.checked)}
+                    className="rounded border-slate-300"
+                  />
+                  Mark as AI-generated
+                </label>
+
                 <button
                   type="button"
                   disabled={generating || !title.trim()}
@@ -515,22 +529,30 @@ export default function NewAdminArticlePage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">SEO Meta Title</label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-700">SEO Meta Title</label>
+                <span className={`text-xs ${metaTitle.length > 65 ? "text-red-600 font-semibold" : "text-slate-400"}`}>
+                  {metaTitle.length}/65
+                </span>
+              </div>
               <input
                 value={metaTitle}
                 onChange={(e) => setMetaTitle(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none ${metaTitle.length > 65 ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-slate-400"}`}
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                SEO Meta Description
-              </label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-700">SEO Meta Description</label>
+                <span className={`text-xs ${metaDescription.length > 160 ? "text-red-600 font-semibold" : "text-slate-400"}`}>
+                  {metaDescription.length}/160
+                </span>
+              </div>
               <input
                 value={metaDescription}
                 onChange={(e) => setMetaDescription(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none ${metaDescription.length > 160 ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-slate-400"}`}
               />
             </div>
           </div>

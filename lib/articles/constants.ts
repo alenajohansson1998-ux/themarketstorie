@@ -16,7 +16,7 @@ export const ARTICLE_CATEGORY_SLUG_BY_TYPE: Record<ArticleType, string> = {
   geopolitical: "geopolitics",
 };
 
-export const ARTICLE_STATUSES = ["draft", "review", "published"] as const;
+export const ARTICLE_STATUSES = ["draft", "review", "published", "archived"] as const;
 export type ArticleStatus = (typeof ARTICLE_STATUSES)[number];
 
 export const PUBLICATION_LOG_ACTIONS = [

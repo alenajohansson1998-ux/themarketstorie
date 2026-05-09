@@ -53,7 +53,7 @@ const ALLOWED_TAGS = new Set([
 const SELF_CLOSING_TAGS = new Set(['br', 'hr', 'img']);
 const GLOBAL_ALLOWED_ATTRS = new Set(['class', 'title', 'aria-label', 'aria-hidden', 'role']);
 const TAG_ALLOWED_ATTRS: Record<string, Set<string>> = {
-  a: new Set(['href', 'target', 'rel', 'title']),
+  a: new Set(['href', 'target', 'rel', 'title', 'data-dofollow']),
   img: new Set(['src', 'alt', 'title', 'width', 'height']),
 };
 
@@ -99,12 +99,21 @@ function isSafeUrl(value: string): boolean {
   );
 }
 
+function isExternalUrl(value: string): boolean {
+  try {
+    const normalized = decodeHtmlEntities(value).trim().toLowerCase();
+    return normalized.startsWith('http://') || normalized.startsWith('https://');
+  } catch {
+    return false;
+  }
+}
+
 function sanitizeAttributes(tagName: string, attributeChunk: string): string {
   const cleaned: string[] = [];
   const attrRegex = /([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>`=]+)))?/g;
   let match: RegExpExecArray | null = attrRegex.exec(attributeChunk);
-  let hasRel = false;
-  let targetBlank = false;
+  let hrefValue = '';
+  let doFollow = false;
 
   while (match) {
     const attrName = match[1].toLowerCase();
@@ -127,19 +136,29 @@ function sanitizeAttributes(tagName: string, attributeChunk: string): string {
       continue;
     }
 
+    if (tagName === 'a' && attrName === 'href') {
+      hrefValue = value;
+    }
+
     if (tagName === 'a' && attrName === 'target') {
       const normalizedTarget = value.toLowerCase();
       if (!['_blank', '_self', '_parent', '_top'].includes(normalizedTarget)) {
         match = attrRegex.exec(attributeChunk);
         continue;
       }
-      if (normalizedTarget === '_blank') {
-        targetBlank = true;
-      }
     }
 
+    // data-dofollow="true" marks the link as intentionally do-follow; strip from output
+    if (tagName === 'a' && attrName === 'data-dofollow') {
+      if (value === 'true' || value === '1' || value === '') doFollow = true;
+      match = attrRegex.exec(attributeChunk);
+      continue;
+    }
+
+    // Skip any existing rel on <a> — we set it ourselves below
     if (tagName === 'a' && attrName === 'rel') {
-      hasRel = true;
+      match = attrRegex.exec(attributeChunk);
+      continue;
     }
 
     if (value) {
@@ -151,8 +170,16 @@ function sanitizeAttributes(tagName: string, attributeChunk: string): string {
     match = attrRegex.exec(attributeChunk);
   }
 
-  if (tagName === 'a' && targetBlank && !hasRel) {
-    cleaned.push('rel="noopener noreferrer"');
+  // For external <a> links set rel based on do-follow flag
+  if (tagName === 'a' && isExternalUrl(hrefValue)) {
+    cleaned.push(
+      doFollow
+        ? 'rel="noopener noreferrer"'
+        : 'rel="nofollow noopener noreferrer"'
+    );
+    if (!cleaned.some((attr) => attr.startsWith('target='))) {
+      cleaned.push('target="_blank"');
+    }
   }
 
   return cleaned.length > 0 ? ` ${cleaned.join(' ')}` : '';

@@ -279,17 +279,60 @@ async function resolveCoverImage(input: {
   };
 }
 
+function repairJsonString(jsonStr: string): string {
+  // Walk the string character-by-character and escape any raw control characters
+  // (newline, carriage return, tab) that appear inside a JSON string value.
+  // This fixes the most common AI failure: multi-line HTML inside a JSON string.
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < jsonStr.length; i++) {
+    const ch = jsonStr[i];
+
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+
+    if (ch === "\\" && inString) {
+      result += ch;
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+
+    if (inString) {
+      if (ch === "\n") { result += "\\n"; continue; }
+      if (ch === "\r") { result += "\\r"; continue; }
+      if (ch === "\t") { result += "\\t"; continue; }
+    }
+
+    result += ch;
+  }
+
+  return result;
+}
+
 function extractJsonObject(raw: string): Record<string, unknown> {
   let value = raw.trim();
   if (!value) {
     throw new Error("AI returned empty response");
   }
 
+  // Strip markdown code fences
   const fenced = value.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fenced?.[1]) {
     value = fenced[1].trim();
   }
 
+  // Slice to the outermost { ... }
   if (!value.startsWith("{")) {
     const start = value.indexOf("{");
     const end = value.lastIndexOf("}");
@@ -298,17 +341,37 @@ function extractJsonObject(raw: string): Record<string, unknown> {
     }
   }
 
+  // Attempt 1: direct parse
   try {
     const parsed = JSON.parse(value) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error("Invalid JSON object");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
     }
-    return parsed as Record<string, unknown>;
-  } catch (error) {
-    throw new Error(
-      `AI response was not valid JSON: ${error instanceof Error ? error.message : "parse failed"}`
-    );
+  } catch { /* fall through */ }
+
+  // Attempt 2: fix unescaped control characters inside string values
+  const repaired = repairJsonString(value);
+  try {
+    const parsed = JSON.parse(repaired) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch { /* fall through */ }
+
+  // Attempt 3: truncated JSON — try closing open strings/objects
+  for (const suffix of ['"}', '"}}', '"}}}']) {
+    try {
+      const patched = repairJsonString(value) + suffix;
+      const parsed = JSON.parse(patched) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch { /* fall through */ }
   }
+
+  throw new Error(
+    `AI response was not valid JSON — could not repair automatically. Raw snippet: ${value.slice(0, 120)}`
+  );
 }
 
 function cleanupGeneratedText(value: string): string {
@@ -392,68 +455,18 @@ function escapeHtmlText(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function formatSourceLabel(url: string): string {
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.replace(/^www\./i, "");
-    if (host === "news.google.com") {
-      return "Google News";
-    }
-    const path = parsed.pathname.replace(/\/+$/g, "");
-    const query = parsed.search ? parsed.search.slice(0, 20) : "";
-    const compact = `${host}${path}${query}`;
-    return compact.length > 88 ? `${compact.slice(0, 85)}...` : compact;
-  } catch {
-    return url;
-  }
-}
 
-function normalizeInlineAnchorLabels(html: string): string {
-  return html.replace(
-    /<a([^>]*)href="([^"]+)"([^>]*)>(https?:\/\/[^<]+)<\/a>/gi,
-    (_match, beforeHref: string, href: string, afterHref: string) =>
-      `<a${beforeHref}href="${href}"${afterHref}>${escapeHtmlText(formatSourceLabel(href))}</a>`
-  );
-}
-
-function normalizeSourcesSection(html: string): string {
-  const sectionPattern =
-    /<h2>\s*Sources\s*&(?:amp;)?\s*References\s*<\/h2>\s*<ul>([\s\S]*?)<\/ul>/i;
-  const match = html.match(sectionPattern);
-
-  if (!match) {
-    return html;
-  }
-
-  const listHtml = match[1] || "";
-  const anchors = [...listHtml.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
-  const seen = new Set<string>();
-  const items: string[] = [];
-
-  for (const anchor of anchors) {
-    const href = cleanupGeneratedText(anchor[1] || "");
-    if (!isHttpsUrl(href) || seen.has(href)) {
-      continue;
-    }
-
-    seen.add(href);
-    items.push(
-      `<li><a href="${escapeHtmlText(
-        href
-      )}" target="_blank" rel="noopener noreferrer">${escapeHtmlText(
-        formatSourceLabel(href)
-      )}</a></li>`
-    );
-  }
-
-  if (items.length === 0) {
-    return html.replace(sectionPattern, "");
-  }
-
-  return html.replace(
-    sectionPattern,
-    `<h2>Sources &amp; References</h2><ul>${items.join("")}</ul>`
-  );
+function stripSourcesSection(html: string): string {
+  // Remove the heading + any following list (ul or ol).
+  // The heading text can be "Sources & References", "Sources &amp; References",
+  // "Sources and References", or just "References".
+  // The h2 may carry attributes and there may be whitespace between the heading and list.
+  return html
+    .replace(
+      /<h2[^>]*>\s*(?:Sources\s*(?:&amp;|&|and)\s*)?References\s*<\/h2>(\s*<(?:ul|ol)[^>]*>[\s\S]*?<\/(?:ul|ol)>)?/gi,
+      ""
+    )
+    .trim();
 }
 
 function finalizeGeneratedHtml(inputHtml: string, title: string): string {
@@ -469,10 +482,14 @@ function finalizeGeneratedHtml(inputHtml: string, title: string): string {
     clean = `<h1>${escapeHtmlText(normalizedTitle)}</h1>${clean}`;
   }
 
-  clean = normalizeInlineAnchorLabels(clean);
-  clean = normalizeSourcesSection(clean);
+  let html = sanitizeRichHtml(clean);
 
-  return sanitizeRichHtml(clean);
+  // Strip any Sources & References section the AI adds despite not being asked.
+  // Runs after sanitization so we see the final HTML structure.
+  // Catches: <h2> with/without attrs, ul/ol lists, optional <p> between heading and list.
+  html = stripSourcesSection(html);
+
+  return html;
 }
 
 function normalizeGeneratedDraft(
@@ -573,9 +590,7 @@ Output rules:
   - Use one <h1> and multiple <h2> sections.
   - Use <p> for body text.
   - Optional <ul><li> where useful.
-- Include 3 to 8 natural in-text references only when the verified context supports them.
-- End contentHtml with: <h2>Sources & References</h2> followed by a <ul> of the same links used in the article.
-- Use only real, publicly reachable HTTPS URLs already present in the verified context.
+- Use only real, publicly reachable HTTPS URLs already present in the verified context for any in-text links.
 - Do not include script/style/iframe.
 - Avoid generic AI disclaimers.
 - Keep unsupported commentary qualitative rather than numeric.
@@ -649,10 +664,6 @@ Conclusion:
 - Summarize overall global outlook.
 - Explain what investors are watching next (inflation data, central bank speeches, economic indicators).
 
-Include a final section:
-H2: Sources & References
-- Provide a bullet list of the same references used naturally in the article body.
-
 Return ONLY valid JSON (no markdown, no code block) with this exact shape:
 {
   "title": "string",
@@ -722,10 +733,6 @@ H2: Risk Sentiment and What Traders Watch Next
 
 Conclusion:
 - Summarize cross-asset crypto outlook and immediate watchpoints.
-
-Include a final section:
-H2: Sources & References
-- Provide a bullet list of the same links used naturally in the article.
 
 Return ONLY valid JSON (no markdown, no code block) with this exact shape:
 {
@@ -800,10 +807,6 @@ H2: Cross-Asset Implications for Investors
 
 Conclusion:
 - Concise outlook for next sessions and critical catalysts.
-
-Include a final section:
-H2: Sources & References
-- Provide a bullet list of the same references used naturally in the article body.
 
 Return ONLY valid JSON (no markdown, no code block) with this exact shape:
 {
