@@ -10,7 +10,7 @@ export default function EditorHelpPage() {
           <li>To create a post, click "Create Post" in the sidebar.</li>
           <li>To manage your posts, click "Manage Posts".</li>
           <li>Check your post credits at the top of the dashboard.</li>
-          <li>Contact support at <a href="mailto:support@themarketstories.com" className="text-blue-600 underline">support@themarketstories.com</a></li>
+          <li>Contact support at <a href="mailto:Alvensmith1998@gmail.com" className="text-blue-600 underline">Alvensmith1998@gmail.com</a></li>
         </ul>
         <p className="text-gray-600">For more help, reach out to your admin or visit our documentation.</p>
       </div>

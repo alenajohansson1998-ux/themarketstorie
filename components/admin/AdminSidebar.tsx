@@ -12,6 +12,7 @@ const adminLinks = [
   { label: "Brokers", icon: <FaShieldAlt />, href: "/admin/brokers/list" },
   { label: "Markets", icon: <FaChartBar />, href: "/admin/markets" },
   { label: "Contact Requests", icon: <FaEnvelope />, href: "/admin/contact-requests" },
+  { label: "Ad Enquiries", icon: <FaEnvelope />, href: "/admin/advertising-enquiries" },
   { label: "Settings", icon: <FaCog />, href: "/admin/settings" },
 ];
 

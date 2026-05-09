@@ -211,7 +211,7 @@ export default function PrivacyPage() {
               If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:
             </p>
             <p className="text-gray-600 mb-4">
-              Email: privacy@themarketstories.com<br />
+              Email: Alvensmith1998@gmail.com<br />
               Address: [Your Business Address]<br />
               Phone: [Your Phone Number]
             </p>
@@ -221,7 +221,7 @@ export default function PrivacyPage() {
 
             <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">13. Data Protection Officer</h2>
             <p className="text-gray-600 mb-4">
-              For matters related to data protection and privacy, you can contact our Data Protection Officer at dpo@themarketstories.com.
+              For matters related to data protection and privacy, you can contact our Data Protection Officer at Alvensmith1998@gmail.com.
             </p>
 
             <p className="text-gray-600 mt-8">

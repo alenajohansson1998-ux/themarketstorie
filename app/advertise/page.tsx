@@ -1,305 +1,238 @@
+"use client";
+import { useState } from "react";
+
+const formats = [
+  { num: "01", title: "Sponsored Articles", desc: "Long-form editorial content published under your brand with full organic reach across our site and newsletter." },
+  { num: "02", title: "Display Banner Ads", desc: "High-visibility placements across all key pages — header, sidebar, and in-article — on desktop and mobile." },
+  { num: "03", title: "Homepage Placements", desc: "Premium above-the-fold visibility on our highest-traffic page, seen by every reader who visits." },
+  { num: "04", title: "Newsletter Promotions", desc: "Direct placement inside our weekly financial newsletter — delivered to 40,000+ engaged subscribers." },
+  { num: "05", title: "Social Media Promotions", desc: "Branded content and shoutouts across our active social channels to extend your reach beyond the site." },
+];
 
 export default function AdvertisePage() {
+  const [form, setForm] = useState({ name: "", company: "", email: "", format: "", message: "" });
+  const [submitted, setSubmitted] = useState(false);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await fetch("/api/advertising-enquiry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    setSubmitted(true);
+  }
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1 bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-8">Advertising Conditions</h1>
+    <div className="bg-white text-gray-900">
 
-          <div className="prose prose-lg max-w-none">
-            <p className="text-gray-600 mb-6">
-              Welcome to NewsDay's Advertising Conditions. These conditions ("Conditions") govern the advertising services provided by NewsDay ("we", "our", "us") on our website, mobile applications, and related platforms (collectively, the "Service"). By advertising with NewsDay, you agree to comply with these Conditions and all applicable laws and regulations.
+      {/* Opening */}
+      <section className="border-b border-gray-200 py-20 px-4 sm:px-8 lg:px-20">
+        <p className="text-xs uppercase tracking-[0.25em] text-gray-400 mb-6">Advertise With Us</p>
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-[1.05] max-w-5xl">
+          Put your brand in front of{" "}
+          <span className="italic font-serif text-gray-400">500,000+</span>{" "}
+          finance-focused readers.
+        </h1>
+      </section>
+
+
+      {/* Why advertise */}
+      <section className="border-b border-gray-200 px-4 sm:px-8 lg:px-20 py-16">
+        <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-10">Why Advertise With Us</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          <div className="lg:col-span-2">
+            <p className="text-xl text-gray-700 leading-relaxed mb-5">
+              TheMarketStories reaches investors, traders, and financial professionals across 120+ countries
+              every month. Our readers are not passive — they are actively seeking information to make
+              financial decisions with real money.
             </p>
-            <p className="text-gray-600 mb-6">
-              These Conditions apply to all advertisers, agencies, and third parties involved in advertising campaigns on NewsDay.
+            <p className="text-xl text-gray-700 leading-relaxed">
+              Whether you&apos;re a fintech brand, a trading platform, an education company, or a consumer
+              product targeting high-income audiences — we can put your message exactly where it matters.
             </p>
+          </div>
+          <div className="flex flex-col gap-6 border-l border-gray-200 pl-10">
+            {[
+              { stat: "85%",   note: "of our readers have active investment portfolios" },
+              { stat: "3.2×",  note: "higher engagement than general news platforms" },
+              { stat: "Top 3", note: "financial news source across 40+ countries" },
+            ].map((s) => (
+              <div key={s.stat}>
+                <p className="text-3xl font-black text-gray-900">{s.stat}</p>
+                <p className="text-sm text-gray-500 mt-1">{s.note}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">1. Acceptance of Conditions</h2>
-            <p className="text-gray-600 mb-4">
-              By submitting advertising materials or entering into an advertising agreement with NewsDay, you confirm that:
+      {/* Form (left) + Formats (right) */}
+      <section className="border-b border-gray-200 px-4 sm:px-8 lg:px-20 py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+
+          {/* LEFT — Form */}
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-6">Get in Touch</p>
+            <h2 className="text-3xl font-black leading-tight mb-4">
+              Let&apos;s talk about your campaign.
+            </h2>
+            <p className="text-gray-500 text-sm leading-relaxed mb-3">
+              Fill in the form and we&apos;ll get back to you within 1–2 business days with availability,
+              pricing, and format recommendations.
             </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>You have read, understood, and agreed to these Conditions</li>
-              <li>You have the legal authority to bind your organization to these terms</li>
-              <li>All information provided is accurate and complete</li>
-              <li>You will comply with all applicable laws, regulations, and industry standards</li>
-            </ul>
-
-            <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">2. Advertising Topics and Content Guidelines</h2>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">2.1 Permitted Topics</h3>
-            <p className="text-gray-600 mb-4">
-              NewsDay accepts advertising related to the following topics, provided they comply with our content standards:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Financial services and investment products (with proper disclosures)</li>
-              <li>Insurance products and services</li>
-              <li>Banking and credit services</li>
-              <li>Real estate and property services</li>
-              <li>Technology and software solutions</li>
-              <li>Educational services and training programs</li>
-              <li>Business and professional services</li>
-              <li>Consumer products and retail</li>
-              <li>Travel and hospitality services</li>
-              <li>Health and wellness products (non-pharmaceutical)</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">2.2 Prohibited Topics and Content</h3>
-            <p className="text-gray-600 mb-4">
-              The following topics and content types are strictly prohibited:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Misleading or false claims about investment performance or returns</li>
-              <li>Unregulated financial products or services</li>
-              <li>Get-rich-quick schemes or guaranteed returns</li>
-              <li>High-risk investment opportunities without proper risk disclosures</li>
-              <li>Content that contradicts our editorial policies or fact-checking standards</li>
-              <li>Politically charged or controversial content that may mislead readers</li>
-              <li>Content that promotes illegal activities or violates laws</li>
-              <li>Discriminatory content based on race, religion, gender, or other protected characteristics</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">2.3 Content Standards</h3>
-            <p className="text-gray-600 mb-4">
-              All advertising content must meet the following standards:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Truthful and not misleading</li>
-              <li>Clear and easy to understand</li>
-              <li>Appropriate for our audience demographics</li>
-              <li>Free from offensive language or imagery</li>
-              <li>Compliant with advertising industry standards</li>
-              <li>Properly attributed and sourced where required</li>
-            </ul>
-
-            <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">3. Advertising Formats and Specifications</h2>
-            <p className="text-gray-600 mb-4">
-              The Market Stories supports various advertising formats including:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Display banners and rectangles</li>
-              <li>Native advertising and sponsored content</li>
-              <li>Video advertisements</li>
-              <li>Email newsletters and promotional content</li>
-              <li>Social media promotions</li>
-            </ul>
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">3.2 Technical Specifications</h3>
-            <p className="text-gray-600 mb-4">
-              All advertising materials must comply with our technical requirements:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>File formats: JPG, PNG, GIF, MP4, HTML5</li>
-              <li>Maximum file sizes as specified in campaign briefs</li>
-              <li>Responsive design for mobile compatibility</li>
-              <li>Fast loading times to ensure user experience</li>
-              <li>Proper alt text and accessibility features</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">4.1 Audience Targeting</h3>
-            <p className="text-gray-600 mb-4">
-              The Market Stories offers various targeting options to reach relevant audiences:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Demographic targeting (age, gender, location)</li>
-              <li>Interest-based targeting (investment preferences, financial topics)</li>
-              <li>Behavioral targeting (website activity, content consumption)</li>
-              <li>Contextual targeting (content relevance)</li>
-              <li>Retargeting and lookalike audiences</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">4.2 Data Privacy and Compliance</h3>
-            <p className="text-gray-600 mb-4">
-              All targeting and data usage must comply with:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>GDPR and CCPA privacy regulations</li>
-              <li>The Market Stories' Privacy Policy</li>
-              <li>Industry standards for data protection</li>
-              <li>User consent requirements for tracking</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.1 Sponsored Content Disclosure</h3>
-            <p className="text-gray-600 mb-4">
-              All sponsored content on The Market Stories must include clear disclosures:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>"Sponsored" or "Advertisement" labels</li>
-              <li>Clear identification of the advertiser</li>
-              <li>Prominent placement of disclosure notices</li>
-              <li>Compliance with FTC and regulatory requirements</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.2 Financial Advertising Disclosures</h3>
-            <p className="text-gray-600 mb-4">
-              Financial product advertising on The Market Stories must include appropriate risk disclosures:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Past performance is not indicative of future results</li>
-              <li>Investment involves risk of loss</li>
-              <li>Not FDIC insured (for applicable products)</li>
-              <li>Consult with financial professionals</li>
-              <li>Regulatory licensing information</li>
-            </ul>
-
-            <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">6. Campaign Management and Reporting</h2>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.1 Campaign Approval Process</h3>
-            <p className="text-gray-600 mb-4">
-              All campaigns undergo a review process:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Initial creative review within 2-3 business days</li>
-              <li>Compliance check against our advertising policies</li>
-              <li>Technical validation for proper implementation</li>
-              <li>Final approval before campaign launch</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.2 Performance Reporting</h3>
-            <p className="text-gray-600 mb-4">
-              NewsDay provides comprehensive reporting including:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Impressions and click-through rates</li>
-              <li>Conversion tracking and attribution</li>
-              <li>Audience demographics and engagement metrics</li>
-              <li>Real-time campaign performance dashboards</li>
-              <li>Monthly summary reports</li>
-            </ul>
-
-            <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">7. Payment Terms and Billing</h2>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">7.1 Payment Methods</h3>
-            <p className="text-gray-600 mb-4">
-              Accepted payment methods include:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Wire transfer and ACH</li>
-              <li>Credit card (for smaller campaigns)</li>
-              <li>Check payments</li>
-              <li>Digital payment platforms</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">7.2 Billing Schedule</h3>
-            <p className="text-gray-600 mb-4">
-              Billing arrangements vary by campaign type:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Prepaid campaigns: Full payment before launch</li>
-              <li>Monthly campaigns: Billed at campaign start with monthly reconciliations</li>
-              <li>Performance-based: Billed based on actual results achieved</li>
-              <li>Net terms: 30 days from invoice date for approved advertisers</li>
-            </ul>
-
-            <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">8. Cancellation and Termination</h2>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">8.1 Cancellation Policy</h3>
-            <p className="text-gray-600 mb-4">
-              Campaign cancellation terms:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>30-day written notice for monthly campaigns</li>
-              <li>Pro-rated refunds for unused advertising inventory</li>
-              <li>No refunds for completed campaign periods</li>
-              <li>Immediate termination for policy violations</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">8.2 Termination Rights</h3>
-            <p className="text-gray-600 mb-4">
-              Either party may terminate the agreement:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>For material breach of these Conditions</li>
-              <li>Upon written notice as specified in the agreement</li>
-              <li>Immediately for illegal or harmful content</li>
-              <li>Due to changes in applicable laws or regulations</li>
-            </ul>
-
-            <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">9. Liability and Indemnification</h2>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.1 Warranties</h3>
-            <p className="text-gray-600 mb-4">
-              NewsDay warrants that:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>We have the right to publish and distribute the advertising</li>
-              <li>Our services will be performed in a professional manner</li>
-              <li>We will comply with applicable advertising laws</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.2 Limitation of Liability</h3>
-            <p className="text-gray-600 mb-4">
-              NewsDay's liability is limited to the amount paid for the specific campaign. We are not liable for:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Indirect or consequential damages</li>
-              <li>Loss of profits or business opportunities</li>
-              <li>Third-party claims not directly caused by our negligence</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.3 Indemnification</h3>
-            <p className="text-gray-600 mb-4">
-              Advertisers agree to indemnify NewsDay against claims arising from:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>False or misleading advertising content</li>
-              <li>Infringement of intellectual property rights</li>
-              <li>Violation of laws or regulations</li>
-              <li>Defamation or harmful content</li>
-            </ul>
-
-            <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">10. Compliance and Legal Requirements</h2>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">10.1 Regulatory Compliance</h3>
-            <p className="text-gray-600 mb-4">
-              All advertising must comply with applicable regulations:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Federal Trade Commission (FTC) guidelines</li>
-              <li>Securities and Exchange Commission (SEC) rules</li>
-              <li>FINRA advertising regulations</li>
-              <li>State and local advertising laws</li>
-              <li>International advertising standards (where applicable)</li>
-            </ul>
-
-            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">10.2 Record Keeping</h3>
-            <p className="text-gray-600 mb-4">
-              Advertisers must maintain records for regulatory compliance:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Campaign performance data</li>
-              <li>Advertising content and creatives</li>
-              <li>Compliance documentation</li>
-              <li>Communication records with NewsDay</li>
-            </ul>
-
-            <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">11. Changes to Conditions</h2>
-            <p className="text-gray-600 mb-4">
-              NewsDay reserves the right to modify these Conditions at any time. Changes will be:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-4 ml-4">
-              <li>Posted on this page with an updated effective date</li>
-              <li>Notified to existing advertisers via email</li>
-              <li>Applied to new campaigns immediately</li>
-              <li>Applied to existing campaigns after a reasonable transition period</li>
-            </ul>
-
-            <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">12. Contact Information</h2>
-            <p className="text-gray-600 mb-4">
-              For advertising inquiries or questions about these Conditions:
-            </p>
-            <p className="text-gray-600 mb-4">
-              Email: support@themarketstories.com<br />
-              Website: <a href="https://themarketstories.com" target="_blank" rel="noopener noreferrer">themarketstories.com</a><br />
-              Phone: [Advertising Department Phone Number]<br />
-              Address: [Business Address]
+            <p className="text-sm text-gray-400 mb-8">
+              Or email us directly at{" "}
+              <a href="mailto:Alvensmith1998@gmail.com" className="text-gray-900 underline underline-offset-2 hover:text-blue-600 transition-colors">
+                Alvensmith1998@gmail.com
+              </a>
             </p>
 
-            <p className="text-gray-600 mt-8">
-              Last updated: {new Date().toLocaleDateString()}
+            {submitted ? (
+              <div className="border border-gray-200 rounded-xl p-12 text-center">
+                <p className="text-4xl font-black mb-3">Sent.</p>
+                <p className="text-gray-500">
+                  We&apos;ll be in touch at{" "}
+                  <span className="text-gray-900 font-medium">{form.email}</span> within 1–2 business days.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-widest text-gray-500">Full Name *</label>
+                  <input
+                    name="name" required value={form.name} onChange={handleChange}
+                    placeholder="John Smith"
+                    className="border-b border-gray-300 focus:border-gray-900 outline-none py-2.5 text-sm bg-transparent transition-colors placeholder:text-gray-300"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-widest text-gray-500">Company / Brand</label>
+                  <input
+                    name="company" value={form.company} onChange={handleChange}
+                    placeholder="Your Company"
+                    className="border-b border-gray-300 focus:border-gray-900 outline-none py-2.5 text-sm bg-transparent transition-colors placeholder:text-gray-300"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-widest text-gray-500">Email Address *</label>
+                  <input
+                    name="email" type="email" required value={form.email} onChange={handleChange}
+                    placeholder="you@company.com"
+                    className="border-b border-gray-300 focus:border-gray-900 outline-none py-2.5 text-sm bg-transparent transition-colors placeholder:text-gray-300"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-widest text-gray-500">Advertising Format</label>
+                  <select
+                    name="format" value={form.format} onChange={handleChange}
+                    className="border-b border-gray-300 focus:border-gray-900 outline-none py-2.5 text-sm bg-transparent transition-colors text-gray-700"
+                  >
+                    <option value="">Select a format</option>
+                    <option>Sponsored Articles</option>
+                    <option>Display Banner Ads</option>
+                    <option>Homepage Placements</option>
+                    <option>Newsletter Promotions</option>
+                    <option>Social Media Promotions</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs uppercase tracking-widest text-gray-500">Message *</label>
+                  <textarea
+                    name="message" required rows={5} value={form.message} onChange={handleChange}
+                    placeholder="Tell us about your campaign goals, target audience, and budget..."
+                    className="border-b border-gray-300 focus:border-gray-900 outline-none py-2.5 text-sm bg-transparent transition-colors resize-none placeholder:text-gray-300"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="bg-gray-900 hover:bg-gray-700 text-white font-semibold px-10 py-3.5 rounded-lg transition-colors text-sm"
+                  >
+                    Submit Enquiry
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          {/* RIGHT — Advertising Formats */}
+          <div className="border-l border-gray-200 pl-16">
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-10">Advertising Formats</p>
+            <div className="divide-y divide-gray-200">
+              {formats.map((f) => (
+                <div key={f.num} className="py-6 grid grid-cols-[40px_1fr] gap-5 items-start">
+                  <p className="text-xl font-black text-gray-200">{f.num}</p>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900 mb-1">{f.title}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Guidelines */}
+      <section className="border-b border-gray-200">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr]">
+          <div className="border-b lg:border-b-0 lg:border-r border-gray-200 p-10 lg:p-16">
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-6">Our Standards</p>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              We take our editorial reputation seriously. Every advertisement that runs on TheMarketStories
+              is reviewed before it goes live — no exceptions.
+            </p>
+          </div>
+          <div className="p-10 lg:p-16">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
+              {[
+                { rule: "Accurate & Non-Misleading", note: "All claims in ads must be factual and verifiable." },
+                { rule: "Legally Compliant",         note: "Ads must comply with applicable laws in all target markets." },
+                { rule: "Clearly Labelled",          note: "Sponsored content is always marked — we never blur the line." },
+                { rule: "Editorially Appropriate",   note: "Content must align with our audience and editorial values." },
+              ].map((g) => (
+                <div key={g.rule}>
+                  <p className="text-sm font-bold text-gray-900 mb-1">{g.rule}</p>
+                  <p className="text-sm text-gray-500">{g.note}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-8 text-xs text-gray-400 pt-6 border-t border-gray-100">
+              We do not accept illegal, misleading, adult, hate speech, or harmful content of any kind.
             </p>
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* Bottom CTA */}
+      <section className="px-4 sm:px-8 lg:px-20 py-20 flex flex-col sm:flex-row sm:items-end justify-between gap-8">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-4">Ready?</p>
+          <h2 className="text-4xl sm:text-5xl font-black leading-tight max-w-lg">
+            Reach the audience that moves the markets.
+          </h2>
+        </div>
+        <div className="shrink-0">
+          <a
+            href="mailto:Alvensmith1998@gmail.com"
+            className="inline-block bg-gray-900 hover:bg-gray-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors text-sm"
+          >
+            Email Us Now
+          </a>
+        </div>
+      </section>
+
     </div>
   );
 }

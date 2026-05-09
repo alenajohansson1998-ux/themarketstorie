@@ -262,7 +262,7 @@ export default function TermsPage() {
               If you have any questions, concerns, or requests regarding these Terms & Conditions, you may contact us at:
             </p>
             <p className="text-gray-600 mb-4">
-              Email: <a href="mailto:support@themarketstories.com">support@themarketstories.com</a>
+              Email: <a href="mailto:Alvensmith1998@gmail.com">Alvensmith1998@gmail.com</a>
             </p>
             <p className="text-gray-600 mb-4">
               Website: <a href="https://themarketstories.com" target="_blank" rel="noopener noreferrer">https://themarketstories.com</a>

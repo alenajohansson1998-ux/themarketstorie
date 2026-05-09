@@ -224,8 +224,8 @@ export default function RiskDisclosurePage() {
               If you have questions about this Risk Disclosure or need clarification, please contact us:
             </p>
             <p className="text-gray-600 mb-4">
-              Email: support@themarketstories.com<br />
-              Support: support@themarketstories.com
+              Email: Alvensmith1998@gmail.com<br />
+              Support: Alvensmith1998@gmail.com
             </p>
 
             <p className="text-gray-600 mt-8">
