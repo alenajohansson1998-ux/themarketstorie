@@ -18,7 +18,7 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="site-container px-4 md:px-6 xl:px-8">
           <div className="prose prose-lg max-w-none">
             <p className="text-gray-600 mb-6">
               Welcome to The Market Stories. This Privacy Policy ("Policy") explains how The Market Stories ("we", "our", "us") collects, uses, discloses, and safeguards your information when you visit our website, use our services, or interact with our content. By accessing or using The Market Stories, you agree to the collection and use of information in accordance with this Policy.

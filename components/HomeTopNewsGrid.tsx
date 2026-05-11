@@ -150,7 +150,8 @@ const HomeTopNewsGrid: React.FC = () => {
 
         {/* MIDDLE COLUMN */}
         <div className="flex min-h-[280px] flex-col rounded-lg bg-white p-4 shadow sm:min-h-[320px]">
-          <h3 className="text-lg font-semibold mb-4">Trending Posts</h3>
+          <p className="section-label">Trending</p>
+          <h3 className="mt-1 mb-4 text-xl font-black tracking-tight text-[#18130f]">Trending Posts</h3>
           {loading ? (
             <div className="flex-1 flex items-center justify-center text-gray-400">
               Loading...
@@ -178,7 +179,8 @@ const HomeTopNewsGrid: React.FC = () => {
 
         {/* RIGHT COLUMN */}
         <div className="flex min-h-[280px] flex-col rounded-lg bg-white p-4 shadow sm:min-h-[320px]">
-          <h3 className="text-lg font-semibold mb-4">Latest Posts</h3>
+          <p className="section-label">Latest</p>
+          <h3 className="mt-1 mb-4 text-xl font-black tracking-tight text-[#18130f]">Latest Posts</h3>
           {loading ? (
             <div className="flex-1 flex items-center justify-center text-gray-400">
               Loading...

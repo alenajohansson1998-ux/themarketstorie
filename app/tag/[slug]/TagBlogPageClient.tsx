@@ -105,7 +105,7 @@ export default function TagBlogPageClient({ slug }: TagBlogPageProps) {
   if (!tag) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+        <div className="site-container px-4 md:px-6 xl:px-8 py-12 text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Tag Not Found</h1>
           <Link href="/" className="text-blue-600 hover:underline inline-flex items-center gap-2">
             <ArrowLeft size={16} />
@@ -118,7 +118,7 @@ export default function TagBlogPageClient({ slug }: TagBlogPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="site-container px-4 md:px-6 xl:px-8 py-12">
         {/* Header */}
         <div className="mb-12">
           <Link href="/" className="text-blue-600 hover:underline inline-flex items-center gap-2 mb-4">

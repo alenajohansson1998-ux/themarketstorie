@@ -35,7 +35,7 @@ export default function BrokersPage() {
   return (
     <main className="flex-1 w-full bg-white text-black">
       {/* HERO */}
-      <section className="w-full max-w-7xl mx-auto px-4 pt-24 pb-20 text-center">
+      <section className="site-container px-4 md:px-6 xl:px-8 pt-24 pb-20 text-center">
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-black leading-tight">
             Trade with confidence
           </h1>
@@ -68,7 +68,7 @@ export default function BrokersPage() {
         </section>
 
         {/* LIST */}
-        <section className="max-w-7xl mx-auto px-4 pb-20">
+        <section className="site-container px-4 md:px-6 xl:px-8 pb-20">
           {/* SEO H1 */}
           <h1 className="sr-only">Broker List</h1>
 

@@ -299,8 +299,8 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
   if (isExternalNews && externalNews) {
     return (
       <>
-        <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
+        <main className="min-h-screen bg-gray-50 py-6 sm:py-8">
+          <div className="site-container px-4 md:px-6 xl:px-8">
           <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-10">
             <div className="w-full min-w-0 flex-1">
             <article className="w-full bg-white rounded-2xl shadow-sm p-6 md:p-8 border border-gray-100">
@@ -361,8 +361,8 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
     const articleCategoryName = aiArticle.category?.name || articleCategorySlug;
     const articleTags = Array.isArray(aiArticle.tags) ? aiArticle.tags : [];
     return (
-      <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-        <div className="mx-auto max-w-7xl">
+      <main className="min-h-screen bg-gray-50 py-6 sm:py-8">
+        <div className="site-container px-4 md:px-6 xl:px-8">
           <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-10">
 
             {/* Article */}
@@ -442,8 +442,8 @@ export default function BlogPostClient({ category, slug }: BlogPostClientProps) 
   if (post) {
     return (
       <>
-        <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-          <div className="mx-auto max-w-7xl">
+        <main className="min-h-screen bg-gray-50 py-6 sm:py-8">
+          <div className="site-container px-4 md:px-6 xl:px-8">
           <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-10">
             <div className="w-full min-w-0 flex-1">
             <article className="w-full min-h-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 lg:p-10">

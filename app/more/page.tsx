@@ -13,7 +13,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 export default function MorePage() {
   return (
-    <main className="max-w-7xl mx-auto px-4 py-8">
+    <main className="site-container px-4 md:px-6 xl:px-8 py-8">
       <h1 className="text-2xl font-bold mb-4">More</h1>
       <p>Welcome to the More page. Content coming soon.</p>
     </main>

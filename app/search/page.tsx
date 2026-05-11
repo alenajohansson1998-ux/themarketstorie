@@ -162,7 +162,7 @@ export default function SearchPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
+    <div className="site-container px-4 md:px-6 xl:px-8 py-10">
       <h1 className="mb-6 text-2xl font-bold text-slate-900">Search</h1>
 
       <form onSubmit={handleSubmit} className="mb-8 flex gap-2">

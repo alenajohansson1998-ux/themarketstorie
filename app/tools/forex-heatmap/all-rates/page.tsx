@@ -15,7 +15,7 @@ async function fetchAllRates() {
 export default async function AllRatesPage() {
   const matrix = await fetchAllRates();
   return (
-    <main className="max-w-7xl mx-auto py-8 px-4">
+    <main className="site-container px-4 md:px-6 xl:px-8 py-8">
       <h1 className="text-3xl font-bold mb-4">Forex Heatmap – Global Currency Strength Overview</h1>
       <section className="mb-8 bg-white rounded-xl shadow p-6 text-gray-800">
         <p className="mb-4">

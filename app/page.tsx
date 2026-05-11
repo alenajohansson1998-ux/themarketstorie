@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 
-import MarketOverview from '../components/MarketOverview';
+// MarketOverview component removed
 import { PopularScreens } from '../components/popular-screens';
 import TradingViewChart from '../components/news-section';
 import { AnalysisOpinionSection } from '../components/analysis-opinion';
@@ -67,17 +67,18 @@ export default function Home() {
           {/* Add ticker bar directly after hero banner, before all main content */}
           <TickerBarClientWrapper />
           <FeaturedAiArticlesSection />
-          <div className="site-shell w-full px-4 md:px-6 xl:px-8">
+          <div className="site-container">
             {/* SEO H1 Heading */}
             <div className="mt-5 w-full sm:mt-6">
-              <h1 className="mb-4 text-center text-3xl font-extrabold tracking-tight text-black drop-shadow-sm sm:text-4xl">
+              <h1 className="mb-4 text-center text-3xl font-black tracking-tight text-[#17130f] drop-shadow-sm sm:text-4xl">
                 Smart Market Insights for Investors, Traders & Analysts
               </h1>
             </div>
             {/* Top News Grid Section */}
             <div className="w-full rounded-2xl border-b border-gray-200 bg-white py-4 shadow-sm sm:py-6">
               <div className="w-full px-4 md:px-6">
-                <h2 className="mb-4 text-xl font-bold tracking-tight text-black sm:text-2xl">Today&apos;s Top Market Stories</h2>
+                <p className="section-label">Top Stories</p>
+                <h2 className="mt-1 mb-4 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">Today&apos;s Top Market Stories</h2>
                 <HomeTopNewsGrid />
                 <p className="mt-4 text-base text-gray-700 w-full text-left">
                   TheMarketStories is a trusted financial news platform offering live stock market updates, in-depth market analysis, and real-time insights across global and Indian markets. We cover equities, cryptocurrencies, commodities, economic events, and technical analysis to help traders and investors understand market movements and identify opportunities with confidence.
@@ -89,28 +90,22 @@ export default function Home() {
               <HomeBodyLayout>
               {/* News Section */}
               <section className="mb-12">
-                <h2 className="mb-4 text-xl font-bold text-black sm:text-2xl">Live Stock Market Charts & Technical Analysis</h2>
+                <p className="section-label">Markets</p>
+                <h2 className="mt-1 mb-4 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">Live Stock Market Charts & Technical Analysis</h2>
                 <TradingViewChart />
               </section>
               <div className="border-b border-gray-300 my-8"></div>
               {/* Stock Markets Category Grid */}
               <section className="mb-12">
-                <h2 className="mb-4 text-xl font-bold text-black sm:text-2xl">Latest Stock Market News</h2>
+                <p className="section-label">Stock Markets</p>
+                <h2 className="mt-1 mb-4 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">Latest Stock Market News</h2>
                 <p className="seo-subtext mb-6">
                   Breaking updates, market-moving headlines, and real-time stock market developments.
                 </p>
                 <StockMarketsCategoryGrid />
               </section>
               <div className="border-b border-gray-300 my-8"></div>
-              {/* Markets Overview */}
-              <section className="mb-12">
-                <h2 className="mb-4 text-xl font-bold text-black sm:text-2xl">Market Performance Overview</h2>
-                <p className="seo-text mb-6">
-                  Track real-time market performance across global stock indices, commodities, and cryptocurrencies. This section provides live prices, daily changes, and percentage movements to help investors quickly assess overall market trends and identify key opportunities across major asset classes.
-                </p>
-                <MarketOverview />
-              </section>
-              <div className="border-b border-gray-300 my-8"></div>
+              {/* Markets Overview removed per request */}
               {/* News Category Grid */}
               <section className="mb-12">
                 <NewsCategoryGrid posts={newsPosts} />
@@ -123,7 +118,8 @@ export default function Home() {
               <div className="border-b border-gray-300 my-8"></div>
               {/* Analysis & Opinion */}
               <section className="mb-12">
-                <h2 className="mb-4 text-xl font-bold text-black sm:text-2xl">Market Analysis & Expert Opinions</h2>
+                <p className="section-label">Analysis</p>
+                <h2 className="mt-1 mb-4 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">Market Analysis & Expert Opinions</h2>
                 <AnalysisOpinionSection />
               </section>
               <div className="border-b border-gray-300 my-8"></div>
@@ -131,8 +127,9 @@ export default function Home() {
               <section className="mb-12">
                 {session ? (
                   <div className="text-center">
-                    <h2 className="text-3xl font-extrabold text-black mb-4 tracking-tight">
-                      Welcome back, <span className="text-black underline underline-offset-4">{session.user?.name}</span>!
+                    <p className="section-label">Community</p>
+                    <h2 className="mt-1 text-3xl font-black text-[#17130f] mb-4 tracking-tight">
+                      Welcome back, <span className="text-[#17130f] underline underline-offset-4">{session.user?.name}</span>!
                     </h2>
                     <p className="text-lg text-gray-800 mb-8">
                       You&apos;re logged in as a <span className="font-semibold text-black underline underline-offset-4">{session.user?.role}</span>
@@ -148,8 +145,9 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="text-center">
-                    <h2 className="text-3xl font-extrabold text-black mb-4 tracking-tight">
-                      Stay Informed with <span className="text-black underline underline-offset-4">NewsDay</span>
+                    <p className="section-label">Community</p>
+                    <h2 className="mt-1 text-3xl font-black text-[#17130f] mb-4 tracking-tight">
+                      Stay Informed with <span className="text-[#17130f] underline underline-offset-4">NewsDay</span>
                     </h2>
                     <p className="text-lg text-gray-800 mb-8">
                       Get the latest news, updates, and insights delivered to you.

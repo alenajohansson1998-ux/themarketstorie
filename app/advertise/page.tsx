@@ -28,7 +28,7 @@ export default function AdvertisePage() {
   }
 
   return (
-    <div className="bg-white text-gray-900">
+    <div className="site-container bg-white text-gray-900">
 
       {/* Opening */}
       <section className="border-b border-gray-200 py-20 px-4 sm:px-8 lg:px-20">

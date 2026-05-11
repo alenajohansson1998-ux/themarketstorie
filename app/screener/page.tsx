@@ -104,8 +104,9 @@ export default function ScreenerPage() {
   }, []);
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-linear-to-b from-[#f3f6fa] to-[#e9ecf3] py-10 px-4 w-full">
-      <section className="w-full mb-10 text-center px-4">
+    <main className="min-h-screen bg-linear-to-b from-[#f3f6fa] to-[#e9ecf3] py-10 w-full">
+      <div className="site-container px-4 md:px-6 xl:px-8">
+      <section className="w-full mb-10 text-center">
         <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-3 tracking-tight drop-shadow-lg">Stock Screener</h1>
         <p className="text-lg text-gray-600 mb-8 font-medium max-w-2xl mx-auto">
           Explore and filter stocks by market cap, price, performance, and more. Powered by TradingView.
@@ -175,6 +176,7 @@ export default function ScreenerPage() {
           {"@type": "Question","name": "How often is the stock data updated?","acceptedAnswer": {"@type": "Answer","text": "Stock data is updated automatically during market hours using live market feeds."}}
         ]
       }` }} />
+      </div>
     </main>
   );
 }

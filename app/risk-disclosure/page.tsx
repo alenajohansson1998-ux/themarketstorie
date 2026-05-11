@@ -17,7 +17,7 @@ export default function RiskDisclosurePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="site-container px-4 md:px-6 xl:px-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-8">Risk Disclosure</h1>
 
           <div className="prose prose-lg max-w-none">

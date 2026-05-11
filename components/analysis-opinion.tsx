@@ -51,7 +51,8 @@ export function AnalysisOpinionSection() {
     return (
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Analysis & Opinion</h2>
+          <p className="section-label">Opinion</p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-[#17130f]">Analysis & Opinion</h2>
         </div>
         <div className="flex items-center justify-center h-32">
           <Loader2 className="w-6 h-6 animate-spin" />
@@ -65,7 +66,8 @@ export function AnalysisOpinionSection() {
     return (
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Analysis & Opinion</h2>
+          <p className="section-label">Opinion</p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-[#17130f]">Analysis & Opinion</h2>
         </div>
         <div className="text-red-600 text-center py-8">{error}</div>
       </Card>
@@ -76,7 +78,8 @@ export function AnalysisOpinionSection() {
     <Card className="p-6 border-0">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <h2 className="text-xl font-bold">Analysis & Opinion</h2>
+          <p className="section-label">Opinion</p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-[#17130f]">Analysis & Opinion</h2>
         </div>
         <Link href="/category/analysis--opinion" className="text-blue-600 hover:underline text-sm">
           View all posts

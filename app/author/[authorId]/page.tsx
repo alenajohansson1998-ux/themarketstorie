@@ -56,9 +56,10 @@ export default async function AuthorPage({ params }: { params: Promise<{ authorI
   const latestPosts = posts.slice(0, 5);
 
   return (
-    <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gray-50 py-10">
       {/* Full-width author bio section */}
-      <div className="max-w-6xl mx-auto w-full bg-white rounded-2xl shadow-lg p-8 mb-10 flex flex-col items-start">
+      <div className="site-container px-4 md:px-6 xl:px-8 mb-10">
+      <div className="w-full bg-white rounded-2xl shadow-lg p-8 flex flex-col items-start">
         <Link href="/" className="text-blue-600 hover:underline text-sm mb-2">&lt; Back to Home</Link>
         <div className="flex items-center gap-6 w-full">
           {authorImage ? (
@@ -107,9 +108,11 @@ export default async function AuthorPage({ params }: { params: Promise<{ authorI
           </div>
         </div>
       </div>
+      </div>
 
       {/* Articles and Latest Posts below bio */}
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-center items-start gap-8">
+      <div className="site-container px-4 md:px-6 xl:px-8">
+      <div className="flex flex-col md:flex-row justify-center items-start gap-8">
         <section className="w-full md:max-w-3xl">
           <div className="space-y-6">
             {posts.map((post) => (
@@ -154,6 +157,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ authorI
             </div>
           </div>
         </aside>
+      </div>
       </div>
     </main>
   );

@@ -9,7 +9,7 @@ export default function Footer({ className = "" }) {
 
         {/* Brand */}
         <div className="mb-2">
-          <h3 className="text-white text-lg font-semibold mb-3">
+          <h3 className="text-lg font-semibold mb-3 uppercase tracking-widest" style={{ color: '#ffffff' }}>
             TheMarketStories
           </h3>
           <p className="leading-relaxed max-w-none">

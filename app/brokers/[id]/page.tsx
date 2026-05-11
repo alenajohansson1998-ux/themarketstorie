@@ -91,7 +91,7 @@ export default async function BrokerDetailPage({
       >
         <div className="absolute inset-0 bg-black/40" />
 
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pb-12 flex flex-col md:flex-row items-end gap-8">
+        <div className="relative z-10 site-container px-4 md:px-6 xl:px-8 pb-12 flex flex-col md:flex-row items-end gap-8">
           <img
             src={broker.logoUrl}
             alt={broker.name}
@@ -138,7 +138,7 @@ export default async function BrokerDetailPage({
       </div>
 
       {/* ================= CONTENT ================= */}
-      <div className="max-w-6xl mx-auto px-6 py-14 space-y-10">
+      <div className="site-container px-4 md:px-6 xl:px-8 py-14 space-y-10">
 
         {/* SUMMARY */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

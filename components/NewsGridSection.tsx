@@ -14,7 +14,10 @@ export default function NewsGridSection({ title, articles, viewAllHref }: { titl
   return (
     <section className="mb-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">{title}</h2>
+        <div>
+          <p className="section-label">News</p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">{title}</h2>
+        </div>
         {viewAllHref && (
           <a href={viewAllHref} className="text-blue-600 hover:underline text-sm font-medium">View All</a>
         )}

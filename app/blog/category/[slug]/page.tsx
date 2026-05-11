@@ -137,7 +137,7 @@ export default async function CategoryBlogPage({ params }: { params: { slug: str
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="site-container px-4 md:px-6 xl:px-8 py-12">
         {/* Header */}
         <div className="mb-12">
           <Link href="/blog" className="text-blue-600 inline-flex items-center gap-2 mb-4">

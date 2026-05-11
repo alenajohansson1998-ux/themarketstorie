@@ -24,7 +24,8 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts }) => {
   if (!posts || posts.length === 0) {
     return (
       <section className="w-full mb-8">
-        <h2 className="mb-6 text-2xl font-bold">News Category</h2>
+        <p className="section-label">News</p>
+        <h2 className="mt-1 mb-6 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">News Category</h2>
         <div className="flex h-[260px] items-center justify-center rounded-xl bg-white text-gray-400 shadow-sm sm:h-[320px] lg:h-[360px]">
           No news posts available.
         </div>
@@ -36,7 +37,8 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts }) => {
 
   return (
     <section className="w-full mb-8">
-      <h2 className="mb-6 text-2xl font-bold">News Category</h2>
+      <p className="section-label">News</p>
+      <h2 className="mt-1 mb-6 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">News Category</h2>
 
       {/* GRID: 40 / 20 / 40 */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.7fr)_minmax(0,1fr)]">

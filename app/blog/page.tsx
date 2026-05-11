@@ -78,7 +78,7 @@ export default function BlogPage() {
   return (
     <div className="min-h-screen w-full bg-white">
       {/* Responsive Container */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+      <div className="site-container px-4 md:px-6 xl:px-8">
 
         {/* Hero / Intro (unchanged, only spacing improved) */}
         <div className="w-full flex flex-col items-center justify-center py-6 sm:py-10">

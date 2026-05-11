@@ -44,7 +44,8 @@ const StockMarketsCategoryGrid: React.FC = () => {
   if (loading) {
     return (
       <section className="w-full mb-8">
-        <h2 className="text-2xl font-bold mb-6">Stock Markets Category</h2>
+        <p className="section-label">Stock Markets</p>
+        <h2 className="mt-1 mb-6 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">Stock Markets Category</h2>
         <div className="h-64 flex items-center justify-center text-gray-400">
           Loading...
         </div>

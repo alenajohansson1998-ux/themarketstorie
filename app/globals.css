@@ -102,16 +102,40 @@ p, a, button, input, textarea, select, table, th, td, label, .card, .glass, .blo
 
 /* Heading weights and line heights */
 h1 {
-  font-weight: 700;
-  line-height: 1.3;
+  font-weight: 900;
+  font-size: 2.5rem;
+  line-height: 1.15;
+  color: #17130f;
+  letter-spacing: -0.025em;
 }
-h2, h3 {
-  font-weight: 600;
-  line-height: 1.3;
+h2 {
+  font-weight: 900;
+  font-size: 2rem;
+  line-height: 1.15;
+  color: #17130f;
+  letter-spacing: -0.02em;
+}
+h3 {
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: #18130f;
+  letter-spacing: -0.015em;
 }
 h4, h5, h6 {
   font-weight: 600;
   line-height: 1.3;
+  color: #18130f;
+}
+
+/* Section label — "EDITORIAL LAYOUT" style, reusable across all sections */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  color: #c9a96e;
+  font-family: var(--font-sans);
 }
 
 /* Body and meta text */
@@ -266,6 +290,14 @@ body, p, td, th, .meta, .caption {
   width: 100%;
   max-width: none;
   margin-inline: auto;
+}
+
+/* Main content container with constrained width and side margins */
+.site-container {
+  width: 100%;
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .max-w-7xl {

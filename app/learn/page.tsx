@@ -249,7 +249,7 @@ const tabContent = [
 export default function LearnPage() {
   const [activeTab, setActiveTab] = useState(0);
   return (
-    <main className="w-full mx-auto px-4 py-8">
+    <main className="site-container px-4 md:px-6 xl:px-8 py-8">
       <h1 className="text-2xl font-bold mb-6">Learn</h1>
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1 min-w-0">

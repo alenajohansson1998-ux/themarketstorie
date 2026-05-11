@@ -72,7 +72,7 @@ function EconomicCalendarWidget() {
 
 export function MarketsPage() {
   return (
-          <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+          <main className="site-container px-4 md:px-6 xl:px-8 py-8 space-y-8">
             {/* Header */}
             <section className="flex items-center justify-between mb-4">
               <h1 className="text-3xl font-bold">Markets, everywhere</h1>

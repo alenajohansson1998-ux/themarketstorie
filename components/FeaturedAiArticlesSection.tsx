@@ -178,10 +178,10 @@ export default function FeaturedAiArticlesSection() {
 
   return (
     <section className="w-full bg-[#f8f6f2] px-4 py-4 md:px-6 md:py-5 xl:px-8">
-      <div className="site-shell">
+      <div className="site-container">
         <div className="mb-4 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#8a7a67]">
+            <p className="section-label">
               Editorial Layout
             </p>
             <h2 className="mt-1 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">
