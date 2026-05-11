@@ -43,7 +43,21 @@ export function PopularScreens() {
         "changeMode": "price-and-percent",
         "symbols": [
           ["Google", "NASDAQ:GOOGL|1D"],
-          ["Microsoft", "NASDAQ:MSFT|1D"]
+          ["Microsoft", "NASDAQ:MSFT|1D"],
+          ["Apple", "NASDAQ:AAPL|1D"],
+          ["NVIDIA", "NASDAQ:NVDA|1D"],
+          ["Amazon", "NASDAQ:AMZN|1D"],
+          ["Meta", "NASDAQ:META|1D"],
+          ["Tesla", "NASDAQ:TSLA|1D"],
+          ["Netflix", "NASDAQ:NFLX|1D"],
+          ["JPMorgan", "NYSE:JPM|1D"],
+          ["Visa", "NYSE:V|1D"],
+          ["Reliance", "BSE:RELIANCE|1D"],
+          ["TCS", "BSE:TCS|1D"],
+          ["Infosys", "BSE:INFY|1D"],
+          ["HDFC Bank", "BSE:HDFCBANK|1D"],
+          ["Bitcoin", "BINANCE:BTCUSDT|1D"],
+          ["Ethereum", "BINANCE:ETHUSDT|1D"]
         ],
         "dateRanges": [
           "1d|1",
@@ -71,13 +85,7 @@ export function PopularScreens() {
     <div className="tradingview-widget-container" ref={containerRef} style={{ width: '100%', height: '20px', minHeight: 200 }}>
       {/* Widget will be injected here */}
       <div className="tradingview-widget-copyright" style={{ marginTop: 8, fontSize: 12 }}>
-        <a href="https://www.tradingview.com/symbols/NASDAQ-GOOGL/" rel="noopener nofollow" target="_blank">
-          <span className="blue-text">Google</span>
-        </a>
-        <span className="and">&nbsp;and&nbsp;</span>
-        <a href="https://www.tradingview.com/symbols/NASDAQ-MSFT/" rel="noopener nofollow" target="_blank">
-          <span className="blue-text">Microsoft stock price</span>
-        </a>
+        <span className="blue-text">Stock &amp; crypto prices</span>
         <span className="trademark">&nbsp;by TradingView</span>
       </div>
     </div>

@@ -85,6 +85,10 @@ export default function Home() {
                 </p>
               </div>
             </div>
+            {/* Popular Screens — stock/crypto tabs */}
+            <div className="w-full mt-6 rounded-2xl border border-gray-200 bg-white py-4 shadow-sm px-4 md:px-6">
+              <PopularScreens />
+            </div>
             <WorldMarketHeatMapSection />
             <div className="w-full mt-8">
               <HomeBodyLayout>
@@ -109,11 +113,6 @@ export default function Home() {
               {/* News Category Grid */}
               <section className="mb-12">
                 <NewsCategoryGrid posts={newsPosts} />
-              </section>
-              <div className="border-b border-gray-300 my-8"></div>
-              {/* Popular Screens */}
-              <section className="mb-12">
-                <PopularScreens />
               </section>
               <div className="border-b border-gray-300 my-8"></div>
               {/* Analysis & Opinion */}
