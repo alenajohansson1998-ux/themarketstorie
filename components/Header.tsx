@@ -74,9 +74,15 @@ interface Post {
 const FALLBACK_PRIMARY_NAV: HeaderLink[] = [
   { name: 'Markets', href: '/markets' },
   { name: 'Brokers', href: '/brokers' },
-  { name: 'Tools', href: '/tools' },
   { name: 'Learn', href: '/learn' },
   { name: 'Screener', href: '/screener' },
+];
+
+const TOOLS_NAV = [
+  { name: 'All Tools', href: '/tools', desc: 'Browse all financial tools' },
+  { name: 'Crypto Converter', href: '/crypto-converter', desc: 'Live crypto ↔ fiat converter' },
+  { name: 'Forex Heatmap', href: '/tools/forex-heatmap', desc: 'Real-time forex rate heatmap' },
+  { name: 'Stock Screener', href: '/screener', desc: 'Filter stocks by fundamentals' },
 ];
 
 const MOBILE_SECONDARY_LINKS: HeaderLink[] = [
@@ -93,8 +99,8 @@ const MOBILE_SECONDARY_LINK_HREFS = new Set(MOBILE_SECONDARY_LINKS.map((item) =>
 export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  // isMoreDropdownOpen: false | 'blog' | 'more'
-  const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState<false | 'blog' | 'more'>(false);
+  // isMoreDropdownOpen: false | 'blog' | 'more' | 'tools'
+  const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState<false | 'blog' | 'more' | 'tools'>(false);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [subHeaderCategories, setSubHeaderCategories] = useState<Category[]>([]);
   const [navItems, setNavItems] = useState<NavItem[]>([]);
@@ -288,6 +294,19 @@ export default function Header() {
                   {item.name}
                 </Link>
               ))}
+              <div className="border-t border-gray-700 pt-2 mt-1">
+                <p className="text-xs text-gray-500 uppercase tracking-widest mb-2 px-0">Tools</p>
+                {TOOLS_NAV.map((tool) => (
+                  <Link
+                    key={tool.href}
+                    href={tool.href}
+                    className="py-2 text-white block"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {tool.name}
+                  </Link>
+                ))}
+              </div>
               {MOBILE_SECONDARY_LINKS.map((item) => (
                 <Link
                   key={item.href}
@@ -331,6 +350,39 @@ export default function Header() {
                     </Link>
                   ))}
                   <div className="flex items-center gap-5 shrink-0" ref={moreDropdownRef}>
+
+                    {/* Tools dropdown */}
+                    <div className="relative">
+                      <button
+                        className="glass-hover shrink-0 flex items-center gap-1"
+                        style={{ color: '#fff', fontWeight: 500 }}
+                        onClick={() => setIsMoreDropdownOpen(isMoreDropdownOpen === 'tools' ? false : 'tools')}
+                      >
+                        Tools <ChevronDown size={16} />
+                      </button>
+                      {isMoreDropdownOpen === 'tools' && (
+                        <div
+                          className="absolute left-0 top-full mt-2 w-56 glass shadow-lg z-50"
+                          style={{ background: 'rgba(36,36,40,0.97)', color: '#fff' }}
+                          onMouseLeave={() => setIsMoreDropdownOpen(false)}
+                        >
+                          {TOOLS_NAV.map((tool) => (
+                            <Link
+                              key={tool.href}
+                              href={tool.href}
+                              className="block px-4 py-3 text-sm glass-hover border-b border-gray-800 last:border-0"
+                              style={{ color: '#fff' }}
+                              onClick={() => setIsMoreDropdownOpen(false)}
+                            >
+                              <span className="font-medium">{tool.name}</span>
+                              <span className="block text-xs text-gray-400 mt-0.5">{tool.desc}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Blog dropdown */}
                     <div className="relative">
                       <button
                         className="glass-hover shrink-0 flex items-center gap-1"
@@ -366,6 +418,8 @@ export default function Header() {
                         </div>
                       )}
                     </div>
+
+                    {/* More dropdown */}
                     <div className="relative">
                       <button
                         className="glass-hover shrink-0 flex items-center gap-1"

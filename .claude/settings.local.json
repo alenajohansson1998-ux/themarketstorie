@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(Get-ChildItem -Path \"c:\\\\Akshay\\\\main-project\\\\themarketstorie\" -Recurse -Force)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Akshay\\\\main-project\\\\themarketstorie\\\\components\\\\crypto-converter\")"
     ]
   }
 }
