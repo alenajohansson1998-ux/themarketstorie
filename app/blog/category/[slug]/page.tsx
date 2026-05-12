@@ -86,7 +86,8 @@ async function getAiArticles(slug: string) {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const label = slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  const url = `https://themarketstories.com/blog/category/${slug}`;
+  // Public-facing URL is /category/:slug (rewrite in next.config.ts routes /category/:slug → this page)
+  const url = `https://themarketstories.com/category/${slug}`;
   const description = `Browse the latest ${label} news, market insights, and analysis on TheMarketStories.`;
   return {
     title: `${label} News & Analysis | TheMarketStories`,

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import Head from "next/head";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -77,9 +76,6 @@ export default function AuthPage() {
 
   return (
     <>
-      <Head>
-        <title>Login | TheMarketStories</title>
-      </Head>
       {/* Success Modal with Backdrop Blur */}
       {showSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">

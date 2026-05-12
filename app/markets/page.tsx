@@ -1,6 +1,5 @@
 "use client";
 import * as React from "react";
-import Head from "next/head";
 const { useRef, useEffect } = React;
 
 interface TradingViewWidgetProps {
@@ -37,14 +36,7 @@ function SectionCard({ title, children }: SectionCardProps) {
 }
 
 export default function MarketsPageWrapper() {
-  return (
-    <>
-      <Head>
-        <link rel="canonical" href="https://themarketstories.com/markets" />
-      </Head>
-      <MarketsPage />
-    </>
-  );
+  return <MarketsPage />;
 }
 
 function EconomicCalendarWidget() {

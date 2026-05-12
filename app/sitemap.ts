@@ -32,6 +32,8 @@ const STATIC_ROUTE_CONFIG: Array<{
   { path: "/tools", changeFrequency: "weekly", priority: 0.7 },
   { path: "/tools/forex-heatmap", changeFrequency: "weekly", priority: 0.7 },
   { path: "/tools/forex-heatmap/all-rates", changeFrequency: "weekly", priority: 0.65 },
+  { path: "/crypto-converter", changeFrequency: "daily", priority: 0.75 },
+  { path: "/subscription", changeFrequency: "monthly", priority: 0.6 },
   { path: "/more", changeFrequency: "monthly", priority: 0.6 },
 ];
 
