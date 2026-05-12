@@ -277,4 +277,3 @@ export default function TermsPage() {
     </div>
   );
 }
-import Header from '../../components/Header';

@@ -1,50 +1,45 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "./providers";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import LiveTicker from "../components/LiveTicker";
+import LayoutShell from "../components/LayoutShell";
+
+const siteUrl = "https://themarketstories.com";
+const defaultTitle = "The Market Stories | Financial News, Analysis & Market Insights";
+const defaultDesc = "Stay ahead with The Market Stories – live market news, stock analysis, crypto, commodities, and investment tools. Trusted by traders and investors worldwide.";
+const defaultImage = `${siteUrl}/logos/header-2.PNG`;
 
 export const metadata: Metadata = {
-  title: "The Market Stories | Financial News, Analysis & Tools",
-  description: "Stay ahead with The Market Stories – your source for financial news, market analysis, stock tools, and expert opinions. Explore markets, brokers, and investment insights for smarter trading.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: defaultTitle,
+    template: "%s | The Market Stories",
+  },
+  description: defaultDesc,
   keywords: [
-    "financial news",
-    "stock market",
-    "market analysis",
-    "investment",
-    "brokers",
-    "trading tools",
-    "economic calendar",
-    "global markets",
-    "finance blog",
-    "market stories"
+    "financial news", "stock market", "market analysis", "investment", "brokers",
+    "trading tools", "economic calendar", "global markets", "finance blog", "crypto news",
   ],
+  alternates: { canonical: siteUrl },
   openGraph: {
-    title: "The Market Stories | Financial News, Analysis & Tools",
-    description: "Stay ahead with The Market Stories – your source for financial news, market analysis, stock tools, and expert opinions.",
-    url: "https://themarketstories.com/",
+    title: defaultTitle,
+    description: defaultDesc,
+    url: siteUrl,
     siteName: "The Market Stories",
     type: "website",
-    images: [
-      {
-        url: "/logos/header-2.PNG",
-        width: 512,
-        height: 128,
-        alt: "The Market Stories Logo"
-      }
-    ]
+    locale: "en_US",
+    images: [{ url: defaultImage, width: 1200, height: 630, alt: "The Market Stories" }],
   },
-  icons: {
-    icon: "/favicon.png"
-  }
+  twitter: {
+    card: "summary_large_image",
+    title: defaultTitle,
+    description: defaultDesc,
+    images: [defaultImage],
+  },
+  icons: { icon: "/favicon.png" },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // Use Next.js segment for admin check
-  const isAdmin = typeof window === "undefined"
-    ? false // SSR: can't check, always show header/footer
-    : window.location.pathname.startsWith("/admin");
   return (
     <html lang="en" suppressHydrationWarning={true}>
       <head>
@@ -56,17 +51,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32" />
         {/* RSS Feed */}
         <link rel="alternate" type="application/rss+xml" title="The Market Stories — RSS Feed" href="/feed.xml" />
-        {/* SEO Meta Tags */}
-        <meta name="keywords" content="financial news, stock market, market analysis, investment, brokers, trading tools, economic calendar, global markets, finance blog, market stories" />
-        <meta property="og:title" content="The Market Stories | Financial News, Analysis & Tools" />
-        <meta property="og:description" content="Stay ahead with The Market Stories – your source for financial news, market analysis, stock tools, and expert opinions." />
-        <meta property="og:image" content="/logos/header-2.PNG" />
-        <meta property="og:url" content="https://themarketstories.com/" />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="The Market Stories | Financial News, Analysis & Tools" />
-        <meta name="twitter:description" content="Stay ahead with The Market Stories – your source for financial news, market analysis, stock tools, and expert opinions." />
-        <meta name="twitter:image" content="/logos/header-2.PNG" />
         {/* Google Analytics */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-20P43DVGXK"></script>
         <script
@@ -82,10 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="layout-flex antialiased pt-24 sm:pt-28 md:pt-34" suppressHydrationWarning={true}>
         <Providers>
-          {!isAdmin && <Header />}
-          {!isAdmin && <LiveTicker />}
-          <main className="main-flex">{children}</main>
-          {!isAdmin && <Footer className="footer-sticky" />}
+          <LayoutShell>{children}</LayoutShell>
         </Providers>
       </body>
     </html>

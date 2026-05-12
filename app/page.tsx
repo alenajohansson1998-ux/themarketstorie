@@ -19,7 +19,6 @@ import WorldMarketHeatMapSection from '../components/WorldMarketHeatMapSection';
 
 
 import React, { useEffect, useState } from 'react';
-import Head from "next/head";
 
 
 export default function Home() {
@@ -56,11 +55,7 @@ export default function Home() {
   }
 
   return (
-    <>
-      <Head>
-        <link rel="canonical" href="https://themarketstories.com/" />
-      </Head>
-      <div className="min-h-screen flex flex-col custom-scrollbar">
+    <div className="min-h-screen flex flex-col custom-scrollbar">
         <main className="flex-1 w-full bg-gray-50 pb-4 pt-0 sm:pb-6">
           {/* Hero Banner at the very top */}
           <HeroBanner />
@@ -173,7 +168,6 @@ export default function Home() {
         }
       `}</style>
     </div>
-    </>
   );
 }
 

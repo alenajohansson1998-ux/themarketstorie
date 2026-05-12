@@ -3,7 +3,9 @@
     "allow": [
       "Bash(Get-ChildItem -Path \"c:\\\\Akshay\\\\main-project\\\\themarketstorie\" -Recurse -Force)",
       "Bash(Select-Object FullName)",
-      "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Akshay\\\\main-project\\\\themarketstorie\\\\components\\\\crypto-converter\")"
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Akshay\\\\main-project\\\\themarketstorie\\\\components\\\\crypto-converter\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Akshay\\\\main-project\\\\themarketstorie\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)"
     ]
   }
 }

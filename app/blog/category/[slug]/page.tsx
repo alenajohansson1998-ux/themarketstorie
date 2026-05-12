@@ -83,13 +83,21 @@ async function getAiArticles(slug: string) {
   return res.json();
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const label = slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const url = `https://themarketstories.com/blog/category/${slug}`;
+  const description = `Browse the latest ${label} news, market insights, and analysis on TheMarketStories.`;
   return {
-    title: `${slug} News & Analysis | TheMarketStories`,
-    description: `Latest ${slug} news, insights, analysis, and market updates.`,
-    alternates: {
-      canonical: `https://themarketstories.com/category/${slug}`,
+    title: `${label} News & Analysis | TheMarketStories`,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${label} News & Analysis | TheMarketStories`,
+      description,
+      url,
+      siteName: 'The Market Stories',
+      type: 'website',
     },
   };
 }

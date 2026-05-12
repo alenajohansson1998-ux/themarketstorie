@@ -124,7 +124,7 @@ const BlogCarousel = ({ posts }: { posts: any[] }) => {
         {visiblePosts.map((_, i) => (
           <span
             key={i}
-            className={`w-3 h-3 rounded-full transition-all duration-200 ${i === current ? "bg-black-600" : "bg-black-200"}`}
+            className={`w-3 h-3 rounded-full transition-all duration-200 ${i === current ? "bg-gray-800" : "bg-gray-300"}`}
           />
         ))}
       </div>

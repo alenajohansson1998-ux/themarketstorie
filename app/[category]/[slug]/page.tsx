@@ -2,13 +2,6 @@
 import BlogPostClient from '@/components/BlogPostClient';
 import type { Metadata } from 'next';
 
-interface MetadataPost {
-  title: string;
-  excerpt?: string;
-  content?: string;
-  coverImage?: string;
-}
-
 interface FullArticle {
   title: string;
   slug: string;
@@ -24,6 +17,17 @@ interface FullArticle {
 }
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://themarketstories.com";
+
+function clampTitle(title: string): string {
+  if (title.length <= 60) return title;
+  return title.slice(0, 57).trimEnd() + "...";
+}
+
+function clampDesc(desc: string): string {
+  const clean = desc.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  if (clean.length <= 155) return clean;
+  return clean.slice(0, 152).trimEnd() + "...";
+}
 
 async function fetchArticle(category: string, slug: string): Promise<FullArticle | null> {
   try {
@@ -45,39 +49,44 @@ async function fetchArticle(category: string, slug: string): Promise<FullArticle
   }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ category: string; slug: string }> }): Promise<Metadata | undefined> {
+export async function generateMetadata({ params }: { params: Promise<{ category: string; slug: string }> }): Promise<Metadata> {
   const { category, slug } = await params;
   const post = await fetchArticle(category, slug);
-  const coverImage = post?.coverImage || post?.image;
+  const url = `${siteUrl}/${category}/${slug}`;
 
-  if (!post || !coverImage || !/^https:\/\//.test(coverImage)) {
+  if (!post) {
     return {
-      title: post ? post.title : 'Post Not Found | The Market Stories',
-      description: post
-        ? (post.excerpt || post.content?.slice(0, 150) || 'Read this article on The Market Stories.')
-        : 'This blog post does not exist on The Market Stories.',
+      title: 'Post Not Found | The Market Stories',
+      description: 'This article does not exist on The Market Stories.',
+      alternates: { canonical: url },
+      openGraph: { url, siteName: 'The Market Stories', type: 'article' },
     };
   }
 
-  const url = `${siteUrl}/${category}/${slug}`;
+  const title = clampTitle(post.title);
+  const rawDesc = post.excerpt || post.content?.replace(/<[^>]+>/g, '').slice(0, 200) || 'Read this article on The Market Stories.';
+  const description = clampDesc(rawDesc);
+  const coverImage = post.coverImage || post.image;
+  const validImage = coverImage && /^https:\/\//.test(coverImage) ? coverImage : undefined;
+
   return {
-    title: post.title,
-    description: post.excerpt,
+    title,
+    description,
     alternates: { canonical: url },
     openGraph: {
-      title: post.title,
-      description: post.excerpt,
+      title,
+      description,
       url,
-      type: "article",
-      siteName: "The Market Stories",
-      locale: "en_US",
-      images: [{ url: coverImage, width: 1200, height: 630, alt: post.title }],
+      type: 'article',
+      siteName: 'The Market Stories',
+      locale: 'en_US',
+      ...(validImage && { images: [{ url: validImage, width: 1200, height: 630, alt: title }] }),
     },
     twitter: {
-      card: "summary_large_image",
-      title: post.title,
-      description: post.excerpt,
-      images: [coverImage],
+      card: 'summary_large_image',
+      title,
+      description,
+      ...(validImage && { images: [validImage] }),
     },
   };
 }
