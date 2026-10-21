@@ -151,7 +151,11 @@ export default function FeaturedAiArticlesSection({ initialArticles }: { initial
             <div
               role="group"
               aria-roledescription="slide"
-              aria-label={slideCount > 1 ? `${(activeIndex % slideCount) + 1} of ${slideCount}` : undefined}
+              aria-label={
+                slideCount > 1
+                  ? `Slide ${(activeIndex % slideCount) + 1} of ${slideCount}: ${featured.title}`
+                  : featured.title
+              }
               aria-live={autoplay ? "off" : "polite"}
             >
               <article>
