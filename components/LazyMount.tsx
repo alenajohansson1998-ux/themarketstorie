@@ -37,7 +37,13 @@ export default function LazyMount({ children, minHeight, rootMargin = '400px 0px
   }, [visible, rootMargin]);
 
   return (
-    <div ref={ref} style={visible ? undefined : { minHeight }} aria-busy={!visible} aria-label={visible ? undefined : label}>
+    <div
+      ref={ref}
+      role="region"
+      aria-label={label}
+      aria-busy={!visible}
+      style={visible ? undefined : { minHeight }}
+    >
       {visible ? children : <div className="h-full w-full animate-pulse rounded-card bg-surface" style={{ minHeight }} />}
     </div>
   );

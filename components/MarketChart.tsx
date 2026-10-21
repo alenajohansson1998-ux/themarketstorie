@@ -10,13 +10,7 @@ import {
   ISeriesApi,
   UTCTimestamp,
 } from "lightweight-charts";
-import {
-  CandleBar,
-  getFinnhubWebSocketUrl,
-  MarketTimeframe,
-  timeframeBucketSeconds,
-  toFinnhubSymbol,
-} from "@/lib/finnhub";
+import type { CandleBar, MarketTimeframe } from "@/lib/finnhub";
 import { useColorScheme } from "@/lib/useColorScheme";
 
 const CHART_COLORS = {
@@ -146,6 +140,32 @@ export default function MarketChart({
     chartRef.current.timeScale().fitContent();
   }, [bars]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function refreshCandles() {
+      try {
+        const response = await fetch(
+          `/api/market-candles?symbol=${encodeURIComponent(symbol)}&timeframe=${timeframe}`,
+          { cache: "no-store" }
+        );
+        if (!response.ok) return;
+        const payload = (await response.json()) as CandlesApiResponse;
+        if (!active || !payload.candles?.length) return;
+        setBars(payload.candles);
+        setLastUpdated(Date.now());
+      } catch {
+        // Keep the last valid chart data when a refresh cannot reach the market data service.
+      }
+    }
+
+    const interval = window.setInterval(refreshCandles, 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [symbol, timeframe]);
+
   const handleTimeframeChange = useCallback(
     async (next: MarketTimeframe) => {
       setTimeframe(next);
@@ -184,118 +204,6 @@ export default function MarketChart({
     },
     [symbol]
   );
-
-  useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_FINNHUB_KEY;
-    if (!apiKey) return;
-
-    let isStopped = false;
-    let socket: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    const streamSymbol = toFinnhubSymbol(symbol);
-
-    const connect = () => {
-      socket = new WebSocket(getFinnhubWebSocketUrl());
-
-      socket.onopen = () => {
-        socket?.send(
-          JSON.stringify({
-            type: "subscribe",
-            symbol: streamSymbol,
-          })
-        );
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data) as {
-            data?: Array<{ p: number; s: string; t: number }>;
-          };
-          if (!payload.data?.length) return;
-
-          const tick = payload.data.find((item) => item.s === streamSymbol);
-          if (!tick || !Number.isFinite(tick.p)) return;
-
-          const bucketSeconds = timeframeBucketSeconds(timeframe);
-          const tickTimeSeconds = Math.floor(tick.t / 1000);
-          const bucket = Math.floor(tickTimeSeconds / bucketSeconds) * bucketSeconds;
-          const price = tick.p;
-
-          setBars((prev) => {
-            if (!prev.length) {
-              return [
-                {
-                  time: bucket,
-                  open: price,
-                  high: price,
-                  low: price,
-                  close: price,
-                  volume: 0,
-                },
-              ];
-            }
-
-            const next = [...prev];
-            const last = next[next.length - 1];
-
-            if (last.time === bucket) {
-              next[next.length - 1] = {
-                ...last,
-                close: price,
-                high: Math.max(last.high, price),
-                low: Math.min(last.low, price),
-              };
-            } else if (last.time < bucket) {
-              next.push({
-                time: bucket,
-                open: last.close,
-                high: price,
-                low: price,
-                close: price,
-                volume: 0,
-              });
-            }
-
-            return next.slice(-800);
-          });
-
-          setLastUpdated(Date.now());
-        } catch (err) {
-          console.error("Failed to parse live chart update", err);
-        }
-      };
-
-      socket.onerror = () => {
-        socket?.close();
-      };
-
-      socket.onclose = () => {
-        if (isStopped) return;
-        reconnectTimer = setTimeout(connect, 3000);
-      };
-    };
-
-    connect();
-
-    return () => {
-      isStopped = true;
-
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(
-          JSON.stringify({
-            type: "unsubscribe",
-            symbol: streamSymbol,
-          })
-        );
-      }
-
-      socket?.close();
-    };
-  }, [symbol, timeframe]);
 
   return (
     <section aria-labelledby="price-chart-heading">

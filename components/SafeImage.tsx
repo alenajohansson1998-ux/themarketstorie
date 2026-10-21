@@ -18,6 +18,15 @@ interface SafeImageProps {
   sizes?: string;
 }
 
+function isUnauthorizedCloudinaryImage(src: string): boolean {
+  try {
+    const url = new URL(src, "https://themarketstories.com");
+    return url.hostname === "res.cloudinary.com" && url.pathname.startsWith("/drwlimidd/");
+  } catch {
+    return false;
+  }
+}
+
 /** <img> that never shows the browser's broken-image icon. */
 export default function SafeImage({
   fallbackSrc,
@@ -43,7 +52,14 @@ export default function SafeImage({
   }, [src]);
 
   if (failed && !fallbackSrc) return null;
-  const resolvedSrc = failed ? fallbackSrc : src;
+  const sourceIsUnavailable = Boolean(src && isUnauthorizedCloudinaryImage(src));
+  const resolvedSrc = sourceIsUnavailable
+    ? fallbackSrc && !isUnauthorizedCloudinaryImage(fallbackSrc)
+      ? fallbackSrc
+      : "/herobaner.png"
+    : failed
+      ? fallbackSrc
+      : src;
   if (!resolvedSrc) return null;
 
   const handleError = () => {

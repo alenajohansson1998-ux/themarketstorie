@@ -148,12 +148,13 @@ export default function FeaturedAiArticlesSection({ initialArticles }: { initial
           }}
         >
           {featured ? (
-            <article
+            <div
               role="group"
               aria-roledescription="slide"
               aria-label={slideCount > 1 ? `${(activeIndex % slideCount) + 1} of ${slideCount}` : undefined}
               aria-live={autoplay ? "off" : "polite"}
             >
+              <article>
               <Link href={buildArticleHref(featured)} className="group block" tabIndex={-1} aria-hidden="true">
                 <div className="relative aspect-16/10 overflow-hidden rounded-media bg-fill">
                   <SafeImage
@@ -181,7 +182,8 @@ export default function FeaturedAiArticlesSection({ initialArticles }: { initial
               <p className="mt-2 line-clamp-3 text-body text-ink-2">
                 {stripHtml(featured.excerpt) || "AI-generated coverage and market context from the global finance cycle."}
               </p>
-            </article>
+              </article>
+            </div>
           ) : (
             <div aria-hidden="true">
               <div className="aspect-16/10 animate-pulse rounded-media bg-fill" />
