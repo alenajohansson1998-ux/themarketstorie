@@ -1,14 +1,7 @@
 import { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/seo/site";
 
 export default function robots(): MetadataRoute.Robots {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    process.env.SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-    "https://themarketstories.com";
-  const normalizedSiteUrl = siteUrl.replace(/\/$/, "");
-
   return {
     rules: [
       {
@@ -17,12 +10,13 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           "/admin/",
           "/dashboard/",
+          "/editor/",
           "/api/",
           "/auth/",
           "/cms/",
         ],
       },
     ],
-    sitemap: `${normalizedSiteUrl}/sitemap.xml`,
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

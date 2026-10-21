@@ -14,7 +14,7 @@ interface Post {
   category: { name: string; slug: string };
   tags: { name: string; slug: string }[];
   author: { name: string };
-  createdAt: string;
+  publishedAt?: string | null;
   views: number;
 }
 
@@ -26,8 +26,8 @@ function Meta({ post }: { post: Post }) {
   return (
     <p className="mt-1 text-footnote text-ink-2">
       {post.category?.name}
-      {post.category?.name ? " · " : null}
-      <time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time>
+      {post.category?.name && post.publishedAt ? " · " : null}
+      {post.publishedAt ? <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time> : null}
     </p>
   );
 }
@@ -63,12 +63,20 @@ function HeadlineList({ title, posts, loading }: { title: string; posts: Post[];
   );
 }
 
-const HomeTopNewsGrid: React.FC = () => {
-  const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
-  const [latestPosts, setLatestPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+interface HomeTopNewsGridProps {
+  /** Server-rendered lists; when present the component does not fetch. */
+  initialTrending?: Post[];
+  initialLatest?: Post[];
+}
+
+const HomeTopNewsGrid: React.FC<HomeTopNewsGridProps> = ({ initialTrending, initialLatest }) => {
+  const hasInitial = initialTrending !== undefined && initialLatest !== undefined;
+  const [trendingPosts, setTrendingPosts] = useState<Post[]>(initialTrending ?? []);
+  const [latestPosts, setLatestPosts] = useState<Post[]>(initialLatest ?? []);
+  const [loading, setLoading] = useState(!hasInitial);
 
   useEffect(() => {
+    if (hasInitial) return;
     const fetchTrendingAndLatest = async () => {
       try {
         const [trendingRes, latestRes] = await Promise.all([
@@ -86,7 +94,7 @@ const HomeTopNewsGrid: React.FC = () => {
     };
 
     fetchTrendingAndLatest();
-  }, []);
+  }, [hasInitial]);
 
   const featured = trendingPosts[0];
   const gridPosts = trendingPosts.slice(1, 3);
@@ -111,8 +119,8 @@ const HomeTopNewsGrid: React.FC = () => {
                 <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
                   <p className="text-footnote text-white/85">
                     <span className="font-semibold text-white">{featured.category?.name}</span>
-                    {" · "}
-                    {formatDate(featured.createdAt)}
+                    {featured.category?.name && featured.publishedAt ? " · " : null}
+                    {featured.publishedAt ? <time dateTime={featured.publishedAt}>{formatDate(featured.publishedAt)}</time> : null}
                   </p>
                   <h3 className="mt-1 line-clamp-3 text-title3 text-white sm:text-title2">{featured.title}</h3>
                   {featured.excerpt ? (

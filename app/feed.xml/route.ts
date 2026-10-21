@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Article from "@/models/Article";
+import { SITE_URL } from "@/lib/seo/site";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://themarketstories.com";
 const SITE_NAME = "The Market Stories";
 const SITE_DESCRIPTION = "Finance & market news — stocks, crypto, commodities, and geopolitics.";
 const FEED_LIMIT = 50;
@@ -28,7 +28,7 @@ export async function GET() {
   try {
     await dbConnect();
 
-    const articles = await Article.find({ status: "published" })
+    const articles = await Article.find({ status: "published", publishedAt: { $ne: null } })
       .populate("category", "name slug")
       .populate("author", "name")
       .sort({ publishedAt: -1, createdAt: -1 })
@@ -41,7 +41,7 @@ export async function GET() {
     const items = articles.map((article) => {
       const cat = article.category as { name?: string; slug?: string } | null;
       const author = article.author as { name?: string } | null;
-      const pubDate = (article.publishedAt || article.createdAt) as Date;
+      const pubDate = article.publishedAt as Date;
       const categorySlug = cat?.slug || article.type || "general";
       const url = `${SITE_URL}/${categorySlug}/${article.slug}`;
       const description = article.excerpt

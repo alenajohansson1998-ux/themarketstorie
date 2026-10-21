@@ -6,6 +6,7 @@ import Category from "@/models/Category";
 import Tag from "@/models/Tag";
 import Broker from "@/models/Broker";
 import { DEFAULT_TICKER_SYMBOLS } from "@/lib/finnhub";
+import { SITE_URL } from "@/lib/seo/site";
 
 export const revalidate = 3600;
 
@@ -24,6 +25,7 @@ const STATIC_ROUTE_CONFIG: Array<{
   { path: "/privacy", changeFrequency: "monthly", priority: 0.7 },
   { path: "/terms", changeFrequency: "monthly", priority: 0.7 },
   { path: "/risk-disclosure", changeFrequency: "monthly", priority: 0.7 },
+  { path: "/editorial-policy", changeFrequency: "monthly", priority: 0.7 },
   { path: "/learn", changeFrequency: "weekly", priority: 0.75 },
   { path: "/brokers", changeFrequency: "weekly", priority: 0.8 },
   { path: "/blog", changeFrequency: "daily", priority: 0.8 },
@@ -36,26 +38,11 @@ const STATIC_ROUTE_CONFIG: Array<{
   { path: "/subscription", changeFrequency: "monthly", priority: 0.6 },
 ];
 
-function resolveBaseUrl(): string {
-  const envUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    process.env.SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-    "https://themarketstories.com";
-
-  const normalized = envUrl.trim().replace(/\/$/, "");
-  if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
-    return `https://${normalized}`;
-  }
-  return normalized;
-}
-
 function asUrl(baseUrl: string, path: string): string {
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-function toValidDate(value: unknown): Date {
+function toValidDate(value: unknown): Date | undefined {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return value;
   }
@@ -65,7 +52,7 @@ function toValidDate(value: unknown): Date {
       return date;
     }
   }
-  return new Date();
+  return undefined;
 }
 
 function normalizeSlug(value: unknown): string {
@@ -91,9 +78,10 @@ function createEntry(
   changeFrequency: ChangeFrequency,
   priority: number
 ): SitemapEntry {
+  const lastModifiedDate = toValidDate(lastModified);
   return {
     url,
-    lastModified: toValidDate(lastModified),
+    ...(lastModifiedDate ? { lastModified: lastModifiedDate } : {}),
     changeFrequency,
     priority,
   };
@@ -126,18 +114,17 @@ function uniqueEntries(entries: SitemapEntry[]): SitemapEntry[] {
 }
 
 function buildStaticEntries(baseUrl: string): SitemapEntry[] {
-  const now = new Date();
   const entries: SitemapEntry[] = [];
 
   for (const route of STATIC_ROUTE_CONFIG) {
-    entries.push(createEntry(asUrl(baseUrl, route.path), now, route.changeFrequency, route.priority));
+    entries.push(createEntry(asUrl(baseUrl, route.path), undefined, route.changeFrequency, route.priority));
   }
 
   for (const symbol of DEFAULT_TICKER_SYMBOLS) {
     entries.push(
       createEntry(
         asUrl(baseUrl, `/markets/${encodeURIComponent(symbol)}`),
-        now,
+        undefined,
         "hourly",
         0.72
       )
@@ -148,14 +135,20 @@ function buildStaticEntries(baseUrl: string): SitemapEntry[] {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = resolveBaseUrl();
+  // Canonical production origin; previews must never submit preview-host URLs.
+  const baseUrl = SITE_URL;
   const staticEntries = buildStaticEntries(baseUrl);
 
   try {
     await dbConnect();
 
-    const categoryRows = (await Category.find({})
-      .select("slug updatedAt")
+    const [cmsCategoryIds, articleCategoryIds] = await Promise.all([
+      Post.distinct("category", { publicationStatus: "published" }),
+      Article.distinct("category", { status: "published" }),
+    ]);
+    const categoryIds = [...new Set([...cmsCategoryIds, ...articleCategoryIds].map(String))];
+    const categoryRows = (await Category.find({ _id: { $in: categoryIds } })
+      .select("slug")
       .lean()) as Array<{ slug?: unknown; updatedAt?: unknown }>;
 
     const categoryEntries: SitemapEntry[] = [];
@@ -163,20 +156,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const slug = normalizeSlug(row.slug);
       if (!slug) continue;
       categoryEntries.push(
-        createEntry(asUrl(baseUrl, `/category/${slug}`), row.updatedAt, "weekly", 0.7)
+        createEntry(asUrl(baseUrl, `/category/${slug}`), undefined, "weekly", 0.7)
       );
     }
 
-    const tagRows = (await Tag.find({}).select("slug updatedAt").lean()) as Array<{
-      slug?: unknown;
-      updatedAt?: unknown;
-    }>;
-
+    const [tagRows, tagCounts] = await Promise.all([
+      Tag.find({}).select("slug").lean(),
+      Post.aggregate([
+        { $match: { publicationStatus: "published" } },
+        { $unwind: "$tags" },
+        { $group: { _id: "$tags", count: { $sum: 1 } } },
+        { $match: { count: { $gte: 5 } } },
+      ]),
+    ]) as [Array<{ _id: unknown; slug?: unknown; updatedAt?: unknown }>, Array<{ _id: unknown; count: number }>];
+    const indexableTagIds = new Set(tagCounts.map((row) => String(row._id)));
     const tagEntries: SitemapEntry[] = [];
     for (const row of tagRows) {
+      if (!indexableTagIds.has(String(row._id))) continue;
       const slug = normalizeSlug(row.slug);
       if (!slug) continue;
-      tagEntries.push(createEntry(asUrl(baseUrl, `/tag/${slug}`), row.updatedAt, "weekly", 0.6));
+      tagEntries.push(createEntry(asUrl(baseUrl, `/tag/${slug}`), undefined, "weekly", 0.6));
     }
 
     const cmsPostRows = (await Post.find({ publicationStatus: "published" })
@@ -197,7 +196,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       cmsPostEntries.push(
         createEntry(
           asUrl(baseUrl, `/${categorySlug}/${slug}`),
-          row.publishedAt || row.updatedAt,
+          row.updatedAt || row.publishedAt,
           "daily",
           0.78
         )
@@ -222,7 +221,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       aiArticleEntries.push(
         createEntry(
           asUrl(baseUrl, `/${categorySlug}/${slug}`),
-          row.publishedAt || row.updatedAt,
+          row.updatedAt || row.publishedAt,
           "daily",
           0.8
         )

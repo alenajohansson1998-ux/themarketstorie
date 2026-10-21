@@ -70,7 +70,10 @@ export default function MarketChart({
   const [bars, setBars] = useState<CandleBar[]>(initialData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
+  const initialBarTime = initialData[initialData.length - 1]?.time;
+  const [lastUpdated, setLastUpdated] = useState<number | null>(
+    initialBarTime == null ? null : initialBarTime * 1000
+  );
   const scheme = useColorScheme();
 
   const lastPrice = useMemo(
@@ -344,7 +347,16 @@ export default function MarketChart({
             </>
           )}
         </span>
-        <span>Updated {new Date(lastUpdated).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+        <span>
+          Updated{" "}
+          {lastUpdated === null
+            ? "—"
+            : new Date(lastUpdated).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+                timeZone: "UTC",
+              })}
+        </span>
       </div>
     </section>
   );

@@ -1,45 +1,36 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { pageMetadata } from '@/lib/seo/metadata';
 
-export const generateMetadata = async (): Promise<Metadata> => {
-  return {
-    title: 'About TheMarketStories | Global Financial News & Market Insights',
-    description: 'TheMarketStories is a global financial news and market insights platform covering stocks, crypto, business, technology, and economic trends.',
-    alternates: { canonical: '/about' },
-  };
-};
+export const metadata: Metadata = pageMetadata({
+  title: 'About The Market Stories',
+  description: 'Learn about The Market Stories and our coverage of global and Indian markets, business, the economy, technology and digital assets.',
+  path: '/about',
+});
 
 const COVERAGE = [
   { title: 'Stocks and equities', body: 'Daily price moves, earnings seasons, index performance and long-term trends across global exchanges.' },
-  { title: 'Crypto and blockchain', body: 'Bitcoin, Ethereum, altcoins, DeFi and the regulation that shapes digital assets, covered with the same rigour as traditional finance.' },
+  { title: 'Crypto and blockchain', body: 'Bitcoin, Ethereum, altcoins, DeFi and the regulation that shapes digital assets.' },
   { title: 'Economics and banking', body: 'Central bank decisions, interest rates, inflation data and the institutions that move the financial system.' },
   { title: 'Commodities and forex', body: 'Oil, gold, silver and agricultural markets, alongside currency pairs and the macro forces behind them.' },
   { title: 'Technology and business', body: 'Corporate earnings, deals, start-up funding and the tech companies shaping markets and society.' },
   { title: 'Geopolitics and emerging markets', body: 'IPOs, emerging economies and the world events that always end up in the numbers.' },
 ];
 
-// Statements of practice, not a sequence, so no numbering.
+// These are editorial commitments described in the linked policy.
 const PRINCIPLES = [
   {
-    title: 'Independent editorial',
-    body: 'Our newsroom operates independently. No advertiser, sponsor or investor influences what we publish or how we cover it.',
+    title: 'Clear sourcing',
+    body: 'We aim to identify the sources behind reported facts and link to original documents or data where available.',
   },
   {
-    title: 'Verified before published',
-    body: 'Every claim is checked against sources before it goes live. We would rather be second and right than first and wrong.',
+    title: 'Reporting and opinion',
+    body: 'We distinguish reporting from analysis and opinion, and treat estimates and forecasts as uncertain.',
   },
   {
-    title: 'Open about sponsorship',
-    body: 'When content is paid for, we say so clearly. We never disguise advertising as editorial.',
+    title: 'Corrections',
+    body: 'Readers can report errors. We review correction requests and update material errors when confirmed.',
   },
-];
-
-// Audience figures. Keep these in step with your analytics before publishing.
-const FACTS = [
-  { value: '500K+', label: 'Monthly readers' },
-  { value: '120+', label: 'Countries reached' },
-  { value: '40K+', label: 'Newsletter subscribers' },
-  { value: '24/7', label: 'Market coverage' },
 ];
 
 export default function AboutPage() {
@@ -65,22 +56,23 @@ export default function AboutPage() {
             sensationalism. Every story is written to help you make sense of the markets.
           </p>
           <p>
-            We are independent. We aren’t backed by a bank, a brokerage or a hedge fund, so our only job is to inform
-            you.
-          </p>
-          <p>
-            Our team of financial journalists, market analysts and data journalists works around the clock so every
-            story is accurate, timely and useful, from breaking earnings to long-form analysis.
+            The site brings together reporting, market data, analysis, educational resources and tools. Our{' '}
+            <Link href="/editorial-policy" className="font-medium text-tint hover:underline">
+              editorial policy
+            </Link>{' '}
+            explains how we approach sourcing, opinion, corrections and AI-assisted material.
           </p>
         </div>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-8 self-start rounded-media bg-surface p-8">
-          {FACTS.map((fact) => (
-            <div key={fact.label} className="flex flex-col-reverse">
-              <dt className="mt-1 text-footnote text-ink-2">{fact.label}</dt>
-              <dd className="text-title1 tabular-nums text-ink">{fact.value}</dd>
-            </div>
-          ))}
-        </dl>
+        <aside className="self-start rounded-media bg-surface p-8">
+          <h2 className="text-title3 text-ink">What we cover</h2>
+          <p className="mt-3 text-subhead text-ink-2">
+            Global and Indian equities, crypto, commodities, forex, business, technology, central banks and economic
+            developments.
+          </p>
+          <Link href="/category/stock-markets" className="mt-4 inline-flex min-h-11 items-center font-medium text-tint hover:underline">
+            Browse our market coverage
+          </Link>
+        </aside>
       </section>
 
       <section className="border-b border-line-soft py-14">
@@ -108,7 +100,7 @@ export default function AboutPage() {
 
       <section className="border-b border-line-soft py-14" aria-labelledby="how-we-work">
         <h2 id="how-we-work" className="text-title2 text-ink">
-          How we work
+          Our editorial approach
         </h2>
         <div className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-3">
           {PRINCIPLES.map((p) => (
@@ -118,6 +110,9 @@ export default function AboutPage() {
             </div>
           ))}
         </div>
+        <Link href="/editorial-policy" className="mt-6 inline-flex min-h-11 items-center font-medium text-tint hover:underline">
+          Read the editorial policy
+        </Link>
       </section>
 
       <section className="flex flex-col justify-between gap-8 py-14 sm:flex-row sm:items-end lg:py-20">

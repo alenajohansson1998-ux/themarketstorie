@@ -54,37 +54,48 @@ function isCurrent(pathname: string, href: string) {
 /* ---------- Search ---------- */
 
 function useArticleSearch(query: string) {
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [searchResult, setSearchResult] = useState<{
+    query: string;
+    results: SearchResult[];
+  } | null>(null);
+  const trimmed = query.trim();
 
   useEffect(() => {
-    const trimmed = query.trim();
     if (trimmed.length < 3) {
-      setResults([]);
-      setStatus('idle');
       return;
     }
     const controller = new AbortController();
-    setStatus('loading');
     const timer = setTimeout(async () => {
       try {
         const params = new URLSearchParams({ search: trimmed, limit: '5', status: 'published' });
         const response = await fetch(`/api/cms/posts?${params}`, { signal: controller.signal });
         const data = await response.json();
-        setResults(data?.success && Array.isArray(data.data) ? data.data : []);
+        if (!controller.signal.aborted) {
+          setSearchResult({
+            query: trimmed,
+            results: data?.success && Array.isArray(data.data) ? data.data : [],
+          });
+        }
       } catch {
-        if (!controller.signal.aborted) setResults([]);
-      } finally {
-        if (!controller.signal.aborted) setStatus('done');
+        if (!controller.signal.aborted) setSearchResult({ query: trimmed, results: [] });
       }
     }, 250);
     return () => {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [trimmed]);
 
-  return { results, status };
+  const hasCurrentResults = searchResult?.query === trimmed;
+  return {
+    results: trimmed.length < 3 || !hasCurrentResults ? [] : searchResult.results,
+    status:
+      trimmed.length < 3
+        ? 'idle'
+        : hasCurrentResults
+          ? 'done'
+          : 'loading',
+  };
 }
 
 function SearchForm({
@@ -482,7 +493,7 @@ export default function Header() {
           role="dialog"
           aria-modal="true"
           aria-label="Menu"
-          className="fixed inset-0 z-[60] overflow-y-auto bg-canvas md:hidden"
+          className="fixed inset-0 z-60 overflow-y-auto bg-canvas md:hidden"
         >
           <div className="flex h-13 items-center justify-between border-b border-line-soft px-4">
             <Link href="/" onClick={() => setIsSheetOpen(false)} className="inline-flex h-11 items-center">

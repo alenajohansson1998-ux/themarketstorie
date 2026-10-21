@@ -14,7 +14,7 @@ interface Post {
   coverImage?: string;
   category: { name: string; slug: string };
   author: { name: string };
-  createdAt: string;
+  publishedAt?: string | null;
 }
 
 interface Tag {
@@ -31,19 +31,31 @@ interface PaginationData {
   pages: number;
 }
 
+interface TagStoriesProps {
+  slug: string;
+  /** Server-rendered first page, so headlines and links are in the HTML. */
+  initialTag?: Tag;
+  initialPosts?: Post[];
+  initialTotal?: number;
+}
+
 /** Story grid for a topic (tag). Shared by /tag/[slug] and /blog/tag/[slug]. */
-export default function TagStories({ slug }: { slug: string }) {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [tag, setTag] = useState<Tag | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'not-found'>('loading');
+export default function TagStories({ slug, initialTag, initialPosts, initialTotal }: TagStoriesProps) {
+  const hasInitial = Boolean(initialTag && initialPosts);
+  const [posts, setPosts] = useState<Post[]>(initialPosts ?? []);
+  const [tag, setTag] = useState<Tag | null>(initialTag ?? null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'not-found'>(hasInitial ? 'ready' : 'loading');
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 12, pages: 0 });
+  const [pagination, setPagination] = useState<PaginationData>({
+    total: initialTotal ?? 0,
+    page: 1,
+    limit: 12,
+    pages: initialTotal ? Math.ceil(initialTotal / 12) : 0,
+  });
 
   useEffect(() => {
-    setPage(1);
-  }, [slug]);
-
-  useEffect(() => {
+    // Page 1 came from the server.
+    if (hasInitial && page === 1) return;
     let active = true;
     async function load() {
       try {
@@ -75,7 +87,7 @@ export default function TagStories({ slug }: { slug: string }) {
     return () => {
       active = false;
     };
-  }, [slug, page]);
+  }, [slug, page, hasInitial]);
 
   if (status === 'not-found') {
     return (
@@ -125,7 +137,10 @@ export default function TagStories({ slug }: { slug: string }) {
                 excerpt={post.excerpt}
                 image={post.coverImage}
                 category={post.category?.name}
-                meta={`${post.author?.name ? `${post.author.name} · ` : ''}${formatDate(post.createdAt)}`}
+                meta={[
+                  post.author?.name,
+                  post.publishedAt ? formatDate(post.publishedAt) : undefined,
+                ].filter(Boolean).join(' · ') || undefined}
               />
             ))}
           </div>

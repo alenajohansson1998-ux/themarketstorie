@@ -34,6 +34,7 @@ const COLUMNS = [
     title: 'Company',
     links: [
       { name: 'About us', href: '/about' },
+      { name: 'Editorial policy', href: '/editorial-policy' },
       { name: 'Advertise', href: '/advertise' },
       { name: 'Contact', href: '/contact' },
       { name: 'Newsletter', href: '/subscription' },
@@ -86,7 +87,7 @@ export default function Footer() {
           <div className="flex items-center gap-2 text-ink">
             <LogoMark className="h-5 w-5" />
             <p className="text-ink-2">
-              &copy; {new Date().getFullYear()} TheMarketStories. Independent financial news.
+              &copy; {new Date().getFullYear()} TheMarketStories. Financial news and market insights.
             </p>
           </div>
           <ul className="-ml-3 flex items-center" aria-label="Follow TheMarketStories">

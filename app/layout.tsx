@@ -1,8 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import Providers from "./providers";
 import LayoutShell from "../components/LayoutShell";
+import Footer from "../components/Footer";
+import { getHeaderCategories } from "@/lib/server/content";
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_OG_IMAGE,
+  DEFAULT_TITLE,
+  SITE_LOCALE,
+  SITE_NAME,
+  SITE_URL,
+} from "@/lib/seo/site";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,40 +21,47 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const siteUrl = "https://themarketstories.com";
-const defaultTitle = "The Market Stories | Financial News, Analysis & Market Insights";
-const defaultDesc = "Stay ahead with The Market Stories – live market news, stock analysis, crypto, commodities, and investment tools. Trusted by traders and investors worldwide.";
-const defaultImage = `${siteUrl}/logos/header-2.PNG`;
+const GA_ID = "G-20P43DVGXK";
 
+// Section links in the header are read from the database at most once an hour.
+export const revalidate = 3600;
+
+// No canonical here: each route declares its own, so no page inherits the homepage's.
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: defaultTitle,
-    template: "%s | The Market Stories",
+    default: DEFAULT_TITLE,
+    template: `%s | ${SITE_NAME}`,
   },
-  description: defaultDesc,
-  keywords: [
-    "financial news", "stock market", "market analysis", "investment", "brokers",
-    "trading tools", "economic calendar", "global markets", "finance blog", "crypto news",
-  ],
-  alternates: { canonical: siteUrl },
+  description: DEFAULT_DESCRIPTION,
+  applicationName: SITE_NAME,
   openGraph: {
-    title: defaultTitle,
-    description: defaultDesc,
-    url: siteUrl,
-    siteName: "The Market Stories",
+    siteName: SITE_NAME,
     type: "website",
-    locale: "en_US",
-    images: [{ url: defaultImage, width: 1200, height: 630, alt: "The Market Stories" }],
+    locale: SITE_LOCALE,
+    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: SITE_NAME }],
   },
   twitter: {
     card: "summary_large_image",
-    title: defaultTitle,
-    description: defaultDesc,
-    images: [defaultImage],
+    site: "@MarketStorie",
+    images: [DEFAULT_OG_IMAGE],
   },
-  icons: { icon: "/favicon.png" },
-  robots: { index: true, follow: true },
+  icons: { icon: "/favicon.png", apple: "/favicon.png" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  alternates: {
+    types: { "application/rss+xml": [{ url: `${SITE_URL}/feed.xml`, title: `${SITE_NAME} RSS feed` }] },
+  },
+  formatDetection: { telephone: false, address: false, email: false },
 };
 
 export const viewport: Viewport = {
@@ -53,29 +71,25 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const categories = await getHeaderCategories();
+
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning={true}>
-      <head>
-        {/* RSS Feed */}
-        <link rel="alternate" type="application/rss+xml" title="The Market Stories — RSS Feed" href="/feed.xml" />
-        {/* Google Analytics */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-20P43DVGXK"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-20P43DVGXK');
-            `,
-          }}
-        />
-      </head>
       <body suppressHydrationWarning={true}>
         <Providers>
-          <LayoutShell>{children}</LayoutShell>
+          <LayoutShell footer={<Footer />} initialCategories={categories}>
+            {children}
+          </LayoutShell>
         </Providers>
+        {/* Google Analytics, loaded after the page becomes interactive */}
+        <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+        <Script id="ga-init" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${GA_ID}');`}
+        </Script>
       </body>
     </html>
   );

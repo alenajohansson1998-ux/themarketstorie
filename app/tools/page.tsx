@@ -1,19 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeftRight, CalendarDays, Filter, Globe2, Grid3x3 } from 'lucide-react';
+import { pageMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
-  title: 'Financial Tools | Forex Heatmap, Stock Screener & More',
-  description: 'Explore powerful financial tools on The Market Stories — live Forex heatmap, stock screener, crypto converter, and market analysis tools for traders and investors.',
-  alternates: { canonical: 'https://themarketstories.com/tools' },
-  openGraph: {
-    title: 'Financial Tools | The Market Stories',
-    description: 'Live Forex heatmap, stock screener, crypto converter and more.',
-    url: 'https://themarketstories.com/tools',
-    siteName: 'The Market Stories',
-    type: 'website',
-  },
-};
+export const metadata: Metadata = pageMetadata({
+  title: 'Financial Tools',
+  description: 'Explore the stock screener, crypto converter, forex heatmap and other market tools from The Market Stories.',
+  path: '/tools',
+});
 
 const TOOLS = [
   {

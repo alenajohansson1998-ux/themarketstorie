@@ -1,17 +1,12 @@
 
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo/metadata';
 
-export const generateMetadata = async (): Promise<Metadata> => {
-  const title = 'Privacy Policy | The Market Stories Data Protection & Security';
-  const description = 'Read The Market Stories Privacy Policy to learn how we collect, use, and protect your personal information. We are committed to transparency, data security, and respecting your privacy as you use our financial news platform.';
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: '/privacy'
-    }
-  };
-};
+export const metadata: Metadata = pageMetadata({
+  title: 'Privacy Policy',
+  description: 'How The Market Stories handles information collected through its website, accounts, analytics and communications.',
+  path: '/privacy',
+});
 
 
 export default function PrivacyPage() {
@@ -23,10 +18,10 @@ export default function PrivacyPage() {
           <h1 className="mt-1 mb-8 text-title1 text-ink">Privacy Policy</h1>
           <div className="article-body">
             <p>
-              Welcome to The Market Stories. This Privacy Policy ("Policy") explains how The Market Stories ("we", "our", "us") collects, uses, discloses, and safeguards your information when you visit our website, use our services, or interact with our content. By accessing or using The Market Stories, you agree to the collection and use of information in accordance with this Policy.
+              Welcome to The Market Stories. This Privacy Policy explains how The Market Stories collects, uses, discloses and safeguards information when you visit the website, use its services or interact with its content. By using the site, you agree to the collection and use of information described in this policy.
             </p>
             <p>
-              This Policy applies to all users of the themarketstories.com website, mobile applications, and related services (collectively, the "Service").
+              This Policy applies to users of themarketstories.com and its related services.
             </p>
 
             <h2>1. Information We Collect</h2>
@@ -174,7 +169,7 @@ export default function PrivacyPage() {
               To exercise these rights, please contact us using the information provided below. We will respond to your request within a reasonable timeframe and in accordance with applicable laws.
             </p>
 
-            <h2>8. Children's Privacy</h2>
+            <h2>8. Children&apos;s Privacy</h2>
             <p>
               Our Service is not intended for children under 13 years of age (or the minimum age in your jurisdiction). We do not knowingly collect personal information from children under this age. If we become aware that we have collected personal information from a child under the applicable age, we will take steps to delete such information promptly.
             </p>
@@ -213,9 +208,7 @@ export default function PrivacyPage() {
               If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:
             </p>
             <p>
-              Email: Alvensmith1998@gmail.com<br />
-              Address: [Your Business Address]<br />
-              Phone: [Your Phone Number]
+              Email: Alvensmith1998@gmail.com
             </p>
             <p>
               We will respond to your inquiries within a reasonable timeframe.
@@ -226,9 +219,6 @@ export default function PrivacyPage() {
               For matters related to data protection and privacy, you can contact our Data Protection Officer at Alvensmith1998@gmail.com.
             </p>
 
-            <p className="text-ink-2">
-              Last updated: {new Date().toLocaleDateString()}
-            </p>
           </div>
         </div>
       </div>

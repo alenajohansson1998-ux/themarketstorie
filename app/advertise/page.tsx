@@ -3,10 +3,10 @@ import { useState } from "react";
 import { CONTACT_EMAIL } from "@/lib/siteConfig";
 
 const FORMATS = [
-  { title: "Sponsored articles", desc: "Long-form content published under your brand, with organic reach across the site and newsletter." },
+  { title: "Sponsored articles", desc: "Long-form content published under your brand and clearly labelled as sponsored." },
   { title: "Display banners", desc: "Header, sidebar and in-article placements on desktop and mobile." },
-  { title: "Homepage placements", desc: "Above-the-fold visibility on our highest-traffic page." },
-  { title: "Newsletter promotions", desc: "A placement inside our weekly financial newsletter." },
+  { title: "Homepage placements", desc: "Brand placements in agreed positions on the homepage." },
+  { title: "Newsletter promotions", desc: "A placement in a newsletter edition." },
   { title: "Social promotions", desc: "Branded posts across our social channels to extend your reach." },
 ];
 
@@ -15,13 +15,6 @@ const STANDARDS = [
   { rule: "Legally compliant", note: "Ads must comply with the laws of every market they target." },
   { rule: "Clearly labelled", note: "Sponsored content is always marked as sponsored." },
   { rule: "Editorially appropriate", note: "Content must suit our audience and editorial values." },
-];
-
-// Audience figures. Keep these in step with your analytics before publishing.
-const AUDIENCE = [
-  { stat: "500K+", note: "monthly readers across 120+ countries" },
-  { stat: "85%", note: "of readers hold active investment portfolios" },
-  { stat: "40K+", note: "newsletter subscribers" },
 ];
 
 const fieldClass =
@@ -58,24 +51,16 @@ export default function AdvertisePage() {
           Put your brand in front of finance-focused readers.
         </h1>
         <p className="mt-4 max-w-2xl text-title3 font-normal text-ink-2">
-          Investors, traders and financial professionals come to TheMarketStories to make decisions with real money.
-          We put fintech, trading and education brands where those decisions happen.
+          Explore advertising options for finance, business and education brands. Ask us for current inventory and
+          audience information.
         </p>
-        <dl className="mt-10 grid max-w-3xl grid-cols-1 gap-6 sm:grid-cols-3">
-          {AUDIENCE.map((item) => (
-            <div key={item.stat} className="flex flex-col-reverse border-t border-line pt-3">
-              <dt className="mt-1 text-subhead text-ink-2">{item.note}</dt>
-              <dd className="text-title1 tabular-nums text-ink">{item.stat}</dd>
-            </div>
-          ))}
-        </dl>
       </section>
 
       <section className="grid grid-cols-1 items-start gap-14 border-b border-line-soft py-14 lg:grid-cols-2">
         <div>
           <h2 className="text-title2 text-ink">Tell us about your campaign</h2>
           <p className="mt-2 text-body text-ink-2">
-            We reply within 1–2 business days with availability, pricing and format recommendations. Or email{" "}
+            Send us your campaign details and we will reply by email. Or contact us at{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="break-all text-tint hover:underline">
               {CONTACT_EMAIL}
             </a>
@@ -86,7 +71,7 @@ export default function AdvertisePage() {
             <div role="status" className="mt-6 rounded-media bg-surface p-8">
               <p className="text-title2 text-ink">Enquiry sent</p>
               <p className="mt-2 text-body text-ink-2">
-                We’ll be in touch at <span className="font-medium text-ink">{form.email}</span> within 1–2 business days.
+                We’ll be in touch at <span className="font-medium text-ink">{form.email}</span>.
               </p>
             </div>
           ) : (

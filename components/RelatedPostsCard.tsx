@@ -11,7 +11,7 @@ interface Post {
   category: { _id: string; name: string; slug: string };
   author: { _id?: string; name: string; email?: string; slug?: string };
   views: number;
-  createdAt: string;
+  publishedAt?: string | null;
 }
 
 interface RelatedPostsCardProps {
@@ -50,10 +50,13 @@ export default function RelatedPostsCard({ posts }: RelatedPostsCardProps) {
                   {post.title}
                 </Link>
               </h3>
-              <p className="mt-1 text-footnote text-ink-2">
-                {post.author?.name ? `${post.author.name} · ` : null}
-                {formatDate(post.createdAt)}
-              </p>
+              {post.author?.name || post.publishedAt ? (
+                <p className="mt-1 text-footnote text-ink-2">
+                  {post.author?.name}
+                  {post.author?.name && post.publishedAt ? ' · ' : null}
+                  {post.publishedAt ? formatDate(post.publishedAt) : null}
+                </p>
+              ) : null}
             </article>
           </li>
         ))}

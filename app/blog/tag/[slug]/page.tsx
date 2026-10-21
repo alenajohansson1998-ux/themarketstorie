@@ -1,52 +1,61 @@
 import type { Metadata } from 'next';
-import TagBlogPageContent from './TagBlogPageContent';
+import { notFound } from 'next/navigation';
+import TagStories from '@/components/TagStories';
+import { getTagBySlug, listPosts } from '@/lib/server/content';
+import { pageMetadata } from '@/lib/seo/metadata';
+import { JsonLd, itemListSchema, webPageSchema } from '@/lib/seo/jsonld';
+import { summarize } from '@/lib/seo/site';
 
-const siteUrl = 'https://themarketstories.com';
+// Public URL is /tag/:slug (next.config.ts rewrites it to this route).
+export const revalidate = 600;
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+/** Topic pages with fewer stories than this are thin, so they stay out of the index (links still followed). */
+export const MIN_INDEXABLE_TAG_POSTS = 5;
+
+type Params = Promise<{ slug: string }>;
+
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
-  // Public-facing URL is /tag/:slug (rewrite in next.config.ts routes /tag/:slug → this page)
-  const url = `${siteUrl}/tag/${slug}`;
-  const label = slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const tag = await getTagBySlug(slug);
+  if (!tag || tag.postCount === 0) notFound();
 
-  let title = `${label} Articles | The Market Stories`;
-  let description = `Browse the latest ${label} news, market insights, and analysis on TheMarketStories.`;
-
-  try {
-    const base = process.env.NEXT_PUBLIC_SITE_URL || siteUrl;
-    const res = await fetch(`${base}/api/cms/tags`, { next: { revalidate: 3600 } });
-    if (res.ok) {
-      const { data } = await res.json();
-      const foundTag = data?.find((t: { slug: string; name?: string; description?: string }) =>
-        t.slug?.toLowerCase() === slug.toLowerCase()
-      );
-      if (foundTag) {
-        title = `${foundTag.name} Articles | The Market Stories`;
-        if (foundTag.description) {
-          description = foundTag.description.slice(0, 155);
-        }
-      }
-    }
-  } catch {
-    // use slug-based fallback
-  }
-
-  return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: {
-      title,
-      description,
-      url,
-      siteName: 'The Market Stories',
-      type: 'website',
-    },
-    robots: { index: true, follow: true },
-  };
+  return pageMetadata({
+    title: `${tag.name}: Latest Stories`,
+    description: summarize(tag.description || `Stories about ${tag.name} from The Market Stories: news, market analysis and explainers.`),
+    path: `/tag/${tag.slug}`,
+    noindex: tag.postCount < MIN_INDEXABLE_TAG_POSTS,
+  });
 }
 
-export default async function TagBlogPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function TagBlogPage({ params }: { params: Params }) {
   const { slug } = await params;
-  return <TagBlogPageContent slug={slug} />;
+  const tag = await getTagBySlug(slug);
+  if (!tag || tag.postCount === 0) notFound();
+
+  const first = await listPosts({ tagId: tag._id, limit: 12 });
+  const posts = first?.data;
+
+  return (
+    <>
+      {tag.postCount >= MIN_INDEXABLE_TAG_POSTS && posts?.length ? (
+        <JsonLd
+          data={[
+            webPageSchema({
+              path: `/tag/${tag.slug}`,
+              name: `${tag.name}: Latest Stories`,
+              description: summarize(tag.description || `Stories about ${tag.name} from The Market Stories.`),
+              type: 'CollectionPage',
+              extra: { mainEntity: itemListSchema(posts.map((post) => `/${post.category?.slug}/${post.slug}`)) },
+            }),
+          ]}
+        />
+      ) : null}
+      <TagStories
+        slug={slug}
+        initialTag={{ _id: tag._id, name: tag.name, slug: tag.slug, description: tag.description }}
+        initialPosts={posts as never}
+        initialTotal={tag.postCount}
+      />
+    </>
+  );
 }

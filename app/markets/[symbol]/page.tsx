@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import MarketChart from "@/components/MarketChart";
 import MarketHeader from "@/components/MarketHeader";
 import MarketNews from "@/components/MarketNews";
+import { pageMetadata } from "@/lib/seo/metadata";
 import {
   fetchMarketPageData,
   toDisplaySymbol,
@@ -18,10 +19,11 @@ export async function generateMetadata({
 }: MarketPageProps): Promise<Metadata> {
   const resolvedParams = await params;
   const symbol = toDisplaySymbol(decodeURIComponent(resolvedParams.symbol).toUpperCase());
-  return {
-    title: `${symbol} Market Stats | The Market Stories`,
-    description: `Live market data, interactive chart, and latest news for ${symbol}.`,
-  };
+  return pageMetadata({
+    title: `${symbol} Market Data and News`,
+    description: `Market profile, chart and related financial news for ${symbol}. Market data may be delayed.`,
+    path: `/markets/${encodeURIComponent(symbol)}`,
+  });
 }
 
 export default async function MarketDetailPage({ params }: MarketPageProps) {
