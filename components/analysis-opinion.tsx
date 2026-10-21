@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { formatDate } from "@/lib/cms-utils-client"
+import SafeImage from "@/components/SafeImage"
 
 interface Post {
   _id: string
@@ -68,16 +69,16 @@ export function AnalysisOpinionSection({ initialPosts }: { initialPosts?: Post[]
       <ul className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
         {posts.map((post) => (
           <li key={post._id} className="flex gap-4">
-            <div className="h-20 w-28 shrink-0 overflow-hidden rounded-control bg-fill">
+            <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-control bg-fill">
               {post.coverImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <SafeImage
                   src={post.coverImage}
                   alt=""
+                  optimized
+                  width={224}
+                  height={160}
+                  sizes="112px"
                   className="h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none"
-                  }}
                 />
               ) : null}
             </div>

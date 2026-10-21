@@ -47,11 +47,15 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts, loading = fa
     <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_300px]">
       <article className="group">
         <Link href={`/${featured.category?.slug}/${featured.slug}`} className="block" tabIndex={-1} aria-hidden="true">
-          <div className="aspect-16/10 overflow-hidden rounded-media bg-fill">
+          <div className="relative aspect-16/10 overflow-hidden rounded-media bg-fill">
             {featured.coverImage ? (
               <SafeImage
                 src={featured.coverImage}
                 alt=""
+                optimized
+                width={1200}
+                height={750}
+                sizes="(max-width: 1279px) 100vw, 42vw"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
               />
             ) : null}
@@ -104,7 +108,11 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts, loading = fa
             <SafeImage
               src="/phoenixcreativegroup.png"
               alt="Phoenix Creative Group"
-              className="mx-auto w-full max-w-[300px] rounded-control"
+              optimized
+              width={1024}
+              height={1536}
+              sizes="300px"
+              className="mx-auto h-auto w-full max-w-[300px] rounded-control"
             />
           </a>
           <p className="mt-3 text-footnote text-ink-2">
