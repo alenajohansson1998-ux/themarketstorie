@@ -335,6 +335,7 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={item.href === '/markets' ? false : undefined}
                 aria-current={isCurrent(pathname, item.href) ? 'page' : undefined}
                 className="inline-flex h-11 items-center rounded-control px-3 text-subhead font-medium text-ink/75 transition-colors hover:text-ink aria-[current=page]:text-ink"
               >
@@ -367,6 +368,7 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={item.href === '/markets' ? false : undefined}
                 aria-current={isCurrent(pathname, item.href) ? 'page' : undefined}
                 className="inline-flex h-11 items-center rounded-control px-3 text-subhead font-medium text-ink/75 transition-colors hover:text-ink aria-[current=page]:text-ink"
               >
@@ -518,6 +520,7 @@ export default function Header() {
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      prefetch={item.href === '/markets' ? false : undefined}
                       onClick={() => setIsSheetOpen(false)}
                       aria-current={isCurrent(pathname, item.href) ? 'page' : undefined}
                       className="flex min-h-12 items-center text-title3 text-ink"

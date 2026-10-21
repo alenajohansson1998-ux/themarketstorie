@@ -82,9 +82,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
           </LayoutShell>
         </Providers>
-        {/* Google Analytics, loaded after the page becomes interactive */}
-        <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
-        <Script id="ga-init" strategy="afterInteractive">
+        {/* Google Analytics, loaded when the browser is idle */}
+        <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="lazyOnload" />
+        <Script id="ga-init" strategy="lazyOnload">
           {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());

@@ -1,14 +1,36 @@
 'use client';
 
-import { useEffect, useRef, useState, type ImgHTMLAttributes } from 'react';
+import Image from 'next/image';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
-interface SafeImageProps extends ImgHTMLAttributes<HTMLImageElement> {
+interface SafeImageProps {
+  src?: string;
+  alt?: string;
+  className?: string;
+  loading?: 'eager' | 'lazy';
+  style?: CSSProperties;
   /** Shown if the image fails. Without one, the image hides and its container's fill shows through. */
   fallbackSrc?: string;
+  /** Use Next.js image optimization for public editorial images. */
+  optimized?: boolean;
+  width?: number;
+  height?: number;
+  sizes?: string;
 }
 
 /** <img> that never shows the browser's broken-image icon. */
-export default function SafeImage({ fallbackSrc, src, alt = '', ...props }: SafeImageProps) {
+export default function SafeImage({
+  fallbackSrc,
+  src,
+  alt = '',
+  optimized = false,
+  width,
+  height,
+  sizes,
+  className,
+  loading,
+  style,
+}: SafeImageProps) {
   const [failed, setFailed] = useState(false);
   const ref = useRef<HTMLImageElement>(null);
 
@@ -21,17 +43,43 @@ export default function SafeImage({ fallbackSrc, src, alt = '', ...props }: Safe
   }, [src]);
 
   if (failed && !fallbackSrc) return null;
+  const resolvedSrc = failed ? fallbackSrc : src;
+  if (!resolvedSrc) return null;
+
+  const handleError = () => {
+    if (!failed) setFailed(true);
+  };
+
+  if (optimized) {
+    return (
+      <Image
+        ref={ref}
+        src={resolvedSrc}
+        alt={alt}
+        width={width ?? 1200}
+        height={height ?? 800}
+        sizes={sizes ?? '100vw'}
+        className={className}
+        loading={loading ?? 'lazy'}
+        style={style}
+        onError={handleError}
+      />
+    );
+  }
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      {...props}
       ref={ref}
-      src={failed ? fallbackSrc : src}
+      src={resolvedSrc}
       alt={alt}
-      onError={() => {
-        if (!failed) setFailed(true);
-      }}
+      className={className}
+      loading={loading}
+      style={style}
+      width={width}
+      height={height}
+      sizes={sizes}
+      onError={handleError}
     />
   );
 }

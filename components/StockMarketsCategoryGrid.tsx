@@ -31,6 +31,10 @@ function StoryTile({ post, size }: { post: Post; size: "lead" | "small" }) {
         <SafeImage
           src={post.coverImage}
           alt=""
+          optimized
+          width={1200}
+          height={900}
+          sizes={lead ? '(max-width: 640px) 100vw, 50vw' : '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw'}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
         />
       ) : null}

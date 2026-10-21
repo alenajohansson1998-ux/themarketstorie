@@ -112,6 +112,10 @@ const HomeTopNewsGrid: React.FC<HomeTopNewsGridProps> = ({ initialTrending, init
                   <SafeImage
                     src={featured.coverImage}
                     alt=""
+                    optimized
+                    width={1200}
+                    height={750}
+                    sizes="(max-width: 1023px) 100vw, 55vw"
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                 ) : null}
@@ -141,11 +145,15 @@ const HomeTopNewsGrid: React.FC<HomeTopNewsGridProps> = ({ initialTrending, init
             {gridPosts.map((post) => (
               <article key={post._id} className="group">
                 <Link href={postHref(post)} className="block" tabIndex={-1} aria-hidden="true">
-                  <div className="aspect-16/10 overflow-hidden rounded-card bg-fill">
+                  <div className="relative aspect-16/10 overflow-hidden rounded-card bg-fill">
                     {post.coverImage ? (
                       <SafeImage
                         src={post.coverImage}
                         alt=""
+                        optimized
+                        width={1200}
+                        height={750}
+                        sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 25vw"
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                       />
                     ) : null}

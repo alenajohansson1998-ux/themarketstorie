@@ -137,6 +137,7 @@ export default function FeaturedAiArticlesSection({ initialArticles }: { initial
         {/* Spotlight carousel */}
         <div
           className="xl:pr-8"
+          role="region"
           aria-roledescription="carousel"
           aria-label="AI spotlight"
           onMouseEnter={() => setInteracting(true)}
@@ -148,15 +149,20 @@ export default function FeaturedAiArticlesSection({ initialArticles }: { initial
         >
           {featured ? (
             <article
+              role="group"
               aria-roledescription="slide"
               aria-label={slideCount > 1 ? `${(activeIndex % slideCount) + 1} of ${slideCount}` : undefined}
               aria-live={autoplay ? "off" : "polite"}
             >
               <Link href={buildArticleHref(featured)} className="group block" tabIndex={-1} aria-hidden="true">
-                <div className="aspect-16/10 overflow-hidden rounded-media bg-fill">
+                <div className="relative aspect-16/10 overflow-hidden rounded-media bg-fill">
                   <SafeImage
                     src={featured.image || "/herobaner.png"}
                     alt=""
+                    optimized
+                    width={1200}
+                    height={750}
+                    sizes="(max-width: 1279px) 100vw, 42vw"
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   />
                 </div>
@@ -285,8 +291,16 @@ export default function FeaturedAiArticlesSection({ initialArticles }: { initial
                     </h4>
                     {article.publishedAt ? <p className="mt-1 text-footnote text-ink-2"><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></p> : null}
                   </div>
-                  <div className="aspect-square overflow-hidden rounded-control bg-fill">
-                    <SafeImage src={article.image || "/herobaner.png"} alt="" className="h-full w-full object-cover" />
+                  <div className="relative aspect-square overflow-hidden rounded-control bg-fill">
+                    <SafeImage
+                      src={article.image || "/herobaner.png"}
+                      alt=""
+                      optimized
+                      width={400}
+                      height={400}
+                      sizes="72px"
+                      className="h-full w-full object-cover"
+                    />
                   </div>
                 </li>
               ))}

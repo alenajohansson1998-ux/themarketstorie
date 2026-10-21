@@ -60,7 +60,7 @@ export default function Footer() {
         <p className="max-w-3xl border-b border-line-soft pb-6">
           Market data may be delayed and is provided for information only. Nothing on TheMarketStories is
           financial advice. Investing involves risk, including the loss of capital.{' '}
-          <Link href="/risk-disclosure" className="text-tint hover:underline">
+          <Link href="/risk-disclosure" className="text-tint underline underline-offset-2 hover:decoration-2">
             Read the full risk disclosure
           </Link>
           .

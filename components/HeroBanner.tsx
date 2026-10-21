@@ -19,7 +19,7 @@ export default function HeroBanner() {
             <Link href="/blog" className={buttonVariants({ variant: "filled", size: "lg" })}>
               Read the latest news
             </Link>
-            <Link href="/markets" className={buttonVariants({ variant: "gray", size: "lg" })}>
+            <Link href="/markets" prefetch={false} className={buttonVariants({ variant: "gray", size: "lg" })}>
               View markets
             </Link>
           </div>
