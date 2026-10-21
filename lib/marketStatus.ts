@@ -1,5 +1,3 @@
-import { DateTime } from 'luxon';
-
 const NY = 'America/New_York';
 const OPEN_MINUTE = 9 * 60 + 30;
 const CLOSE_MINUTE = 16 * 60;
@@ -12,16 +10,58 @@ const NYSE_HOLIDAYS = new Set([
   '2027-06-18', '2027-07-05', '2027-09-06', '2027-11-25', '2027-12-24',
 ]);
 
-function isTradingDay(day: DateTime): boolean {
-  return day.weekday <= 5 && !NYSE_HOLIDAYS.has(day.toISODate() ?? '');
+const NY_DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
+  timeZone: NY,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  weekday: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+interface NewYorkDateParts {
+  year: number;
+  month: number;
+  day: number;
+  weekday: string;
+  hour: number;
+  minute: number;
 }
 
-function nextTradingDay(from: DateTime): DateTime {
-  let day = from.plus({ days: 1 }).startOf('day');
-  for (let i = 0; i < 10 && !isTradingDay(day); i++) {
-    day = day.plus({ days: 1 });
+function getNewYorkParts(date: Date): NewYorkDateParts {
+  const parts = Object.fromEntries(
+    NY_DATE_FORMAT.formatToParts(date).map(({ type, value }) => [type, value])
+  );
+
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    weekday: parts.weekday,
+    hour: Number(parts.hour),
+    minute: Number(parts.minute),
+  };
+}
+
+function dateKey({ year, month, day }: Pick<NewYorkDateParts, 'year' | 'month' | 'day'>): string {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function isTradingDay(day: NewYorkDateParts): boolean {
+  return day.weekday !== 'Sat' && day.weekday !== 'Sun' && !NYSE_HOLIDAYS.has(dateKey(day));
+}
+
+function nextTradingDay(from: NewYorkDateParts): NewYorkDateParts {
+  // Noon UTC always maps to the same New York calendar date, including across DST changes.
+  const cursor = new Date(Date.UTC(from.year, from.month - 1, from.day + 1, 12));
+  for (let i = 0; i < 10; i += 1) {
+    const day = getNewYorkParts(cursor);
+    if (isTradingDay(day)) return day;
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
-  return day;
+  return getNewYorkParts(cursor);
 }
 
 export interface MarketStatus {
@@ -32,8 +72,8 @@ export interface MarketStatus {
   short: string;
 }
 
-export function getNyseStatus(now: DateTime = DateTime.now()): MarketStatus {
-  const ny = now.setZone(NY);
+export function getNyseStatus(now: Date = new Date()): MarketStatus {
+  const ny = getNewYorkParts(now);
   const minute = ny.hour * 60 + ny.minute;
 
   if (isTradingDay(ny) && minute >= OPEN_MINUTE && minute < CLOSE_MINUTE) {
@@ -45,7 +85,8 @@ export function getNyseStatus(now: DateTime = DateTime.now()): MarketStatus {
   }
 
   const next = nextTradingDay(ny);
-  const isTomorrow = next.hasSame(ny.plus({ days: 1 }), 'day');
-  const when = isTomorrow ? 'tomorrow' : next.toFormat('ccc');
+  const tomorrow = getNewYorkParts(new Date(Date.UTC(ny.year, ny.month - 1, ny.day + 1, 12)));
+  const isTomorrow = dateKey(next) === dateKey(tomorrow);
+  const when = isTomorrow ? 'tomorrow' : next.weekday;
   return { open: false, label: `NYSE closed · opens ${when} 9:30 AM ET`, short: 'NYSE closed' };
 }

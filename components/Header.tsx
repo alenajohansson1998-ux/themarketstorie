@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { ChevronDown, Menu, Search, X } from 'lucide-react';
-import AuthModal from './AuthModal';
 import Logo, { LogoMark } from './Logo';
 import { useNavData, type NavLink } from '@/lib/navData';
 import { trapFocus, useDismiss, useScrollLock } from '@/lib/useDismiss';
@@ -17,6 +17,8 @@ interface SearchResult {
   excerpt?: string;
   category?: { name: string; slug: string };
 }
+
+const AuthModal = dynamic(() => import('./AuthModal'), { ssr: false });
 
 const PRIMARY_NAV: NavLink[] = [
   { name: 'News', href: '/blog' },
@@ -625,7 +627,9 @@ export default function Header() {
         </div>
       ) : null}
 
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      {isAuthModalOpen ? (
+        <AuthModal isOpen onClose={() => setIsAuthModalOpen(false)} />
+      ) : null}
     </>
   );
 }
