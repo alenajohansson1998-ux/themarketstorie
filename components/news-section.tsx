@@ -1,69 +1,86 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 interface TradingViewChartProps {
   symbol?: string;
   height?: number;
+  /** Defaults to the reader's system appearance. */
   theme?: "light" | "dark";
   interval?: string;
 }
 
+type TradingViewGlobal = { widget: new (options: Record<string, unknown>) => unknown };
+
+let scriptPromise: Promise<void> | null = null;
+
+function loadTradingView(): Promise<void> {
+  if ((window as unknown as { TradingView?: TradingViewGlobal }).TradingView) return Promise.resolve();
+  if (!scriptPromise) {
+    scriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://s3.tradingview.com/tv.js";
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => {
+        scriptPromise = null;
+        reject(new Error("TradingView failed to load"));
+      };
+      document.body.appendChild(script);
+    });
+  }
+  return scriptPromise;
+}
+
 export default function TradingViewChart({
   symbol = "NASDAQ:AAPL",
-  height = 620,
-  theme = "dark",
-  interval = "1",
+  height = 460,
+  theme,
+  interval = "D",
 }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const systemScheme = useColorScheme();
+  const resolvedTheme = theme ?? systemScheme;
+  const containerId = `tv_chart_${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
 
   useEffect(() => {
-    if ((window as any).TradingView) {
-      createWidget();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://s3.tradingview.com/tv.js";
-    script.async = true;
-    script.onload = createWidget;
-    document.body.appendChild(script);
-
+    let cancelled = false;
+    loadTradingView()
+      .then(() => {
+        const container = containerRef.current;
+        const tv = (window as unknown as { TradingView?: TradingViewGlobal }).TradingView;
+        if (cancelled || !container || !tv) return;
+        container.innerHTML = "";
+        new tv.widget({
+          container_id: containerId,
+          width: "100%",
+          height,
+          symbol,
+          interval,
+          timezone: "Etc/UTC",
+          theme: resolvedTheme,
+          style: "1",
+          locale: "en",
+          enable_publishing: false,
+          allow_symbol_change: true,
+          hide_top_toolbar: false,
+          hide_legend: false,
+          save_image: false,
+        });
+      })
+      .catch((error) => console.warn(error));
     return () => {
-      document.body.removeChild(script);
+      cancelled = true;
     };
-  }, [symbol, height, theme, interval]);
-
-  const createWidget = () => {
-    if (!containerRef.current || !(window as any).TradingView) return;
-
-    containerRef.current.innerHTML = "";
-
-    new (window as any).TradingView.widget({
-      container_id: containerRef.current.id,
-      width: "100%",
-      height,
-      symbol,
-      interval,
-      timezone: "Etc/UTC",
-      theme,
-      style: "1",
-      locale: "en",
-      toolbar_bg: "#181818",
-      enable_publishing: false,
-      allow_symbol_change: true,
-      hide_top_toolbar: false,
-      hide_legend: false,
-      save_image: false,
-      studies: ["MACD@tv-basicstudies"],
-    });
-  };
+  }, [symbol, height, resolvedTheme, interval, containerId]);
 
   return (
     <div
-      id="tv_chart_container"
+      id={containerId}
       ref={containerRef}
-      style={{ width: "100%", height, minHeight: 520 }}
+      className="w-full overflow-hidden rounded-card border border-line-soft bg-canvas"
+      style={{ height }}
     />
   );
 }

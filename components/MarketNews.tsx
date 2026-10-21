@@ -5,31 +5,33 @@ interface MarketNewsProps {
 }
 
 function formatDate(epochSeconds: number): string {
-  if (!epochSeconds) return "Unknown date";
-  return new Date(epochSeconds * 1000).toLocaleString();
+  if (!epochSeconds) return "";
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(
+    new Date(epochSeconds * 1000)
+  );
 }
 
 export default function MarketNews({ news }: MarketNewsProps) {
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
-      <h2 className="text-xl font-semibold text-gray-900">Related News</h2>
+    <section aria-labelledby="market-news-heading">
+      <h2 id="market-news-heading" className="text-title3 text-ink">
+        Related news
+      </h2>
 
       {news.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-500">No recent news available for this market.</p>
+        <p className="mt-3 text-subhead text-ink-2">No recent news for this market.</p>
       ) : (
-        <ul className="mt-4 space-y-4">
+        <ul className="mt-3 divide-y divide-line-soft">
           {news.map((item) => (
-            <li
-              key={`${item.id}-${item.datetime}`}
-              className="rounded-lg border border-gray-100 p-4 transition hover:border-gray-200"
-            >
-              <a href={item.url} target="_blank" rel="noopener noreferrer" className="block">
-                <h3 className="text-base font-semibold text-gray-900">{item.headline}</h3>
-                <p className="mt-2 text-sm text-gray-600 line-clamp-3">{item.summary}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                  <span>{item.source}</span>
-                  <span>{formatDate(item.datetime)}</span>
-                </div>
+            <li key={`${item.id}-${item.datetime}`} className="py-4">
+              <a href={item.url} target="_blank" rel="noopener noreferrer" className="group block">
+                <h3 className="text-headline text-ink group-hover:underline">{item.headline}</h3>
+                {item.summary ? <p className="mt-1 line-clamp-3 text-subhead text-ink-2">{item.summary}</p> : null}
+                <p className="mt-2 text-footnote text-ink-2">
+                  {item.source}
+                  {item.datetime ? ` · ${formatDate(item.datetime)}` : null}
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </p>
               </a>
             </li>
           ))}

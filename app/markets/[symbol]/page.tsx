@@ -30,15 +30,15 @@ export default async function MarketDetailPage({ params }: MarketPageProps) {
   const data = await fetchMarketPageData(symbol, "1M");
 
   return (
-    <main className="site-container px-4 md:px-6 xl:px-8 py-8 space-y-6">
+    <div className="site-container space-y-10 px-4 py-10 md:px-6 lg:py-12">
       {data.partial ? (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          Some Finnhub endpoints are restricted for this symbol or plan. Showing available data.
-        </section>
+        <p role="status" className="rounded-control bg-surface px-4 py-3 text-subhead text-ink-2">
+          Some details aren’t available for this symbol, so you’re seeing what we have.
+        </p>
       ) : null}
       <MarketHeader symbol={symbol} profile={data.profile} quote={data.quote} />
       <MarketChart symbol={symbol} initialData={data.candles} initialTimeframe="1M" />
       <MarketNews news={data.news} />
-    </main>
+    </div>
   );
 }

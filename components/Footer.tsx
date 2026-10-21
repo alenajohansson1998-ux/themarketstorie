@@ -1,69 +1,112 @@
 import Link from 'next/link';
+import { LogoMark } from './Logo';
+import { SOCIAL_LINKS } from '@/lib/siteConfig';
 
-export default function Footer({ className = "" }) {
+const COLUMNS = [
+  {
+    title: 'Markets',
+    links: [
+      { name: 'Markets overview', href: '/markets' },
+      { name: 'Stock screener', href: '/screener' },
+      { name: 'Crypto converter', href: '/crypto-converter' },
+      { name: 'Forex heatmap', href: '/tools/forex-heatmap' },
+    ],
+  },
+  {
+    title: 'News',
+    links: [
+      { name: 'Latest news', href: '/blog' },
+      { name: 'Stock markets', href: '/category/stock-markets' },
+      { name: 'Crypto', href: '/category/crypto' },
+      { name: 'Commodities', href: '/category/commodity' },
+      { name: 'Analysis & opinion', href: '/category/analysis--opinion' },
+    ],
+  },
+  {
+    title: 'Learn',
+    links: [
+      { name: 'Trading basics', href: '/learn' },
+      { name: 'Broker reviews', href: '/brokers' },
+      { name: 'All tools', href: '/tools' },
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      { name: 'About us', href: '/about' },
+      { name: 'Advertise', href: '/advertise' },
+      { name: 'Contact', href: '/contact' },
+      { name: 'Newsletter', href: '/subscription' },
+      { name: 'RSS feed', href: '/feed.xml' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { name: 'Terms', href: '/terms' },
+      { name: 'Privacy policy', href: '/privacy' },
+      { name: 'Risk disclosure', href: '/risk-disclosure' },
+    ],
+  },
+];
+
+
+
+export default function Footer() {
   return (
-    <footer className={`w-full bg-black text-gray-300 text-sm ${className}`}>
-      
-      {/* FULL WIDTH CONTENT */}
-      <div className="site-shell px-8 py-12">
+    <footer className="border-t border-line-soft bg-surface text-footnote text-ink-2">
+      <div className="site-shell space-y-8 px-4 py-10 md:px-6">
+        <p className="max-w-3xl border-b border-line-soft pb-6">
+          Market data may be delayed and is provided for information only. Nothing on TheMarketStories is
+          financial advice. Investing involves risk, including the loss of capital.{' '}
+          <Link href="/risk-disclosure" className="text-tint hover:underline">
+            Read the full risk disclosure
+          </Link>
+          .
+        </p>
 
-        {/* Brand */}
-        <div className="mb-2">
-          <h3 className="text-lg font-semibold mb-3 uppercase tracking-widest" style={{ color: '#ffffff' }}>
-            TheMarketStories
-          </h3>
-          <p className="leading-relaxed max-w-none">
-            TheMarketStories is an independent digital news and media platform
-            delivering timely coverage of global and Indian financial markets,
-            business news, economic developments, technology, and current
-            affairs. Our content is published for informational and educational
-            purposes and is intended to help readers stay informed about market
-            trends and events.
-          </p>
-        </div>
+        <nav aria-label="Site directory" className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
+          {COLUMNS.map((column) => (
+            <div key={column.title}>
+              <h2 className="mb-2 text-footnote font-semibold text-ink">{column.title}</h2>
+              <ul>
+                {column.links.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="inline-flex min-h-9 items-center hover:text-ink hover:underline">
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
 
-        {/* Risk Disclosure */}
-        <div className="border-t border-gray-700 pt-1 space-y-4 leading-relaxed text-gray-400">
-          <p>
-            <strong className="text-gray-300">Risk Disclosure:</strong> Financial
-            markets, cryptocurrencies, derivatives, and other investment
-            instruments are subject to market risk, including the potential
-            loss of capital. Information published on TheMarketStories does not
-            constitute financial, investment, or trading advice, nor should it
-            be considered a recommendation or solicitation to buy or sell any
-            securities or assets.
-          </p>
-
-          <p>
-            Market data, prices, charts, and other information displayed on this
-            website may be delayed, estimated, or sourced from third parties.
-            While reasonable efforts are made to ensure accuracy, TheMarketStories
-            does not guarantee the completeness or reliability of any data and
-            shall not be responsible for any losses arising from reliance on
-            such information.
-          </p>
-
-          <p>
-            Readers are encouraged to conduct their own research and seek advice
-            from qualified financial professionals before making any investment
-            or trading decisions.
-          </p>
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-700 mt-10 pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <p className="text-gray-500">&copy; {new Date().getFullYear()} TheMarketStories. All rights reserved.</p>
-
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-gray-400">
-            <Link href="/about" className="hover:text-white transition">About Us</Link>
-            <Link href="/advertise" className="hover:text-white transition">Advertise</Link>
-            <Link href="/contact" className="hover:text-white transition">Contact</Link>
-            <Link href="/terms" className="hover:text-white transition">Terms</Link>
-            <Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link>
-            <Link href="/risk-disclosure" className="hover:text-white transition">Risk Disclosure</Link>
+        <div className="flex flex-col gap-4 border-t border-line-soft pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-ink">
+            <LogoMark className="h-5 w-5" />
+            <p className="text-ink-2">
+              &copy; {new Date().getFullYear()} TheMarketStories. Independent financial news.
+            </p>
           </div>
+          <ul className="-ml-3 flex items-center" aria-label="Follow TheMarketStories">
+            {SOCIAL_LINKS.map((social) => (
+              <li key={social.label}>
+                <a
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${social.label} (opens in a new tab)`}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-2 hover:text-ink"
+                >
+                  <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="currentColor" aria-hidden="true">
+                    <path d={social.path} />
+                  </svg>
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
-
       </div>
     </footer>
   );

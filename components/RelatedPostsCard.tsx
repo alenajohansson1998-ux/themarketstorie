@@ -22,62 +22,42 @@ export default function RelatedPostsCard({ posts }: RelatedPostsCardProps) {
   if (!posts.length) return null;
 
   return (
-    <section className="bg-neutral-50 py-8 px-2 rounded-xl border border-gray-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Title */}
-        <h3 className="text-xl font-bold text-gray-900 mb-7 tracking-tight">
-          Related Posts / Sponsored Content
-        </h3>
-        {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-7">
-          {posts.map((post) => (
-            <article
-              key={post._id}
-              className="group bg-white rounded-xl shadow-md p-5 border border-gray-200 hover:shadow-lg transition-shadow duration-200 flex flex-col"
-            >
-              {/* Image */}
-              {post.coverImage && (
-                <div className="mb-3 overflow-hidden rounded-lg bg-gray-100 aspect-4/3 flex items-center justify-center">
-                  <img
-                    src={post.coverImage}
-                    alt={post.title}
-                    className="w-full h-36 object-cover transition-transform duration-300 group-hover:scale-105 rounded-lg"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
+    <section aria-labelledby="related-stories" className="mt-14 border-t border-line-soft pt-8">
+      <h2 id="related-stories" className="mb-6 text-title2 text-ink">
+        Related stories
+      </h2>
+      <ul className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+        {posts.map((post) => (
+          <li key={post._id}>
+            <article className="group">
+              <Link href={`/${post.category.slug}/${post.slug}`} className="block" tabIndex={-1} aria-hidden="true">
+                <div className="aspect-16/10 overflow-hidden rounded-card bg-fill">
+                  {post.coverImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={post.coverImage}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : null}
                 </div>
-              )}
-              {/* Title */}
-              <h4 className="text-base font-semibold leading-snug line-clamp-2 text-gray-900 group-hover:text-primary-700 mb-1">
-                {post.title}
-              </h4>
-              {/* Meta */}
-              <p className="mt-1 text-xs text-gray-500">
-                {formatDate(post.createdAt)}
-                {post.author && (
-                  <>
-                    {' '}|{' '}
-                    <Link
-                          href={post.author?.slug ? `/author/${post.author.slug}` : `/author/${post.author?._id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {post.author.name}
-                    </Link>
-                  </>
-                )}
-              </p>
-              {/* CTA */}
-              <Link
-                href={`/${post.category.slug}/${post.slug}`}
-                className="inline-block mt-3 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-              >
-                Read more →
               </Link>
+              <h3 className="mt-3 text-headline text-ink">
+                <Link href={`/${post.category.slug}/${post.slug}`} className="line-clamp-2 hover:underline">
+                  {post.title}
+                </Link>
+              </h3>
+              <p className="mt-1 text-footnote text-ink-2">
+                {post.author?.name ? `${post.author.name} · ` : null}
+                {formatDate(post.createdAt)}
+              </p>
             </article>
-          ))}
-        </div>
-      </div>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

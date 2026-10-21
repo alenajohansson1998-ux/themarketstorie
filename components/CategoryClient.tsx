@@ -2,172 +2,229 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatDate } from '@/lib/cms-utils-client';
-import { Pagination } from '@/components/CMS/CmsComponents';
-import { ArrowLeft, User } from 'lucide-react';
 import CategorySidebar from '@/components/CategorySidebar';
+import SafeImage from '@/components/SafeImage';
 
 interface CategoryClientProps {
   slug: string;
 }
 
+interface CategoryPost {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  content?: string;
+  coverImage?: string;
+  createdAt: string;
+  author?: { name: string };
+}
+
+interface CategoryInfo {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+}
+
+const PAGE_SIZE = 12;
+
+function readingMinutes(html?: string) {
+  if (!html) return null;
+  const words = html.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
+  return words > 0 ? Math.max(1, Math.round(words / 230)) : null;
+}
+
+function ListSkeleton() {
+  return (
+    <div className="space-y-6" aria-hidden="true">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex gap-5">
+          <div className="h-24 w-32 shrink-0 animate-pulse rounded-card bg-fill sm:h-28 sm:w-44" />
+          <div className="flex-1 space-y-2 py-1">
+            <div className="h-5 w-full animate-pulse rounded bg-fill" />
+            <div className="h-5 w-2/3 animate-pulse rounded bg-fill" />
+            <div className="h-3 w-40 animate-pulse rounded bg-fill" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function CategoryClient({ slug }: CategoryClientProps) {
-  const [posts, setPosts] = useState<any[]>([]);
-  const [category, setCategory] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({
-    total: 0,
-    page: 1,
-    limit: 12,
-    pages: 0,
-  });
+  const [posts, setPosts] = useState<CategoryPost[]>([]);
+  const [category, setCategory] = useState<CategoryInfo | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(() => {
-    const fetchCategoryAndPosts = async () => {
-      try {
-        setLoading(true);
-        const categoriesRes = await fetch('/api/cms/categories');
-        const categoriesData = await categoriesRes.json();
-        const foundCategory = categoriesData.data?.find((cat: any) => cat.slug === slug);
-        if (foundCategory) {
-          setCategory(foundCategory);
-          const params_obj = new URLSearchParams();
-          params_obj.append('page', pagination.page.toString());
-          params_obj.append('limit', pagination.limit.toString());
-          params_obj.append('category', foundCategory.slug);
-          params_obj.append('status', 'published');
-          const postsRes = await fetch(`/api/cms/posts?${params_obj}`);
-          const postsData = await postsRes.json();
-          if (postsData.success) {
-            setPosts(postsData.data);
-            setPagination(postsData.pagination);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching category:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCategoryAndPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, pagination.page]);
-
-  const handlePageChange = (page: number) => {
-    setPagination({ ...pagination, page });
-  };
-
-  if (loading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-xl text-gray-600">Loading...</div></div>;
+  async function fetchPosts(categorySlug: string, pageNumber: number) {
+    const params = new URLSearchParams({
+      page: String(pageNumber),
+      limit: String(PAGE_SIZE),
+      category: categorySlug,
+      status: 'published',
+    });
+    const res = await fetch(`/api/cms/posts?${params}`);
+    const data = await res.json();
+    if (!data.success) throw new Error('Failed to load posts');
+    return data as { data: CategoryPost[]; pagination: { total: number; pages: number } };
   }
 
-  if (!category) {
-    return <div className="min-h-screen bg-gray-50"><div className="site-container px-4 md:px-6 xl:px-8 py-12 text-center"><h1 className="text-2xl font-bold text-gray-900 mb-4">Category Not Found</h1><Link href="/" className="text-blue-600 hover:underline inline-flex items-center gap-2"><ArrowLeft size={16} />Back to Home</Link></div></div>;
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        setStatus('loading');
+        const categoriesRes = await fetch('/api/cms/categories');
+        const categoriesData = await categoriesRes.json();
+        const found: CategoryInfo | undefined = categoriesData.data?.find((cat: CategoryInfo) => cat.slug === slug);
+        if (!found) {
+          if (active) setStatus('not-found');
+          return;
+        }
+        const result = await fetchPosts(found.slug, 1);
+        if (!active) return;
+        setCategory(found);
+        setPosts(result.data);
+        setTotal(result.pagination?.total ?? result.data.length);
+        setPages(result.pagination?.pages ?? 1);
+        setPage(1);
+        setStatus('ready');
+      } catch (error) {
+        console.error('Error fetching category:', error);
+        if (active) setStatus('error');
+      }
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  async function loadMore() {
+    if (!category) return;
+    try {
+      setLoadingMore(true);
+      const next = page + 1;
+      const result = await fetchPosts(category.slug, next);
+      setPosts((prev) => [...prev, ...result.data]);
+      setPage(next);
+    } catch (error) {
+      console.error('Error loading more posts:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  if (status === 'not-found' || status === 'error') {
+    return (
+      <div className="site-container px-4 py-20 text-center md:px-6">
+        <h1 className="text-title1 text-ink">
+          {status === 'not-found' ? 'We couldn’t find that section' : 'This section didn’t load'}
+        </h1>
+        <p className="mt-3 text-body text-ink-2">
+          {status === 'not-found' ? 'It may have been renamed.' : 'Check your connection and try again.'}
+        </p>
+        <Link
+          href="/blog"
+          className="mt-6 inline-flex h-11 items-center rounded-control bg-fill px-5 text-headline text-ink hover:bg-fill-2"
+        >
+          Latest news
+        </Link>
+      </div>
+    );
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-gray-50">
-        <div className="site-container px-4 md:px-6 xl:px-8 py-12">
-          {/* Header */}
-          <div className="mb-12">
-            <Link href="/" className="text-blue-600 hover:underline inline-flex items-center gap-2 mb-4">
-              <ArrowLeft size={16} />
-              Back to Home
-            </Link>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">{category.name}</h1>
-            {category.description && (
-              <p className="text-xl text-gray-600">{category.description}</p>
-            )}
-            <p className="text-gray-600 mt-4">
-              Showing {posts.length} of {pagination.total} posts
-            </p>
-          </div>
+    <div className="site-container px-4 py-10 md:px-6 lg:py-12">
+      <header className="mb-10 max-w-3xl">
+        <p className="section-label">Section</p>
+        {category ? (
+          <>
+            <h1 className="mt-1 text-title1 text-ink">{category.name}</h1>
+            {category.description ? <p className="mt-3 max-w-[68ch] text-body text-ink-2">{category.description}</p> : null}
+          </>
+        ) : (
+          <div className="mt-2 h-9 w-64 animate-pulse rounded bg-fill" aria-hidden="true" />
+        )}
+      </header>
 
-          {/* Two Column Layout */}
-          {posts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p>No posts found in this category</p>
-            </div>
+      <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0">
+          {status === 'loading' ? (
+            <ListSkeleton />
+          ) : posts.length === 0 ? (
+            <p className="text-body text-ink-2">No stories in this section yet.</p>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left Column - Posts List */}
-              <div className="lg:col-span-2 space-y-6">
-                {posts.map((post, index) => (
-                  <React.Fragment key={post._id}>
-                    <Link
-                      href={`/${category.slug}/${post.slug}`}
-                      className="block bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition group"
-                    >
-                      <div className="flex gap-4 p-6">
-                        {/* Thumbnail */}
-                        <div className="shrink-0 w-32 h-24 bg-gray-200 rounded-lg overflow-hidden">
+            <>
+              <ul className="divide-y divide-line-soft">
+                {posts.map((post) => {
+                  const minutes = readingMinutes(post.content);
+                  return (
+                    <li key={post._id} className="py-6 first:pt-0">
+                      <article className="group flex gap-5">
+                        <Link
+                          href={`/${slug}/${post.slug}`}
+                          className="block h-24 w-32 shrink-0 overflow-hidden rounded-card bg-fill sm:h-28 sm:w-44"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                        >
                           {post.coverImage ? (
-                            <img
+                            <SafeImage
                               src={post.coverImage}
-                              alt={post.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition"
+                              alt=""
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                             />
-                          ) : (
-                            <div className="w-full h-full from-blue-400 to-blue-600" />
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition">
-                            {post.title}
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                            {post.excerpt}
+                          ) : null}
+                        </Link>
+                        <div className="min-w-0 flex-1">
+                          <h2 className="text-headline text-ink sm:text-title3">
+                            <Link href={`/${slug}/${post.slug}`} className="line-clamp-3 hover:underline">
+                              {post.title}
+                            </Link>
+                          </h2>
+                          {post.excerpt ? (
+                            <p className="mt-1.5 hidden text-subhead text-ink-2 sm:line-clamp-2">{post.excerpt}</p>
+                          ) : null}
+                          <p className="mt-2 text-footnote text-ink-2">
+                            {post.author?.name ? `${post.author.name} · ` : null}
+                            {formatDate(post.createdAt)}
+                            {minutes ? ` · ${minutes} min read` : null}
                           </p>
-
-                          {/* Meta Info */}
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                                <User className="w-3 h-3" />
-                              </div>
-                              <span>{post.author.name}</span>
-                            </div>
-                            <span>{formatDate(post.createdAt)}</span>
-                            <span>5 min read</span>
-                          </div>
                         </div>
-                      </div>
-                    </Link>
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
 
-                    {/* Advertisement Placeholder */}
-                    {(index + 1) % 3 === 0 && index < posts.length - 1 && (
-                      <div className="bg-gray-100 rounded-xl p-8 text-center border-2 border-dashed border-gray-300">
-                        <span className="text-gray-500 font-medium">ADVERTISEMENT</span>
-                      </div>
-                    )}
-                  </React.Fragment>
-                ))}
-
-                {/* Load More Button */}
-                {pagination.pages > 1 && pagination.page < pagination.pages && (
-                  <div className="text-center pt-8">
-                    <button
-                      onClick={() => handlePageChange(pagination.page + 1)}
-                      className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition"
-                    >
-                      Load More Articles
-                    </button>
-                  </div>
-                )}
+              <div className="mt-8 flex flex-col items-center gap-2">
+                <p className="text-footnote text-ink-2">
+                  Showing {posts.length} of {total} stories
+                </p>
+                {page < pages ? (
+                  <button
+                    type="button"
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="inline-flex h-11 items-center rounded-control bg-fill px-6 text-headline text-ink hover:bg-fill-2 disabled:opacity-60"
+                  >
+                    {loadingMore ? 'Loading…' : 'Show more stories'}
+                  </button>
+                ) : null}
               </div>
-
-              {/* Right Column - Sidebar */}
-              <div className="lg:col-span-1">
-                <div className="sticky top-8">
-                  <CategorySidebar categorySlug={slug} />
-                </div>
-              </div>
-            </div>
+            </>
           )}
         </div>
+
+        <aside className="lg:sticky lg:top-20 lg:self-start" aria-label="Latest across TheMarketStories">
+          <CategorySidebar categorySlug={slug} />
+        </aside>
       </div>
-    </>
+    </div>
   );
 }

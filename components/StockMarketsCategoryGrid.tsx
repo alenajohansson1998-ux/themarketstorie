@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDate } from "@/lib/cms-utils-client";
+import SafeImage from '@/components/SafeImage';
 
 interface Post {
   _id: string;
@@ -13,7 +14,37 @@ interface Post {
   author: { name: string };
   createdAt: string;
   views: number;
-  readingTime?: number;
+}
+
+function StoryTile({ post, size }: { post: Post; size: "lead" | "small" }) {
+  const lead = size === "lead";
+  return (
+    <Link
+      href={`/${post.category.slug}/${post.slug}`}
+      className={`group relative block overflow-hidden rounded-card bg-fill ${
+        lead ? "aspect-4/3 sm:col-span-2 lg:row-span-2 lg:aspect-auto" : "aspect-4/3"
+      }`}
+    >
+      {post.coverImage ? (
+        <SafeImage
+          src={post.coverImage}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        />
+      ) : null}
+      <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" />
+      <div className={`absolute inset-x-0 bottom-0 text-white ${lead ? "p-5 sm:p-6" : "p-3.5"}`}>
+        {lead ? (
+          <p className="mb-1 text-footnote text-white/85">
+            {post.author?.name} · {formatDate(post.createdAt)}
+          </p>
+        ) : null}
+        <h3 className={`line-clamp-3 text-white ${lead ? "text-title3 sm:text-title2" : "text-subhead font-semibold"}`}>
+          {post.title}
+        </h3>
+      </div>
+    </Link>
+  );
 }
 
 const StockMarketsCategoryGrid: React.FC = () => {
@@ -23,143 +54,52 @@ const StockMarketsCategoryGrid: React.FC = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        setLoading(true);
-        const res = await fetch(
-          "/api/cms/posts?status=published&category=stock-markets&limit=9&sortBy=-createdAt"
-        );
+        const res = await fetch("/api/cms/posts?status=published&category=stock-markets&limit=9&sortBy=-createdAt");
         const data = await res.json();
-        if (data.success) {
-          setPosts(data.data);
-        }
+        if (data.success) setPosts(data.data);
       } catch (err) {
         console.error("Failed to fetch posts", err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchPosts();
   }, []);
 
   if (loading) {
     return (
-      <section className="w-full mb-8">
-        <p className="section-label">Stock Markets</p>
-        <h2 className="mt-1 mb-6 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">Stock Markets Category</h2>
-        <div className="h-64 flex items-center justify-center text-gray-400">
-          Loading...
-        </div>
-      </section>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-hidden="true">
+        <div className="col-span-2 aspect-4/3 animate-pulse rounded-card bg-fill lg:row-span-2 lg:aspect-auto" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="aspect-4/3 animate-pulse rounded-card bg-fill" />
+        ))}
+      </div>
     );
   }
 
   if (posts.length === 0) {
-    return null;
+    return <p className="text-body text-ink-2">No stock market stories yet. Check back soon.</p>;
   }
 
-  const featured = posts[0];
-  const topGridPosts = posts.slice(1, 5);
-  const bottomGridPosts = posts.slice(5, 9);
+  const [featured, ...rest] = posts;
 
   return (
-    <section className="w-full mb-2">
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 grid-rows-3 gap-4">
-
-        {/* FEATURED POST */}
-        <Link
-          href={`/${featured.category.slug}/${featured.slug}`}
-          className="lg:col-span-2 lg:row-span-2 relative rounded-xl overflow-hidden group"
-        >
-          {featured.coverImage ? (
-            <img
-              src={featured.coverImage}
-              alt={featured.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-            />
-          ) : (
-            <div className="w-full h-full bg-green-600" />
-          )}
-
-          <div className="absolute inset-0 bg-black/55" />
-
-          <div className="absolute bottom-4 left-4 right-4 text-white">
-            <p className="text-sm opacity-90 mb-1">
-              {featured.author?.name} • {formatDate(featured.createdAt)}
-            </p>
-            <h2 className="text-xl font-bold leading-tight line-clamp-2">
-              {featured.title}
-            </h2>
-          </div>
-        </Link>
-
-        {/* RIGHT 2x2 GRID */}
-        {topGridPosts.map((post) => (
-          // ...existing code...
-          <Link
-            key={post._id}
-            href={`/${post.category.slug}/${post.slug}`}
-            className="relative rounded-xl overflow-hidden group"
-          >
-            {post.coverImage ? (
-              <img
-                src={post.coverImage}
-                alt={post.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-              />
-            ) : (
-              <div className="w-full h-full bg-green-600" />
-            )}
-
-            <div className="absolute inset-0 bg-black/40" />
-
-            <div className="absolute bottom-3 left-3 right-3 text-white">
-              <h3 className="text-sm font-semibold leading-snug line-clamp-2">
-                {post.title}
-              </h3>
-            </div>
-          </Link>
-        ))}
-
-        {/* LAST ROW */}
-        {bottomGridPosts.map((post) => (
-          // ...existing code...
-          <Link
-            key={post._id}
-            href={`/${post.category.slug}/${post.slug}`}
-            className="relative rounded-xl overflow-hidden group h-42"
-          >
-            {post.coverImage ? (
-              <img
-                src={post.coverImage}
-                alt={post.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-              />
-            ) : (
-              <div className="w-full h-full bg-green-600" />
-            )}
-
-            <div className="absolute inset-0 bg-black/40" />
-
-            <div className="absolute bottom-2 left-2 right-2 text-white">
-              <h4 className="text-xs font-medium leading-snug line-clamp-2">
-                {post.title}
-              </h4>
-            </div>
-          </Link>
+    <div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StoryTile post={featured} size="lead" />
+        {rest.slice(0, 8).map((post) => (
+          <StoryTile key={post._id} post={post} size="small" />
         ))}
       </div>
-
-      {/* VIEW MORE */}
-      <div className="mt-1 flex justify-end">
+      <div className="mt-4 flex justify-end">
         <Link
           href="/category/stock-markets"
-          className="text-green-600 hover:text-green-800 font-medium text-sm"
+          className="inline-flex min-h-11 items-center text-subhead font-medium text-tint hover:underline"
         >
-          View More →
+          More stock market news
         </Link>
       </div>
-    </section>
+    </div>
   );
 };
 

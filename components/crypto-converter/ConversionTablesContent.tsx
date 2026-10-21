@@ -147,21 +147,16 @@ export default function ConversionTablesContent() {
   }, []);
 
   return (
-    <section className="w-full">
-      {/* Section heading */}
-      <h2 className="text-4xl font-black text-white mb-8" style={{ color: "#ffffff" }}>
-        Conversion tables
+    <section aria-labelledby="popular-pairs" className="max-w-3xl">
+      <h2 id="popular-pairs" className="text-title2 text-ink">
+        Popular pairs
       </h2>
-
-      {/* Intro */}
-      <p className="text-gray-300 text-base leading-relaxed mb-10 max-w-none">
-        Get the latest conversion rates for popular cryptocurrencies, like Bitcoin, Ethereum,
-        Cardano, Solana, Dogecoin, and others. Up-to-date rates for common trading pairs, like
-        BTC/USD, will make it easier to understand how the market is moving right this minute.
+      <p className="mt-2 text-body text-ink-2">
+        Live rates and context for the most-converted pairs, including Bitcoin, Ethereum, Solana and Dogecoin against
+        the US dollar and Indian rupee.
       </p>
 
-      {/* Pair entries */}
-      <div className="space-y-10">
+      <div className="mt-8 space-y-10">
         {POPULAR_PAIRS.map((pair) => {
           const vs = pair.toDisplay.toLowerCase() as "usd" | "inr";
           const sign = vs === "inr" ? "₹" : "$";
@@ -174,43 +169,39 @@ export default function ConversionTablesContent() {
           const change = data?.usd_24h_change ?? 0;
           const mcap = data?.usd_market_cap ?? 0;
           const isPos = change >= 0;
-          const priceStr = fmt(rate, sign);
-          const changeStr = Math.abs(change).toFixed(2);
-          const mcapStr = fmt(mcap, "$");
-
-          const paragraphs = ed.bodyFn(priceStr, changeStr, isPos, mcapStr, sign);
+          const paragraphs = ed.bodyFn(fmt(rate, sign), Math.abs(change).toFixed(2), isPos, fmt(mcap, "$"), sign);
 
           return (
-            <div key={key}>
-              {/* Pair label + tagline */}
-              <p className="text-white text-base leading-relaxed mb-3" style={{ color: "#ffffff" }}>
-                <span className="font-bold text-[#c9a96e]">{ed.label}</span>
-                {" — "}
-                {ed.tagline}
-              </p>
-
-              {/* Optional intro paragraph */}
-              {ed.intro && (
-                <p className="text-gray-300 text-base leading-relaxed mb-3">{ed.intro}</p>
-              )}
-
-              {/* Body paragraphs with live data */}
-              {paragraphs.map((p, i) => (
-                <p key={i} className="text-gray-300 text-base leading-relaxed mb-3">{p}</p>
-              ))}
-
-              {/* Optional closing paragraph */}
-              {ed.closing && (
-                <p className="text-gray-300 text-base leading-relaxed mb-3">
-                  {ed.closing}{" "}
-                  {ed.closingLink && (
-                    <Link href={ed.closingLink.href} className="text-[#c9a96e] underline underline-offset-2 hover:text-amber-300 transition-colors">
-                      {ed.closingLink.label}
-                    </Link>
-                  )}
-                </p>
-              )}
-            </div>
+            <article key={key} className="border-t border-line-soft pt-6">
+              <h3 className="text-title3 text-ink">
+                <Link href={`/crypto-converter/${pair.from}-to-${vs}`} className="hover:underline">
+                  {ed.label}
+                </Link>
+              </h3>
+              <p className="mt-1 text-subhead text-ink-2">{ed.tagline}</p>
+              <div className="mt-3 space-y-3 text-body text-ink">
+                {ed.intro ? <p>{ed.intro}</p> : null}
+                {paragraphs.map((text, i) => (
+                  <p key={i}>{text}</p>
+                ))}
+                {ed.closing ? (
+                  <p>
+                    {ed.closing}{" "}
+                    {ed.closingLink ? (
+                      <Link href={ed.closingLink.href} className="text-tint underline underline-offset-2">
+                        {ed.closingLink.label}
+                      </Link>
+                    ) : null}
+                  </p>
+                ) : null}
+              </div>
+              <Link
+                href={`/crypto-converter/${pair.from}-to-${vs}`}
+                className="mt-3 inline-flex min-h-11 items-center text-subhead font-medium text-tint hover:underline"
+              >
+                Convert {ed.label.replace("/", " to ")}
+              </Link>
+            </article>
           );
         })}
       </div>

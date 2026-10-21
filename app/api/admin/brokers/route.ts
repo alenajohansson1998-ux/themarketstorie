@@ -184,7 +184,14 @@ export async function GET(req: Request) {
   const id = url.searchParams.get('id');
   const slug = url.searchParams.get('slug');
   if (slug) {
-    const broker = await Broker.findOne({ slug }).lean();
+    let broker = await Broker.findOne({ slug }).lean();
+    if (!broker) {
+      // Brokers saved before slugs existed have none; match the name-based slug the list page links to.
+      // Running scripts/migrate-broker-slugs.js stores real slugs and makes this fallback unnecessary.
+      const toSlug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const unslugged = await Broker.find({ $or: [{ slug: { $exists: false } }, { slug: null }, { slug: '' }] }).lean();
+      broker = (unslugged as unknown as { name: string }[]).find((item) => toSlug(item.name) === slug) as typeof broker ?? null;
+    }
     if (!broker) {
       return NextResponse.json({ broker: null }, { status: 404 });
     }

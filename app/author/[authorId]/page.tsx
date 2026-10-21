@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { Facebook, Linkedin } from 'lucide-react';
+import StoryCard from '@/components/StoryCard';
+import { formatDate } from '@/lib/cms-utils-client';
 
 interface Author {
   name?: string;
@@ -53,112 +54,68 @@ export default async function AuthorPage({ params }: { params: Promise<{ authorI
   const authorFacebook = authorObj.facebook || '';
   const authorLinkedin = authorObj.linkedin || '';
   const authorImage = (typeof authorObj.image === 'string' && authorObj.image.match(/^https?:\/\//)) ? authorObj.image : '';
-  const latestPosts = posts.slice(0, 5);
 
   return (
-    <main className="min-h-screen bg-gray-50 py-10">
-      {/* Full-width author bio section */}
-      <div className="site-container px-4 md:px-6 xl:px-8 mb-10">
-      <div className="w-full bg-white rounded-2xl shadow-lg p-8 flex flex-col items-start">
-        <Link href="/" className="text-blue-600 hover:underline text-sm mb-2">&lt; Back to Home</Link>
-        <div className="flex items-center gap-6 w-full">
-          {authorImage ? (
-            <img
-              src={authorImage}
-              alt={authorName}
-              className="w-44 h-44 rounded-full object-cover border border-gray-200 shadow"
-            />
-          ) : (
-            <div className="w-44 h-44 rounded-full bg-orange-500 flex items-center justify-center text-white text-4xl font-bold">
-              {authorName.charAt(0)}
-            </div>
-          )}
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-2">Blogs by {authorName}</h1>
-            {authorBio && (
-              <p className="text-gray-700 text-base mb-2 whitespace-pre-line">{authorBio}</p>
-            )}
-            {(authorFacebook || authorLinkedin) && (
-              <div className="flex gap-4 mb-2 items-center">
-                {authorFacebook && (
-                  <a
-                    href={authorFacebook.startsWith('http') ? authorFacebook : `https://${authorFacebook}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-black hover:font-bold hover:text-black text-sm group"
-                  >
-                    <Facebook className="w-4 h-4 text-black group-hover:font-bold group-hover:text-black" />
-                    Facebook
-                  </a>
-                )}
-                {authorLinkedin && (
-                  <a
-                    href={authorLinkedin.startsWith('http') ? authorLinkedin : `https://${authorLinkedin}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-black hover:font-bold hover:text-black text-sm group"
-                  >
-                    <Linkedin className="w-4 h-4 text-black group-hover:font-bold group-hover:text-black" />
-                    LinkedIn
-                  </a>
-                )}
-              </div>
-            )}
-            <span className="text-gray-500 text-sm">Showing {posts.length} post{posts.length !== 1 ? 's' : ''}</span>
+    <div className="site-container px-4 py-10 md:px-6 lg:py-12">
+      <header className="flex flex-col items-start gap-6 border-b border-line-soft pb-10 sm:flex-row sm:items-center">
+        {authorImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={authorImage} alt="" className="h-24 w-24 rounded-full bg-fill object-cover sm:h-28 sm:w-28" />
+        ) : (
+          <span
+            className="flex h-24 w-24 items-center justify-center rounded-full bg-fill text-title1 text-ink sm:h-28 sm:w-28"
+            aria-hidden="true"
+          >
+            {authorName.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="max-w-2xl">
+          <p className="section-label">Author</p>
+          <h1 className="mt-1 text-title1 capitalize text-ink">{authorName}</h1>
+          {authorBio ? <p className="mt-2 whitespace-pre-line text-body text-ink-2">{authorBio}</p> : null}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 text-footnote text-ink-2">
+            <span>
+              {posts.length} {posts.length === 1 ? 'story' : 'stories'}
+            </span>
+            {authorFacebook ? (
+              <a
+                href={authorFacebook.startsWith('http') ? authorFacebook : `https://${authorFacebook}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center gap-1.5 font-medium text-tint hover:underline"
+              >
+                <Facebook className="h-4 w-4" aria-hidden="true" />
+                Facebook
+              </a>
+            ) : null}
+            {authorLinkedin ? (
+              <a
+                href={authorLinkedin.startsWith('http') ? authorLinkedin : `https://${authorLinkedin}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center gap-1.5 font-medium text-tint hover:underline"
+              >
+                <Linkedin className="h-4 w-4" aria-hidden="true" />
+                LinkedIn
+              </a>
+            ) : null}
           </div>
         </div>
-      </div>
-      </div>
+      </header>
 
-      {/* Articles and Latest Posts below bio */}
-      <div className="site-container px-4 md:px-6 xl:px-8">
-      <div className="flex flex-col md:flex-row justify-center items-start gap-8">
-        <section className="w-full md:max-w-3xl">
-          <div className="space-y-6">
-            {posts.map((post) => (
-              <div key={post._id} className="bg-white rounded-xl shadow p-6 flex gap-4">
-                {post.coverImage && (
-                  <div className="w-32 h-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
-                    <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div className="flex-1">
-                  <Link href={`/${post.category.slug}/${post.slug}`} className="text-lg font-semibold text-blue-700 hover:underline">
-                    {post.title}
-                  </Link>
-                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                    <span>•</span>
-                    <span>{post.views || 0} views</span>
-                  </div>
-                  <p className="mt-2 text-gray-700 line-clamp-2">{post.excerpt}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-        {/* Sidebar */}
-        <aside className="w-full max-w-sm">
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 sticky top-24" style={{ minHeight: '350px' }}>
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Latest Posts</h3>
-            <div className="space-y-4">
-              {latestPosts.map((post) => (
-                <div key={post._id} className="border-b border-gray-100 pb-4 last:border-b-0">
-                  <Link href={`/${post.category.slug}/${post.slug}`} className="block hover:text-blue-600 transition-colors">
-                    <h4 className="font-medium text-sm text-gray-900 line-clamp-2 mb-1">{post.title}</h4>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                      <span>•</span>
-                      <span>{post.views || 0} views</span>
-                    </div>
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
+      <h2 className="mt-10 mb-6 text-title2 text-ink">Stories by {authorName}</h2>
+      <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        {posts.map((post) => (
+          <StoryCard
+            key={post._id}
+            href={`/${post.category.slug}/${post.slug}`}
+            title={post.title}
+            excerpt={post.excerpt}
+            image={post.coverImage}
+            meta={formatDate(post.createdAt)}
+          />
+        ))}
       </div>
-      </div>
-    </main>
+    </div>
   );
 }

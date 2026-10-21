@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { formatDate } from "@/lib/cms-utils-client";
+import StoryCard, { StoryGridSkeleton } from "@/components/StoryCard";
 
 interface ArticleResult {
   _id: string;
@@ -162,107 +163,84 @@ export default function SearchPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <div className="site-container px-4 md:px-6 xl:px-8 py-10">
-      <h1 className="mb-6 text-2xl font-bold text-slate-900">Search</h1>
+    <div className="site-container px-4 py-10 md:px-6 lg:py-12">
+      <h1 className="text-title1 text-ink">Search</h1>
 
-      <form onSubmit={handleSubmit} className="mb-8 flex gap-2">
+      <form role="search" onSubmit={handleSubmit} className="mt-5 flex max-w-2xl gap-2">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <label htmlFor="search-query" className="sr-only">
+            Search articles, topics and markets
+          </label>
+          <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-2" aria-hidden="true" />
           <input
+            id="search-query"
+            type="search"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Search articles, topics, markets…"
-            className="w-full rounded-lg border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-slate-500 focus:outline-none"
+            placeholder="Search articles, topics and markets"
+            className="h-11 w-full rounded-control bg-surface pl-10 pr-4 text-body text-ink placeholder:text-ink-3"
           />
         </div>
         <button
           type="submit"
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="inline-flex h-11 items-center rounded-control bg-ink px-5 text-headline text-canvas hover:opacity-85"
         >
           Search
         </button>
       </form>
 
-      {query && !loading && (
-        <p className="mb-4 text-sm text-slate-500">
-          {total > 0 ? `${total} result${total !== 1 ? "s" : ""} for "${query}"` : `No results for "${query}"`}
-        </p>
-      )}
+      <p className="mt-6 mb-6 text-subhead text-ink-2" aria-live="polite">
+        {!query
+          ? "Enter a word or phrase to search every story."
+          : loading
+            ? "Searching…"
+            : total > 0
+              ? `${total} result${total !== 1 ? "s" : ""} for “${query}”`
+              : `No results for “${query}”. Try a shorter or different phrase.`}
+      </p>
 
-      {loading && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="animate-pulse rounded-xl border border-slate-100 bg-slate-50 p-4">
-              <div className="mb-3 h-40 rounded-lg bg-slate-200" />
-              <div className="mb-2 h-4 rounded bg-slate-200" />
-              <div className="h-3 w-2/3 rounded bg-slate-200" />
-            </div>
-          ))}
-        </div>
-      )}
+      {loading ? <StoryGridSkeleton count={6} /> : null}
 
-      {!loading && results.length > 0 && (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {!loading && results.length > 0 ? (
+        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {results.map((item) => (
-            <Link
+            <StoryCard
               key={item._id}
+              as="h2"
               href={`/${item.categorySlug}/${item.slug}`}
-              className="group rounded-xl border border-slate-200 bg-white transition hover:shadow-md"
-            >
-              {item.image && /^https?:\/\//.test(item.image) && (
-                <div className="overflow-hidden rounded-t-xl">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="h-44 w-full object-cover transition group-hover:scale-105"
-                    loading="lazy"
-                  />
-                </div>
-              )}
-              <div className="p-4">
-                <span className="mb-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                  {item.categoryName}
-                </span>
-                <h2 className="mt-1 line-clamp-2 text-sm font-semibold text-slate-900 group-hover:text-indigo-700">
-                  {item.title}
-                </h2>
-                {item.excerpt && (
-                  <p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.excerpt}</p>
-                )}
-                <p className="mt-2 text-[11px] text-slate-400">
-                  {item.authorName} · {formatDate(item.date)}
-                </p>
-              </div>
-            </Link>
+              title={item.title}
+              excerpt={item.excerpt}
+              image={item.image && /^https?:\/\//.test(item.image) ? item.image : undefined}
+              category={item.categoryName}
+              meta={`${item.authorName} · ${formatDate(item.date)}`}
+            />
           ))}
         </div>
-      )}
+      ) : null}
 
-      {!loading && !query && (
-        <p className="text-sm text-slate-500">Enter a keyword above to search all articles.</p>
-      )}
-
-      {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-2">
+      {totalPages > 1 ? (
+        <nav aria-label="Pagination" className="mt-10 flex items-center justify-center gap-2">
           <button
+            type="button"
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+            className="inline-flex h-11 items-center rounded-control px-4 text-subhead font-medium text-ink hover:bg-fill disabled:opacity-40"
           >
             Previous
           </button>
-          <span className="text-sm text-slate-600">
+          <span className="text-subhead text-ink-2">
             Page {page} of {totalPages}
           </span>
           <button
+            type="button"
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+            className="inline-flex h-11 items-center rounded-control px-4 text-subhead font-medium text-ink hover:bg-fill disabled:opacity-40"
           >
             Next
           </button>
-        </div>
-      )}
+        </nav>
+      ) : null}
     </div>
   );
 }

@@ -1,54 +1,47 @@
 import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
+/**
+ * Three roles, as in Apple's HIG:
+ * filled  – the one primary action in a view
+ * tinted  – secondary actions
+ * plain   – low-emphasis actions and inline links
+ * Use `buttonVariants()` to style a <Link> the same way.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap glass glass-hover text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control font-semibold transition-[background-color,color,opacity] disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-[rgba(255,255,255,0.92)] text-[#111] hover:bg-[rgba(255,255,255,0.97)]",
-        destructive:
-          "bg-[#ffeaea] text-[#b00020] hover:bg-[#fff2f2]",
-        outline:
-          "bg-[rgba(255,255,255,0.92)] text-[#111] hover:bg-[rgba(255,255,255,0.97)]",
-        secondary:
-          "bg-[rgba(255,255,255,0.92)] text-[#444] hover:bg-[rgba(255,255,255,0.97)]",
-        ghost: "bg-transparent text-[#111] hover:bg-[rgba(255,255,255,0.85)]",
-        link: "text-[#2563eb] underline-offset-4 hover:underline bg-transparent",
+        filled: "bg-ink text-canvas hover:opacity-85",
+        tinted: "bg-tint/10 text-tint hover:bg-tint/15",
+        gray: "bg-fill text-ink hover:bg-fill-2",
+        plain: "text-tint hover:text-tint-strong hover:underline",
+        destructive: "bg-down/10 text-down hover:bg-down/15",
       },
       size: {
-        default: "h-10 px-4 py-2 rounded-[22px]",
-        sm: "h-9 rounded-[18px] px-3",
-        lg: "h-11 rounded-[24px] px-8",
-        icon: "h-10 w-10 rounded-[22px]",
+        sm: "h-9 px-3 text-subhead",
+        md: "h-11 px-5 text-headline",
+        lg: "h-12 px-7 text-headline",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: "filled",
+      size: "md",
     },
   }
 )
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean
-}
+    VariantProps<typeof buttonVariants> {}
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
+  ({ className, variant, size, type = "button", ...props }, ref) => (
+    <button ref={ref} type={type} className={cn(buttonVariants({ variant, size }), className)} {...props} />
+  )
 )
 Button.displayName = "Button"
 

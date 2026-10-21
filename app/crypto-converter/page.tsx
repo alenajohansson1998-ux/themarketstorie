@@ -19,70 +19,43 @@ export const metadata: Metadata = {
 
 export default function CryptoConverterPage() {
   return (
-    <div className="min-h-screen bg-[#080c14] text-white">
-      <div className="site-container px-4 md:px-6 xl:px-8">
-
-        {/* Hero */}
-        <section className="py-12 md:py-16 border-b border-[#1e2535]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            {/* Left — copy */}
-            <div>
-              <p className="section-label mb-4">Crypto Converter</p>
-              <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.05] mb-5"
-                style={{ color: "#ffffff" }}
-              >
-                Live crypto prices,{" "}
-                <span className="text-[#c9a96e] italic font-serif">instant</span>{" "}
-                conversion.
-              </h1>
-              <p className="text-gray-400 text-lg leading-relaxed mb-8 max-w-lg">
-                Convert Bitcoin, Ethereum, and 65+ cryptocurrencies to USD, INR,
-                EUR, and 30+ fiat currencies. Prices refreshed every 5 seconds
-                from CoinGecko.
-              </p>
-              <div className="flex flex-wrap gap-6">
-                {[
-                  { value: "65+", label: "Cryptocurrencies" },
-                  { value: "30+", label: "Fiat Currencies" },
-                  { value: "5s", label: "Refresh Rate" },
-                ].map((s) => (
-                  <div key={s.label}>
-                    <p className="text-2xl font-black text-white" style={{ color: "#ffffff" }}>
-                      {s.value}
-                    </p>
-                    <p className="text-xs text-gray-500 uppercase tracking-wider mt-0.5">{s.label}</p>
-                  </div>
-                ))}
+    <div className="site-container px-4 md:px-6">
+      <section className="grid grid-cols-1 items-center gap-10 border-b border-line-soft py-10 lg:grid-cols-2 lg:py-14">
+        <div>
+          <p className="section-label">Tools</p>
+          <h1 className="mt-1 text-title1 text-ink sm:text-display">Crypto converter</h1>
+          <p className="mt-4 max-w-lg text-title3 font-normal text-ink-2">
+            Convert Bitcoin, Ethereum and 65+ cryptocurrencies into USD, INR, EUR and 30+ other currencies at live
+            prices.
+          </p>
+          <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-4">
+            {[
+              { value: "65+", label: "Cryptocurrencies" },
+              { value: "30+", label: "Currencies" },
+              { value: "5 s", label: "Price refresh" },
+            ].map((s) => (
+              <div key={s.label} className="flex flex-col-reverse">
+                <dt className="text-footnote text-ink-2">{s.label}</dt>
+                <dd className="text-title2 tabular-nums text-ink">{s.value}</dd>
               </div>
-            </div>
+            ))}
+          </dl>
+        </div>
+        <ConverterCard />
+      </section>
 
-            {/* Right — converter card */}
-            <div>
-              <ConverterCard />
-            </div>
-          </div>
-        </section>
+      <section className="grid grid-cols-1 gap-8 border-b border-line-soft py-12 lg:grid-cols-[280px_1fr]">
+        <FearGreedWidget />
+        <TrendingSection />
+      </section>
 
-        {/* Fear & Greed + Trending */}
-        <section className="py-12 border-b border-[#1e2535]">
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
-            <FearGreedWidget />
-            <TrendingSection />
-          </div>
-        </section>
+      <section className="border-b border-line-soft py-12">
+        <ConversionTablesContent />
+      </section>
 
-        {/* Conversion tables editorial content */}
-        <section className="py-12 border-b border-[#1e2535]">
-          <ConversionTablesContent />
-        </section>
-
-        {/* FAQ */}
-        <section className="py-12">
-          <FAQSection />
-        </section>
-
-      </div>
+      <section className="py-12">
+        <FAQSection />
+      </section>
     </div>
   );
 }

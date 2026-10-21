@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import PairConversionTable from "@/components/crypto-converter/PairConversionTable";
 import ConverterCard from "@/components/crypto-converter/ConverterCard";
 import FAQSection from "@/components/crypto-converter/FAQSection";
 import ConversionTablesContent from "@/components/crypto-converter/ConversionTablesContent";
@@ -96,96 +98,60 @@ export default async function PairPage({
   const toSymbol = toFiat?.symbol ?? toCrypto?.symbol ?? "";
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-white">
-      <div className="site-container px-4 md:px-6 xl:px-8">
-
-        {/* Hero */}
-        <section className="py-12 md:py-16 border-b border-[#1e2535]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <p className="section-label mb-4">Crypto Converter</p>
-              <h1
-                className="text-4xl sm:text-5xl font-black leading-[1.05] mb-4"
-                style={{ color: "#ffffff" }}
-              >
-                {fromToken.name} to {toName}{" "}
-                <span className="text-[#c9a96e] italic font-serif">Converter</span>
-              </h1>
-              <p className="text-gray-400 text-lg leading-relaxed mb-6 max-w-lg">
-                Convert {fromToken.symbol} to {toSymbol} with live real-time prices updated every
-                5 seconds. Sourced directly from CoinGecko.
-              </p>
-
-              {/* Breadcrumb schema hints */}
-              <nav className="flex items-center gap-2 text-xs text-gray-600">
-                <a href="/crypto-converter" className="hover:text-gray-400 transition-colors">
-                  Crypto Converter
-                </a>
-                <span>/</span>
-                <span className="text-gray-400">{fromToken.symbol} to {toSymbol}</span>
-              </nav>
-            </div>
-
-            <div>
-              <ConverterCard defaultFrom={fromToken.id} defaultTo={toSlug} />
-            </div>
-          </div>
-        </section>
-
-        {/* Conversion table for this specific pair */}
-        <section className="py-12 border-b border-[#1e2535]">
-          <p className="section-label mb-4">{fromToken.symbol} to {toSymbol} Conversion Table</p>
-          <div className="bg-[#0d1117] border border-[#1e2535] rounded-2xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#1e2535]">
-                  <th className="px-6 py-4 text-left text-[10px] uppercase tracking-widest text-gray-500 font-medium">
-                    {fromToken.symbol}
-                  </th>
-                  <th className="px-6 py-4 text-right text-[10px] uppercase tracking-widest text-gray-500 font-medium">
-                    {toSymbol}
-                  </th>
-                </tr>
-              </thead>
-              <tbody id="conv-table">
-                {[0.001, 0.01, 0.1, 0.5, 1, 5, 10, 25, 50, 100, 500, 1000].map((amt) => (
-                  <tr key={amt} className="border-b border-[#131825] last:border-0 hover:bg-[#0d1117] transition-colors">
-                    <td className="px-6 py-3 text-gray-400 font-mono text-xs">
-                      {amt} {fromToken.symbol}
-                    </td>
-                    <td className="px-6 py-3 text-right text-white font-mono text-xs" data-amt={amt}>
-                      {/* Price filled client-side via ConverterCard fetch */}
-                      <span className="text-gray-600">—</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-gray-600 mt-3">
-            * Live prices from the converter above. Refresh the page to update.
+    <div className="site-container px-4 md:px-6">
+      <section className="grid grid-cols-1 items-center gap-10 border-b border-line-soft py-10 lg:grid-cols-2 lg:py-14">
+        <div>
+          <nav aria-label="Breadcrumb" className="text-footnote text-ink-2">
+            <ol className="flex items-center gap-1.5">
+              <li>
+                <Link href="/crypto-converter" className="hover:text-ink hover:underline">
+                  Crypto converter
+                </Link>
+              </li>
+              <li aria-hidden="true">›</li>
+              <li aria-current="page" className="text-ink">
+                {fromToken.symbol} to {toSymbol}
+              </li>
+            </ol>
+          </nav>
+          <h1 className="mt-2 text-title1 text-ink sm:text-display">
+            {fromToken.name} to {toName}
+          </h1>
+          <p className="mt-4 max-w-lg text-title3 font-normal text-ink-2">
+            Convert {fromToken.symbol} to {toSymbol} at live prices from CoinGecko, refreshed every 5 seconds.
           </p>
-        </section>
+        </div>
+        <ConverterCard defaultFrom={fromToken.id} defaultTo={toSlug} />
+      </section>
 
-        {/* Fear & Greed + Trending */}
-        <section className="py-12 border-b border-[#1e2535]">
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
-            <FearGreedWidget />
-            <TrendingSection />
-          </div>
-        </section>
+      <section className="border-b border-line-soft py-12" aria-labelledby="pair-table">
+        <h2 id="pair-table" className="mb-4 text-title2 text-ink">
+          {fromToken.symbol} to {toSymbol} conversion table
+        </h2>
+        <div className="max-w-2xl">
+          <PairConversionTable
+            fromId={fromToken.id}
+            fromSymbol={fromToken.symbol}
+            toCryptoId={toCrypto?.id}
+            toFiat={toFiat?.symbol}
+            toSymbol={toSymbol}
+            toSign={toFiat?.sign}
+          />
+        </div>
+      </section>
 
-        {/* Conversion tables editorial content */}
-        <section className="py-12 border-b border-[#1e2535]">
-          <ConversionTablesContent />
-        </section>
+      <section className="grid grid-cols-1 gap-8 border-b border-line-soft py-12 lg:grid-cols-[280px_1fr]">
+        <FearGreedWidget />
+        <TrendingSection />
+      </section>
 
-        {/* FAQ */}
-        <section className="py-12">
-          <FAQSection />
-        </section>
+      <section className="border-b border-line-soft py-12">
+        <ConversionTablesContent />
+      </section>
 
-      </div>
+      <section className="py-12">
+        <FAQSection />
+      </section>
     </div>
   );
 }

@@ -8,10 +8,15 @@ export const metadata: Metadata = {
 
 export default function ForexHeatmapPage() {
   return (
-    <main className="site-container px-4 md:px-6 xl:px-8 py-8">
-      <h1 className="text-2xl font-bold mb-2">Forex Heatmap – Global Currency Strength</h1>
-      <p className="mb-6 text-gray-600">Compare major currencies in a live matrix. Color-coded for strength/weakness. Data updates every 5–10 minutes.</p>
+    <div className="site-container px-4 py-10 md:px-6 lg:py-12">
+      <header className="mb-8 max-w-3xl">
+        <p className="section-label">Tools</p>
+        <h1 className="mt-1 text-title1 text-ink">Forex heatmap</h1>
+        <p className="mt-3 text-title3 font-normal text-ink-2">
+          See which major currencies are strengthening or weakening, and by how much.
+        </p>
+      </header>
       <HeatmapTable />
-    </main>
+    </div>
   );
 }

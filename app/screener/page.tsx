@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 // FAQ Data and Accordion Component
 const faqData = [
@@ -45,26 +46,19 @@ const faqData = [
   },
 ];
 
-function FAQAccordion() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+function FAQList() {
   return (
-    <div className="space-y-4">
-      {faqData.map((faq, idx) => (
-        <div key={idx} className="border-b border-gray-200 pb-2">
-          <button
-            className="w-full text-left font-semibold text-lg text-gray-900 flex justify-between items-center py-2 focus:outline-none"
-            onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
-            aria-expanded={openIndex === idx}
-          >
+    <div className="divide-y divide-line-soft border-y border-line-soft">
+      {faqData.map((faq) => (
+        <details key={faq.question} className="group">
+          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 text-headline text-ink [&::-webkit-details-marker]:hidden">
             {faq.question}
-            <span className="ml-2 text-gray-400">{openIndex === idx ? "▲" : "▼"}</span>
-          </button>
-          {openIndex === idx && (
-            <div className="mt-2 text-gray-700 animate-fade-in">
-              {faq.answer}
-            </div>
-          )}
-        </div>
+            <span className="text-ink-2 transition-transform group-open:rotate-45" aria-hidden="true">
+              +
+            </span>
+          </summary>
+          <p className="pb-4 text-body text-ink-2">{faq.answer}</p>
+        </details>
       ))}
     </div>
   );
@@ -72,95 +66,81 @@ function FAQAccordion() {
 
 export default function ScreenerPage() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const scheme = useColorScheme();
+  const injected = useRef<string | null>(null);
 
   useEffect(() => {
-    // Dynamically load TradingView Screener widget script
+    const container = containerRef.current;
+    // Re-inject only when the theme changes; a repeat run would orphan the loading script.
+    if (!container || injected.current === scheme) return;
+    injected.current = scheme;
+    container.innerHTML = "";
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-screener.js";
     script.async = true;
     script.innerHTML = JSON.stringify({
-      "width": "100%",
-      "height": 700,
-      "defaultColumn": "overview",
-      "defaultScreen": "general",
-      "market": "stocks",
-      "showToolbar": true,
-      "colorTheme": "dark",
-      "locale": "en",
-      "isTransparent": false,
-      "largeChartUrl": "",
-      "showSymbolLogo": true,
-      "screen": "most_capitalized",
-      "save_image": false
+      width: "100%",
+      height: 700,
+      defaultColumn: "overview",
+      defaultScreen: "general",
+      market: "stocks",
+      showToolbar: true,
+      colorTheme: scheme,
+      locale: "en",
+      isTransparent: true,
+      largeChartUrl: "",
+      showSymbolLogo: true,
+      screen: "most_capitalized",
+      save_image: false,
     });
-    if (containerRef.current) {
-      containerRef.current.innerHTML = "";
-      containerRef.current.appendChild(script);
-    }
-    // Cleanup
-    return () => {
-      if (containerRef.current) containerRef.current.innerHTML = "";
-    };
-  }, []);
+    container.appendChild(script);
+  }, [scheme]);
 
   return (
-    <main className="min-h-screen bg-linear-to-b from-[#f3f6fa] to-[#e9ecf3] py-10 w-full">
-      <div className="site-container px-4 md:px-6 xl:px-8">
-      <section className="w-full mb-10 text-center">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-3 tracking-tight drop-shadow-lg">Stock Screener</h1>
-        <p className="text-lg text-gray-600 mb-8 font-medium max-w-2xl mx-auto">
-          Explore and filter stocks by market cap, price, performance, and more. Powered by TradingView.
+    <div className="site-container px-4 py-10 md:px-6 lg:py-12">
+      <header className="mb-8 max-w-3xl">
+        <p className="section-label">Tools</p>
+        <h1 className="mt-1 text-title1 text-ink">Stock screener</h1>
+        <p className="mt-3 text-title3 font-normal text-ink-2">
+          Filter stocks by market cap, price, performance, valuation and technical rating.
+        </p>
+      </header>
+
+      <div
+        ref={containerRef}
+        role="region"
+        aria-label="Stock screener by TradingView"
+        className="w-full overflow-hidden rounded-card border border-line-soft"
+        style={{ minHeight: 700 }}
+      />
+      <p className="mt-2 text-footnote text-ink-2">Screener data by TradingView. Prices may be delayed.</p>
+
+      <section className="article-body mt-14 border-t border-line-soft pt-8">
+        <h2>Find stocks that match your strategy</h2>
+        <p>
+          The screener scans thousands of listed stocks and lets you sort and filter them by price movement, trading
+          volume, valuation ratios, fundamentals and technical ratings, in one table.
+        </p>
+        <h3>What you can filter by</h3>
+        <ul>
+          <li><strong>Live market data:</strong> prices, percentage change and volume</li>
+          <li><strong>Technical ratings:</strong> Strong Buy, Buy, Neutral, Sell and Strong Sell</li>
+          <li><strong>Fundamentals:</strong> market cap, P/E ratio, EPS and company size</li>
+          <li><strong>Sector and industry:</strong> find opportunities in trending or overlooked segments</li>
+        </ul>
+        <p>
+          The screener is for information and education only. It isn’t financial advice. Do your own research or
+          consult a qualified adviser before investing.
         </p>
       </section>
-      <section className="w-full px-4">
-        <div className="glass p-6 md:p-10 flex flex-col items-center rounded-2xl shadow-lg">
-          <div ref={containerRef} style={{ width: "100%" }} />
-          <p className="mt-6 text-gray-500 text-center max-w-2xl">
-            This is a TradingView-powered stock screener. Use the filters, search, and tabs to explore stocks by market cap, price, performance, and more.
-          </p>
-        </div>
-        {/* Stock Screener Info Section */}
-        <section className="mt-12 bg-white/90 rounded-2xl shadow p-8 w-full px-4">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900">Stock Screener – Find the Best Stocks Faster</h2>
-          <p className="mb-4 text-gray-700">The Stock Screener on TheMarketStories helps traders and investors quickly identify stocks that match their strategy. Powered by real-time market data, this tool allows you to filter stocks based on price, market capitalization, volume, performance, technical indicators, and fundamentals — all in one place.</p>
-          <p className="mb-4 text-gray-700">Whether you are a short-term trader, swing trader, or long-term investor, this screener helps you save time and focus only on high-potential opportunities.</p>
-          <h3 className="text-xl font-semibold mt-8 mb-2 text-gray-900">How the Stock Screener Works</h3>
-          <p className="mb-4 text-gray-700">Our stock screener scans thousands of listed stocks and organizes them into a powerful, easy-to-read table. You can instantly sort and filter stocks using key metrics such as price movement, trading volume, valuation ratios, and technical ratings.</p>
-          <p className="mb-4 text-gray-700">With just a few clicks, you can narrow down the market and find stocks that align with your trading or investment goals.</p>
-          <h3 className="text-xl font-semibold mt-8 mb-2 text-gray-900">Key Features of Our Stock Screener</h3>
-          <ul className="list-disc pl-6 mb-4 text-gray-700">
-            <li className="mb-2"><strong>Real-Time Market Data</strong><br />Track live stock prices, percentage changes, and trading volumes to stay updated with current market movements.</li>
-            <li className="mb-2"><strong>Technical Rating Insights</strong><br />Use built-in technical ratings like Buy, Strong Buy, Neutral, or Sell to understand market momentum at a glance.</li>
-            <li className="mb-2"><strong>Fundamental Metrics</strong><br />Analyze important financial data such as market cap, P/E ratio, EPS, and company size to evaluate stock strength.</li>
-            <li className="mb-2"><strong>Sector-Wise Stock Discovery</strong><br />Filter stocks by industry and sector to identify opportunities in trending or undervalued segments.</li>
-            <li className="mb-2"><strong>Advanced Filtering & Sorting</strong><br />Customize your view by sorting stocks based on performance, volume spikes, valuation metrics, or technical signals.</li>
-          </ul>
-          <h3 className="text-xl font-semibold mt-8 mb-2 text-gray-900">Who Should Use This Stock Screener?</h3>
-          <ul className="list-disc pl-6 mb-4 text-gray-700">
-            <li>Traders looking for high-momentum stocks</li>
-            <li>Investors searching for fundamentally strong companies</li>
-            <li>Beginners exploring the stock market with guided insights</li>
-            <li>Professionals who need fast, data-driven stock filtering</li>
-          </ul>
-          <p className="mb-4 text-gray-700">No matter your experience level, the screener helps you make informed decisions faster.</p>
-          <h3 className="text-xl font-semibold mt-8 mb-2 text-gray-900">Why Use TheMarketStories Stock Screener?</h3>
-          <p className="mb-4 text-gray-700">Unlike basic stock lists, our screener combines technical analysis, fundamental data, and real-time updates into a single interface. This makes it easier to identify trends, spot breakouts, and avoid weak stocks.</p>
-          <p className="mb-4 text-gray-700">You don’t need multiple tools — everything is available in one powerful screener.</p>
-          <h3 className="text-xl font-semibold mt-8 mb-2 text-gray-900">Important Risk Disclaimer</h3>
-          <p className="mb-4 text-gray-700">Stock market investments involve risk, and prices can fluctuate rapidly. The data and technical ratings provided on this page are for informational and educational purposes only and should not be considered financial advice. Always perform your own research or consult a qualified financial advisor before making investment decisions.</p>
-          <h3 className="text-xl font-semibold mt-8 mb-2 text-gray-900">Start Screening Stocks Today</h3>
-          <p className="mb-4 text-gray-700">Use the filters, search options, and technical insights above to discover stocks that match your strategy. Whether you’re tracking market movers or building a long-term portfolio, the Stock Screener gives you the clarity you need.</p>
-          <div className="mt-8 text-xs text-gray-400 text-center">
-            <strong>Related search terms:</strong><br />
-            stock screener, live stock screener, technical stock screener, stock market screener, best stock screener, real-time stock screening, filter stocks by market cap, tradingview stock screener
-          </div>
-        </section>
-        {/* FAQ Section */}
-        <section className="mt-12 bg-white/90 rounded-2xl shadow p-8 w-full px-4">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900">Frequently Asked Questions</h2>
-          <FAQAccordion />
-        </section>
+
+      <section className="mt-12 max-w-3xl" aria-labelledby="screener-faq">
+        <h2 id="screener-faq" className="mb-4 text-title2 text-ink">
+          Frequently asked questions
+        </h2>
+        <FAQList />
       </section>
+
       {/* FAQ Schema for SEO */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: `{
         "@context": "https://schema.org",
@@ -176,8 +156,6 @@ export default function ScreenerPage() {
           {"@type": "Question","name": "How often is the stock data updated?","acceptedAnswer": {"@type": "Answer","text": "Stock data is updated automatically during market hours using live market feeds."}}
         ]
       }` }} />
-      </div>
-    </main>
+    </div>
   );
 }
-

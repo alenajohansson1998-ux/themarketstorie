@@ -1,7 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import LayoutShell from "../components/LayoutShell";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 const siteUrl = "https://themarketstories.com";
 const defaultTitle = "The Market Stories | Financial News, Analysis & Market Insights";
@@ -39,16 +46,17 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning={true}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning={true}>
       <head>
-        {/* Inter font from Google Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        {/* Favicon */}
-        <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32" />
         {/* RSS Feed */}
         <link rel="alternate" type="application/rss+xml" title="The Market Stories — RSS Feed" href="/feed.xml" />
         {/* Google Analytics */}
@@ -64,7 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="layout-flex antialiased pt-24 sm:pt-28 md:pt-34" suppressHydrationWarning={true}>
+      <body suppressHydrationWarning={true}>
         <Providers>
           <LayoutShell>{children}</LayoutShell>
         </Providers>

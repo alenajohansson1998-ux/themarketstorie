@@ -1,96 +1,61 @@
 "use client";
 
-
-import { CURRENCIES } from '@/lib/forex/currencies';
 import React from 'react';
-import { getHeatmapColor } from '../colorScale';
-
-const codeToCountry: Record<string, string> = {
-  EUR: 'EU', USD: 'US', GBP: 'GB', JPY: 'JP', CHF: 'CH', AUD: 'AU', CNY: 'CN', CAD: 'CA', INR: 'IN',
-};
-
-const FLAG_API_KEY = process.env.NEXT_PUBLIC_NINJAS_API_KEY || '';
-
-function Flag({ code, alt }: { code: string; alt?: string }) {
-  const [url, setUrl] = React.useState<string | null>(null);
-  const cache = React.useRef<Record<string, string>>({});
-  React.useEffect(() => {
-    const country = codeToCountry[code];
-    if (!country) return;
-    const localKey = `flag_url_${country}`;
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(localKey) : null;
-    if (stored) {
-      setUrl(stored);
-      cache.current[country] = stored;
-      return;
-    }
-    if (cache.current[country]) {
-      setUrl(cache.current[country]);
-      return;
-    }
-    fetch(`https://api.api-ninjas.com/v1/countryflag?country=${country}`, {
-      headers: { 'X-Api-Key': FLAG_API_KEY },
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.rectangle_image_url) {
-          cache.current[country] = data.rectangle_image_url;
-          setUrl(data.rectangle_image_url);
-          try {
-            if (typeof window !== 'undefined') {
-              localStorage.setItem(localKey, data.rectangle_image_url);
-            }
-          } catch {}
-        }
-      })
-      .catch(() => setUrl(null));
-  }, [code]);
-  if (!url) return <span className="inline-block mr-2 text-xl align-middle">{code}</span>;
-  return <img src={url} alt={alt || code} className="inline-block w-6 h-6 mr-2 align-middle rounded-full border" />;
-}
-
+import { formatPercent, getHeatmapColor } from '../colorScale';
+import CurrencyFlag from '@/components/forex/CurrencyFlag';
 
 interface AllRatesTableProps {
-  matrix: any[][] | null;
+  matrix: ({ changePercent?: number } | null)[][] | null;
   currencies: { code: string; name: string; flag: string }[];
 }
 
 const AllRatesTable: React.FC<AllRatesTableProps> = ({ matrix, currencies }) => (
-  <div className="overflow-auto">
-    <table className="min-w-max w-full border-separate border-spacing-0 rounded-xl shadow bg-white text-xs sm:text-base">
+  <div className="overflow-x-auto rounded-card border border-line-soft">
+    <table className="w-full min-w-max border-separate border-spacing-0 text-subhead tabular-nums">
+      <caption className="sr-only">Percentage change of each base currency (rows) against each quote currency (columns), today</caption>
       <thead>
         <tr>
-          <th className="sticky left-0 top-0 bg-white z-20 rounded-tl-xl"></th>
-          {currencies.map((c: { code: string }, colIdx: number) => (
-            <th key={c.code} className="sticky top-0 bg-white z-10 px-2 sm:px-4 py-2 sm:py-3 text-base font-bold border-b border-r first:rounded-tr-xl text-center">
-              <Flag code={c.code} alt={c.code} />
-              <span className="font-bold align-middle">{c.code}</span>
+          <th scope="col" className="sticky left-0 top-0 z-20 bg-canvas p-3">
+            <span className="sr-only">Base currency</span>
+          </th>
+          {currencies.map((c) => (
+            <th key={c.code} scope="col" className="sticky top-0 z-10 whitespace-nowrap border-b border-line-soft bg-canvas px-3 py-3 text-center font-semibold text-ink">
+              <span className="inline-flex items-center gap-1.5">
+                <CurrencyFlag code={c.code} />
+                {c.code}
+              </span>
             </th>
           ))}
         </tr>
       </thead>
       <tbody>
-        {currencies.map((base: { code: string }, rowIdx: number) => (
+        {currencies.map((base, rowIdx) => (
           <tr key={base.code}>
-            <th className="sticky left-0 bg-white z-10 px-2 sm:px-4 py-2 sm:py-3 text-base font-bold border-b border-r text-center">
-              <Flag code={base.code} alt={base.code} />
-              <span className="font-bold align-middle">{base.code}</span>
+            <th scope="row" className="sticky left-0 z-10 whitespace-nowrap border-r border-line-soft bg-canvas px-3 py-3 text-left font-semibold text-ink">
+              <span className="inline-flex items-center gap-1.5">
+                <CurrencyFlag code={base.code} />
+                {base.code}
+              </span>
             </th>
-            {currencies.map((quote: { code: string }, colIdx: number) => {
-              if (rowIdx === colIdx) return <td key={quote.code} className="border bg-gray-50 text-center"></td>;
+            {currencies.map((quote, colIdx) => {
+              if (rowIdx === colIdx) return <td key={quote.code} className="border-b border-r border-canvas bg-surface" aria-hidden="true" />;
               const cell = matrix?.[rowIdx]?.[colIdx] ?? null;
-              let cellContent: React.ReactNode = '-';
-              let cellClass = 'border text-center font-mono text-base sm:text-lg px-2 sm:px-4 py-2 sm:py-3';
-              if (cell && typeof cell.changePercent === 'number') {
-                const percent = cell.changePercent;
-                cellClass += ' ' + getHeatmapColor(percent);
-                cellContent = `${percent > 0 ? '+' : ''}${percent.toFixed(2)}`;
-                // Use superscript for percent sign for visual match
-                cellContent = <span>{cellContent}<sup>%</sup></span>;
-              }
+              const percent = cell && typeof cell.changePercent === 'number' ? cell.changePercent : null;
               return (
-                <td key={quote.code} className={cellClass}>
-                  {cellContent}
+                <td
+                  key={quote.code}
+                  className={`min-w-16 border-b border-r border-canvas px-3 py-3 text-center font-semibold ${
+                    percent !== null ? getHeatmapColor(percent) : 'bg-surface text-ink-3'
+                  }`}
+                >
+                  {percent !== null ? (
+                    <>
+                      <span className="sr-only">{base.code} against {quote.code}: </span>
+                      {formatPercent(percent)}
+                    </>
+                  ) : (
+                    '—'
+                  )}
                 </td>
               );
             })}
