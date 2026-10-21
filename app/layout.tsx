@@ -76,6 +76,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning={true}>
+      <head>
+        <link rel="ai-catalog" href="/ai-catalog.json" type="application/ai-catalog+json" />
+        <link rel="ard" href="/.well-known/ard.json" type="application/ld+json" />
+      </head>
       <body suppressHydrationWarning={true}>
         <Providers>
           <LayoutShell footer={<Footer />} initialCategories={categories}>

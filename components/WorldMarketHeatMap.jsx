@@ -203,7 +203,7 @@ export default function WorldMarketHeatMap({
           Object.keys(data).length;
 
         if (responseCount === 0) {
-          console.warn("World market globe: no data. Set POLYGON_API_KEY or NEXT_PUBLIC_FINNHUB_KEY.");
+          console.warn("World market globe: no data. Set POLYGON_API_KEY or FINNHUB_API_KEY on the server.");
         }
         setMarketData(data);
         setDirectCodes(nextDirectCodes);

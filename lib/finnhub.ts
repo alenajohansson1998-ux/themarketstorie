@@ -62,7 +62,6 @@ interface TimeframeConfig {
 }
 
 const FINNHUB_REST_BASE = "https://finnhub.io/api/v1";
-const FINNHUB_WS_BASE = "wss://ws.finnhub.io";
 const DAY_SECONDS = 86_400;
 const BINANCE_REST_BASE = "https://api.binance.com/api/v3";
 const YAHOO_CHART_BASE = "https://query1.finance.yahoo.com/v8/finance/chart";
@@ -90,11 +89,10 @@ class FinnhubHttpError extends Error {
 }
 
 function getApiKey(): string {
-  const key = process.env.NEXT_PUBLIC_FINNHUB_KEY || process.env.FINNHUB_API_KEY;
+  // The legacy public-prefixed variable is read only by server routes during migration.
+  const key = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_KEY;
   if (!key) {
-    throw new Error(
-      "Finnhub API key missing. Set NEXT_PUBLIC_FINNHUB_KEY in your environment."
-    );
+    throw new Error("Finnhub API key missing. Set FINNHUB_API_KEY in the server environment.");
   }
   return key;
 }
@@ -144,10 +142,6 @@ export function toDisplaySymbol(symbol: string): string {
   if (!upper.includes(":")) return upper;
   const parts = upper.split(":");
   return parts[parts.length - 1] || upper;
-}
-
-export function getFinnhubWebSocketUrl(): string {
-  return `${FINNHUB_WS_BASE}?token=${getApiKey()}`;
 }
 
 export function getTimeframeConfig(timeframe: MarketTimeframe): TimeframeConfig {

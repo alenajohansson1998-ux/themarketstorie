@@ -5,14 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import { FaMicrosoft } from "react-icons/fa";
 import { SiApple, SiBitcoin, SiEthereum, SiTesla } from "react-icons/si";
-import {
-  DEFAULT_TICKER_SYMBOLS,
-  fetchTickerSnapshot,
-  FinnhubQuote,
-  getFinnhubWebSocketUrl,
-  toDisplaySymbol,
-  toFinnhubSymbol,
-} from "@/lib/finnhub";
 import { getNyseStatus, type MarketStatus } from "@/lib/marketStatus";
 
 interface TickerStateItem {
@@ -23,7 +15,14 @@ interface TickerStateItem {
   changePercent: number | null;
 }
 
-const SYMBOLS = [...DEFAULT_TICKER_SYMBOLS];
+const SYMBOLS = ["BTCUSDT", "ETHUSDT", "AAPL", "TSLA", "MSFT"] as const;
+
+interface SnapshotQuote {
+  c: number;
+  d: number;
+  dp: number;
+  pc: number;
+}
 
 const LOGO_MAP = {
   BTC: SiBitcoin,
@@ -34,7 +33,7 @@ const LOGO_MAP = {
 } as const;
 
 function getSymbolBase(symbol: string): string {
-  const display = toDisplaySymbol(symbol).toUpperCase();
+  const display = symbol.toUpperCase();
   if (display.endsWith("USDT")) return display.slice(0, -4);
   if (display.endsWith("USD")) return display.slice(0, -3);
   return display;
@@ -49,7 +48,7 @@ function getInitialState(): Record<string, TickerStateItem> {
   );
 }
 
-function quoteToTickerItem(symbol: string, quote: FinnhubQuote): TickerStateItem {
+function quoteToTickerItem(symbol: string, quote: SnapshotQuote): TickerStateItem {
   return {
     symbol,
     price: quote.c,
@@ -93,95 +92,29 @@ export default function LiveTicker() {
 
     async function loadSnapshot() {
       try {
-        const snapshot = await fetchTickerSnapshot(SYMBOLS);
+        const response = await fetch("/api/markets/snapshot", { cache: "no-store" });
+        if (!response.ok) return;
+        const snapshot = (await response.json()) as Record<string, SnapshotQuote | null>;
         if (!active) return;
 
         setTicker((prev) => {
           const next = { ...prev };
           for (const symbol of SYMBOLS) {
-            const quote = snapshot[toDisplaySymbol(symbol)];
+            const quote = snapshot[symbol];
             if (quote) next[symbol] = quoteToTickerItem(symbol, quote);
           }
           return next;
         });
-      } catch (error) {
-        console.error("Failed to load ticker snapshot", error);
+      } catch {
+        // Keep the most recent snapshot if the market data service is temporarily unavailable.
       }
     }
 
     loadSnapshot();
+    const interval = window.setInterval(loadSnapshot, 60_000);
     return () => {
       active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_FINNHUB_KEY;
-    if (!apiKey) {
-      console.warn("Live ticker: NEXT_PUBLIC_FINNHUB_KEY is not set, showing snapshot prices only.");
-      return;
-    }
-
-    let isStopped = false;
-    let socket: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const connect = () => {
-      socket = new WebSocket(getFinnhubWebSocketUrl());
-
-      socket.onopen = () => {
-        for (const symbol of SYMBOLS) {
-          socket?.send(JSON.stringify({ type: "subscribe", symbol: toFinnhubSymbol(symbol) }));
-        }
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data) as { data?: Array<{ p: number; s: string }> };
-          if (!payload.data || payload.data.length === 0) return;
-
-          setTicker((prev) => {
-            const next = { ...prev };
-            for (const tick of payload.data || []) {
-              const display = toDisplaySymbol(tick.s);
-              const matchingSymbol = SYMBOLS.find((item) => item === display);
-              if (!matchingSymbol) continue;
-
-              const current = next[matchingSymbol];
-              const prevClose = current.prevClose ?? current.price ?? tick.p;
-              const change = tick.p - prevClose;
-              const changePercent = prevClose ? (change / prevClose) * 100 : 0;
-
-              next[matchingSymbol] = { symbol: matchingSymbol, price: tick.p, prevClose, change, changePercent };
-            }
-            return next;
-          });
-        } catch (error) {
-          console.error("Failed to parse ticker message", error);
-        }
-      };
-
-      socket.onerror = () => {
-        console.warn("Live ticker connection interrupted, reconnecting.");
-      };
-
-      socket.onclose = () => {
-        if (isStopped) return;
-        reconnectTimer = setTimeout(connect, 3000);
-      };
-    };
-
-    connect();
-
-    return () => {
-      isStopped = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        for (const symbol of SYMBOLS) {
-          socket.send(JSON.stringify({ type: "unsubscribe", symbol: toFinnhubSymbol(symbol) }));
-        }
-      }
-      socket?.close();
+      window.clearInterval(interval);
     };
   }, []);
 

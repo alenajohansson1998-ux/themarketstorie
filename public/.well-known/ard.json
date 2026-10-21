@@ -1,0 +1,47 @@
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "The Market Stories"
+  },
+  "entries": [
+    {
+      "@context": "https://agenticresourcediscovery.org/context/v1",
+      "identifier": "urn:air:themarketstories.com:content:financial-news",
+      "displayName": "The Market Stories financial news",
+      "type": "text/html",
+      "url": "https://themarketstories.com/",
+      "description": "Financial news and reporting on global and Indian markets, business, the economy, technology, and cryptocurrency.",
+      "tags": ["financial news", "markets", "business", "cryptocurrency"],
+      "representativeQueries": [
+        "What are the latest financial market stories?",
+        "Find recent reporting on business, the economy, and cryptocurrency."
+      ]
+    },
+    {
+      "@context": "https://agenticresourcediscovery.org/context/v1",
+      "identifier": "urn:air:themarketstories.com:content:market-overview",
+      "displayName": "The Market Stories market overview",
+      "type": "text/html",
+      "url": "https://themarketstories.com/markets",
+      "description": "Market pages and tools for checking stocks, indices, and cryptocurrency information.",
+      "tags": ["market overview", "stocks", "indices", "cryptocurrency"],
+      "representativeQueries": [
+        "Where can I browse stock and cryptocurrency market information?",
+        "Find The Market Stories market overview and market tools."
+      ]
+    },
+    {
+      "@context": "https://agenticresourcediscovery.org/context/v1",
+      "identifier": "urn:air:themarketstories.com:feed:latest-news",
+      "displayName": "The Market Stories RSS feed",
+      "type": "application/rss+xml",
+      "url": "https://themarketstories.com/feed.xml",
+      "description": "An RSS feed of recently published financial news and analysis.",
+      "tags": ["RSS", "financial news", "latest articles"],
+      "representativeQueries": [
+        "Get the latest articles from The Market Stories.",
+        "Find the RSS feed for new financial news and analysis."
+      ]
+    }
+  ]
+}
