@@ -12,7 +12,6 @@ type ArticleItem = {
   image?: string;
   excerpt?: string;
   publishedAt?: string | null;
-  createdAt?: string;
   aiGenerated?: boolean;
   category?: {
     name?: string;
@@ -26,7 +25,7 @@ function formatDate(value?: string | null) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
 function buildArticleHref(article: ArticleItem) {
@@ -69,15 +68,16 @@ function SkeletonLines({ rows = 3 }: { rows?: number }) {
   );
 }
 
-export default function FeaturedAiArticlesSection() {
-  const [articles, setArticles] = useState<ArticleItem[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function FeaturedAiArticlesSection({ initialArticles }: { initialArticles?: ArticleItem[] }) {
+  const [articles, setArticles] = useState<ArticleItem[]>(initialArticles ?? []);
+  const [loading, setLoading] = useState(initialArticles === undefined);
   const [activeIndex, setActiveIndex] = useState(0);
   const [userPaused, setUserPaused] = useState(false);
   const [interacting, setInteracting] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
+    if (initialArticles !== undefined) return;
     let active = true;
 
     async function fetchArticles() {
@@ -98,7 +98,7 @@ export default function FeaturedAiArticlesSection() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialArticles]);
 
   const slides = articles.slice(0, 4);
   const slideCount = slides.length;
@@ -165,9 +165,7 @@ export default function FeaturedAiArticlesSection() {
               <p className="mt-4 text-footnote text-ink-2">
                 <span className="font-semibold text-ink">{getCategoryLabel(featured)}</span>
                 {" · "}
-                <time dateTime={featured.publishedAt || featured.createdAt || undefined}>
-                  {formatDate(featured.publishedAt || featured.createdAt)}
-                </time>
+                {featured.publishedAt ? <time dateTime={featured.publishedAt}>{formatDate(featured.publishedAt)}</time> : null}
               </p>
               <h3 className="mt-1 text-title2 text-ink">
                 <Link href={buildArticleHref(featured)} className="line-clamp-3 hover:underline">
@@ -251,7 +249,7 @@ export default function FeaturedAiArticlesSection() {
                   <p className="text-footnote text-ink-2">
                     <span className="font-semibold text-ink">{getCategoryLabel(article)}</span>
                     {" · "}
-                    {formatDate(article.publishedAt || article.createdAt)}
+                    {article.publishedAt ? <time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time> : null}
                   </p>
                   <h4 className="mt-1 text-title3 text-ink">
                     <Link href={buildArticleHref(article)} className="line-clamp-3 hover:underline">
@@ -285,7 +283,7 @@ export default function FeaturedAiArticlesSection() {
                         {article.title}
                       </Link>
                     </h4>
-                    <p className="mt-1 text-footnote text-ink-2">{formatDate(article.publishedAt || article.createdAt)}</p>
+                    {article.publishedAt ? <p className="mt-1 text-footnote text-ink-2"><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></p> : null}
                   </div>
                   <div className="aspect-square overflow-hidden rounded-control bg-fill">
                     <SafeImage src={article.image || "/herobaner.png"} alt="" className="h-full w-full object-cover" />

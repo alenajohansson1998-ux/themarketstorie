@@ -1,17 +1,12 @@
 
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo/metadata';
 
-export const generateMetadata = async (): Promise<Metadata> => {
-  const title = 'Terms & Conditions | The Market Stories User Agreement';
-  const description = 'Review the Terms & Conditions for using The Market Stories. Understand your rights, responsibilities, and the rules governing access to our financial news, market data, and educational content platform.';
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: '/terms'
-    }
-  };
-};
+export const metadata: Metadata = pageMetadata({
+  title: 'Terms and Conditions',
+  description: 'Terms governing access to The Market Stories website, financial news, market data and tools.',
+  path: '/terms',
+});
 
 export default function TermsPage() {
   return (
@@ -23,10 +18,10 @@ export default function TermsPage() {
 
           <div className="article-body">
             <p>
-              Welcome to <strong>The Market Stories</strong> ("themarketstories.com"). These Terms & Conditions ("Terms", "Agreement") govern your access to and use of the The Market Stories website, mobile applications, and all related services, features, content, and tools (collectively, the "Service"). By accessing, browsing, or using The Market Stories in any manner, you acknowledge that you have read, understood, and agreed to be bound by these Terms. If you do not agree to these Terms, you must discontinue use of the Service immediately.
+              Welcome to <strong>The Market Stories</strong>. These Terms govern your access to and use of the website, its services, content and tools. By using The Market Stories, you agree to these Terms. If you do not agree, discontinue use of the website.
             </p>
             <p>
-              These Terms form a legally binding agreement between you ("User", "you", "your") and The Market Stories ("we", "our", "us").
+              These Terms form an agreement between you and The Market Stories.
             </p>
 
             <h2>1. Acceptance of Terms</h2>
@@ -155,7 +150,7 @@ export default function TermsPage() {
 
             <h2>8. No Warranties</h2>
             <p>
-              The Service is provided on an "as is" and "as available" basis without warranties of any kind, whether express or implied.
+              The Service is provided as available, without warranties of any kind, whether express or implied.
             </p>
             <p>
               We do not guarantee that:
@@ -269,9 +264,6 @@ export default function TermsPage() {
               Website: <a href="https://themarketstories.com" target="_blank" rel="noopener noreferrer">https://themarketstories.com</a>
             </p>
 
-            <p className="text-ink-2">
-              Last updated: {new Date().toLocaleDateString()}
-            </p>
           </div>
         </div>
       </div>

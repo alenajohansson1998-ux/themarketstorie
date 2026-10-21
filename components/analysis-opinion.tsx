@@ -11,16 +11,17 @@ interface Post {
   excerpt: string
   coverImage?: string
   author: { name: string }
-  createdAt: string
+  publishedAt?: string | null
 }
 
 /** Analysis & Opinion list. The page supplies the section heading. */
-export function AnalysisOpinionSection() {
-  const [posts, setPosts] = useState<Post[]>([])
-  const [loading, setLoading] = useState(true)
+export function AnalysisOpinionSection({ initialPosts }: { initialPosts?: Post[] }) {
+  const [posts, setPosts] = useState<Post[]>(initialPosts ?? [])
+  const [loading, setLoading] = useState(initialPosts === undefined)
   const [error, setError] = useState(false)
 
   useEffect(() => {
+    if (initialPosts !== undefined) return
     const fetchPosts = async () => {
       try {
         const params = new URLSearchParams({ category: "analysis--opinion", status: "published", limit: "4" })
@@ -36,7 +37,7 @@ export function AnalysisOpinionSection() {
       }
     }
     fetchPosts()
-  }, [])
+  }, [initialPosts])
 
   if (loading) {
     return (
@@ -88,7 +89,9 @@ export function AnalysisOpinionSection() {
               </h3>
               <p className="mt-1 line-clamp-2 text-subhead text-ink-2">{post.excerpt}</p>
               <p className="mt-1 text-footnote text-ink-2">
-                {post.author?.name} · {formatDate(post.createdAt)}
+                {post.author?.name}
+                {post.author?.name && post.publishedAt ? " · " : null}
+                {post.publishedAt ? <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time> : null}
               </p>
             </div>
           </li>

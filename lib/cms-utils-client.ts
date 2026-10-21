@@ -8,10 +8,12 @@
  */
 export function formatDate(date: Date | string): string {
   const d = new Date(date);
+  // A fixed time zone keeps server-rendered and hydrated dates identical.
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
@@ -39,7 +41,7 @@ export function generateSlug(text: string): string {
 /**
  * Validate SEO fields
  */
-export function validateSEO(seo: any) {
+export function validateSEO(seo: { metaTitle?: string; metaDescription?: string }) {
   const errors: Record<string, string> = {};
   
   if (seo.metaTitle && seo.metaTitle.length > 60) {

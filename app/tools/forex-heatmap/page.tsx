@@ -1,10 +1,12 @@
 import HeatmapTable from './HeatmapTable';
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
-  title: 'Forex Heatmap – Global Currency Strength',
-  description: 'Compare global currencies in a live matrix. See strength/weakness for EUR, USD, GBP, JPY, CHF, AUD, CNY, CAD, INR. Free, fast, and color-coded.',
-};
+export const metadata: Metadata = pageMetadata({
+  title: 'Forex Heatmap',
+  description: 'Compare the relative performance of major currencies in a color-coded market matrix.',
+  path: '/tools/forex-heatmap',
+});
 
 export default function ForexHeatmapPage() {
   return (

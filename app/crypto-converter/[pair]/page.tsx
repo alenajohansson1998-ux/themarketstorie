@@ -8,6 +8,7 @@ import ConversionTablesContent from "@/components/crypto-converter/ConversionTab
 import FearGreedWidget from "@/components/crypto-converter/FearGreedWidget";
 import TrendingSection from "@/components/crypto-converter/TrendingSection";
 import { CRYPTO_TOKENS, FIAT_CURRENCIES } from "@/lib/crypto-tokens";
+import { pageMetadata } from "@/lib/seo/metadata";
 
 interface Params {
   pair: string;
@@ -42,25 +43,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { pair } = await params;
   const parsed = parsePair(pair);
-  if (!parsed) return { title: "Crypto Converter | TheMarketStories" };
+  if (!parsed) notFound();
 
   const { fromToken, toFiat, toCrypto } = parsed;
   const toName = toFiat?.name ?? toCrypto?.name ?? "";
   const toSymbol = toFiat?.symbol ?? toCrypto?.symbol ?? "";
 
-  const title = `${fromToken.symbol} to ${toSymbol} Converter — Live ${fromToken.name} Price in ${toName} | TheMarketStories`;
-  const description = `Convert ${fromToken.name} (${fromToken.symbol}) to ${toName} (${toSymbol}) with live real-time prices. 1 ${fromToken.symbol} to ${toSymbol} rate updated every 5 seconds.`;
-
-  return {
-    title,
-    description,
-    alternates: { canonical: `/crypto-converter/${pair}` },
-    openGraph: {
-      title,
-      description,
-      type: "website",
-    },
-  };
+  return pageMetadata({
+    title: `${fromToken.name} to ${toName} Converter`,
+    description: `Convert ${fromToken.name} (${fromToken.symbol}) to ${toName} (${toSymbol}) using the latest available exchange rates.`,
+    path: `/crypto-converter/${encodeURIComponent(pair.toLowerCase())}`,
+  });
 }
 
 export async function generateStaticParams() {

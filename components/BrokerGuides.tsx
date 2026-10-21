@@ -10,7 +10,7 @@ interface GuidePost {
   slug: string;
   excerpt?: string;
   coverImage?: string;
-  createdAt: string;
+  publishedAt?: string | null;
   category?: { slug: string; name: string };
 }
 
@@ -41,7 +41,7 @@ export default function BrokerGuides({ title = "Broker guides" }: { title?: stri
               title={post.title}
               excerpt={post.excerpt}
               image={post.coverImage}
-              meta={formatDate(post.createdAt)}
+              meta={post.publishedAt ? formatDate(post.publishedAt) : undefined}
             />
           ))}
         </div>

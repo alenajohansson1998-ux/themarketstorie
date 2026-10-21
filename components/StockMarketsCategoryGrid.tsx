@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDate } from "@/lib/cms-utils-client";
@@ -12,7 +14,7 @@ interface Post {
   category: { name: string; slug: string };
   tags: { name: string; slug: string }[];
   author: { name: string };
-  createdAt: string;
+  publishedAt?: string | null;
   views: number;
 }
 
@@ -34,9 +36,11 @@ function StoryTile({ post, size }: { post: Post; size: "lead" | "small" }) {
       ) : null}
       <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" />
       <div className={`absolute inset-x-0 bottom-0 text-white ${lead ? "p-5 sm:p-6" : "p-3.5"}`}>
-        {lead ? (
+        {lead && (post.author?.name || post.publishedAt) ? (
           <p className="mb-1 text-footnote text-white/85">
-            {post.author?.name} · {formatDate(post.createdAt)}
+            {post.author?.name}
+            {post.author?.name && post.publishedAt ? " · " : null}
+            {post.publishedAt ? <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time> : null}
           </p>
         ) : null}
         <h3 className={`line-clamp-3 text-white ${lead ? "text-title3 sm:text-title2" : "text-subhead font-semibold"}`}>
@@ -47,11 +51,12 @@ function StoryTile({ post, size }: { post: Post; size: "lead" | "small" }) {
   );
 }
 
-const StockMarketsCategoryGrid: React.FC = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+const StockMarketsCategoryGrid: React.FC<{ initialPosts?: Post[] }> = ({ initialPosts }) => {
+  const [posts, setPosts] = useState<Post[]>(initialPosts ?? []);
+  const [loading, setLoading] = useState(initialPosts === undefined);
 
   useEffect(() => {
+    if (initialPosts !== undefined) return;
     const fetchPosts = async () => {
       try {
         const res = await fetch("/api/cms/posts?status=published&category=stock-markets&limit=9&sortBy=-createdAt");
@@ -64,7 +69,7 @@ const StockMarketsCategoryGrid: React.FC = () => {
       }
     };
     fetchPosts();
-  }, []);
+  }, [initialPosts]);
 
   if (loading) {
     return (

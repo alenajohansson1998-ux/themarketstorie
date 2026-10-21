@@ -14,30 +14,34 @@ const emptyMatrix = (): Cell[][] =>
     .fill(null)
     .map(() => Array(CURRENCIES.length).fill(null));
 
+const EMPTY_MATRIX = emptyMatrix();
+
 export default function HeatmapTable({ showAbout = true }: { showAbout?: boolean }) {
-  const [matrix, setMatrix] = useState<Cell[][]>(emptyMatrix);
   const [filter, setFilter] = useState('1D');
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [result, setResult] = useState<{
+    filter: string;
+    matrix: Cell[][];
+    status: 'ready' | 'error';
+  } | null>(null);
+  const currentResult = result?.filter === filter ? result : null;
+  const matrix = currentResult?.matrix ?? EMPTY_MATRIX;
+  const status = currentResult?.status ?? 'loading';
 
   useEffect(() => {
     let active = true;
-    setStatus('loading');
     fetch(`/api/tools/forex-heatmap?filter=${filter}`)
       .then((res) => res.json())
       .then((data) => {
         if (!active) return;
         if (Array.isArray(data.matrix) && data.matrix.length === CURRENCIES.length) {
-          setMatrix(data.matrix);
-          setStatus('ready');
+          setResult({ filter, matrix: data.matrix, status: 'ready' });
         } else {
-          setMatrix(emptyMatrix());
-          setStatus('error');
+          setResult({ filter, matrix: EMPTY_MATRIX, status: 'error' });
         }
       })
       .catch(() => {
         if (!active) return;
-        setMatrix(emptyMatrix());
-        setStatus('error');
+        setResult({ filter, matrix: EMPTY_MATRIX, status: 'error' });
       });
     return () => {
       active = false;

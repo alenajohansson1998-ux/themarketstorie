@@ -10,7 +10,7 @@ interface Post {
   slug: string;
   excerpt: string;
   coverImage?: string;
-  createdAt: string;
+  publishedAt?: string | null;
   author: {
     name: string;
   };
@@ -78,7 +78,7 @@ export default function CategorySidebar({ currentPostId }: CategorySidebarProps)
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 text-subhead font-semibold text-ink group-hover:underline">{post.title}</p>
-                  <p className="mt-0.5 text-footnote text-ink-2">{formatDate(post.createdAt)}</p>
+                  {post.publishedAt ? <p className="mt-0.5 text-footnote text-ink-2"><time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time></p> : null}
                 </div>
               </Link>
             </li>

@@ -1,17 +1,12 @@
 
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo/metadata';
 
-export const generateMetadata = async (): Promise<Metadata> => {
-  const title = 'Risk Disclosure | The Market Stories Investment Risks';
-  const description = 'Understand the risks of investing and trading with The Market Stories. Read our Risk Disclosure to learn about market volatility, leverage, and the importance of informed financial decisions.';
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: '/risk-disclosure'
-    }
-  };
-};
+export const metadata: Metadata = pageMetadata({
+  title: 'Risk Disclosure',
+  description: 'Important risks associated with investing, trading, financial markets and market data published by The Market Stories.',
+  path: '/risk-disclosure',
+});
 
 export default function RiskDisclosurePage() {
   return (
@@ -79,7 +74,7 @@ export default function RiskDisclosurePage() {
 
             <h3>5.1 Platform Risks</h3>
             <p>
-              Trading platforms, including The Market Stories' services, may experience technical issues, outages, or errors. This could prevent you from executing trades, monitoring positions, or accessing your funds.
+              Trading platforms, including services offered by The Market Stories, may experience technical issues, outages, or errors. This could prevent you from executing trades, monitoring positions, or accessing your funds.
             </p>
 
             <h3>5.2 Connectivity Risks</h3>
@@ -225,9 +220,6 @@ export default function RiskDisclosurePage() {
               Support: Alvensmith1998@gmail.com
             </p>
 
-            <p className="text-ink-2">
-              Last updated: {new Date().toLocaleDateString()}
-            </p>
           </div>
         </div>
       </div>

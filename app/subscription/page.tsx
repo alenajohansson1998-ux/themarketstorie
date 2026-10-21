@@ -1,20 +1,13 @@
 import type { Metadata } from 'next';
 import { Check } from 'lucide-react';
 import NewsletterForm from '@/components/NewsletterForm';
+import { pageMetadata } from '@/lib/seo/metadata';
 
-export const metadata: Metadata = {
-  title: 'Subscribe | The Market Stories',
-  description: 'Subscribe to The Market Stories for daily financial news, market analysis, and investment insights delivered straight to your inbox.',
-  alternates: { canonical: 'https://themarketstories.com/subscription' },
-  openGraph: {
-    title: 'Subscribe | The Market Stories',
-    description: 'Get daily market news and analysis delivered to your inbox.',
-    url: 'https://themarketstories.com/subscription',
-    siteName: 'The Market Stories',
-    type: 'website',
-  },
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = pageMetadata({
+  title: 'Subscribe to Market News',
+  description: 'Subscribe to The Market Stories for financial news and market analysis by email.',
+  path: '/subscription',
+});
 
 const BENEFITS = [
   'The day’s market recap and top stories',

@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useNavData } from '@/lib/navData';
+import { useNavData, type NavCategory } from '@/lib/navData';
 
 /** Horizontally scrolling section links. Sits in the page, so it scrolls away with it. */
-export default function CategoryBar() {
+export default function CategoryBar({ initialCategories = [] }: { initialCategories?: NavCategory[] }) {
   const pathname = usePathname() || '/';
-  const { categories } = useNavData();
+  const { categories: fetched } = useNavData();
+  // Server-rendered list first, so the links are in the HTML; client data refreshes it.
+  const categories = fetched.length > 0 ? fetched : initialCategories;
 
   if (categories.length === 0) {
     // Reserve the row's height so content doesn't jump when categories arrive.

@@ -12,7 +12,6 @@ interface LatestPost {
   image?: string;
   category?: { name: string; slug: string };
   publishedAt?: string;
-  createdAt: string;
   type?: string;
 }
 
@@ -94,7 +93,7 @@ export default function ArticleSidebar({ excludeSlug }: { excludeSlug?: string }
           <ul className="space-y-4">
             {latestPosts.map((post) => {
               const catSlug = post.category?.slug || post.type || "general";
-              const date = post.publishedAt || post.createdAt;
+              const date = post.publishedAt;
               return (
                 <li key={post._id}>
                   <Link href={`/${catSlug}/${post.slug}`} className="group flex gap-3">
@@ -105,7 +104,7 @@ export default function ArticleSidebar({ excludeSlug }: { excludeSlug?: string }
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-2 text-subhead font-semibold text-ink group-hover:underline">{post.title}</p>
-                      <p className="mt-0.5 text-footnote text-ink-2">{formatDate(date)}</p>
+                      {date ? <p className="mt-0.5 text-footnote text-ink-2"><time dateTime={date}>{formatDate(date)}</time></p> : null}
                     </div>
                   </Link>
                 </li>

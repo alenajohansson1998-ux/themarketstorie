@@ -1,153 +1,102 @@
-
-import BlogPostClient from '@/components/BlogPostClient';
 import type { Metadata } from 'next';
+import { notFound, permanentRedirect } from 'next/navigation';
+import BlogPostClient from '@/components/BlogPostClient';
+import { getRelatedStories, getStory } from '@/lib/server/content';
+import { buildArticleView, type ArticleView } from '@/lib/articles/view';
+import { pageMetadata } from '@/lib/seo/metadata';
+import { JsonLd, articleSchema, breadcrumbSchema } from '@/lib/seo/jsonld';
+import { absoluteUrl, ogImageUrl, summarize } from '@/lib/seo/site';
 
-interface FullArticle {
-  title: string;
-  slug: string;
-  excerpt?: string;
-  content?: string;
-  image?: string;
-  coverImage?: string;
-  tags?: string[];
-  publishedAt?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  author?: { name?: string; slug?: string };
+// Pages are rendered on first request and refreshed every ten minutes.
+export const revalidate = 600;
+
+type Params = Promise<{ category: string; slug: string }>;
+
+async function loadArticle(category: string, slug: string): Promise<ArticleView | null> {
+  const record = await getStory(slug);
+  if (!record) return null;
+  return buildArticleView(record.kind, record.doc, category);
 }
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://themarketstories.com";
-
-function clampTitle(title: string): string {
-  if (title.length <= 60) return title;
-  return title.slice(0, 57).trimEnd() + "...";
-}
-
-function clampDesc(desc: string): string {
-  const clean = desc.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
-  if (clean.length <= 155) return clean;
-  return clean.slice(0, 152).trimEnd() + "...";
-}
-
-async function fetchArticle(category: string, slug: string): Promise<FullArticle | null> {
-  try {
-    // Try CMS post first
-    const cmsRes = await fetch(`${siteUrl}/api/cms/posts?slug=${slug}`, { next: { revalidate: 60 } });
-    const cmsData = await cmsRes.json();
-    if (cmsData?.data?.[0]) return cmsData.data[0] as FullArticle;
-
-    // Fall back to AI article
-    const articleRes = await fetch(
-      `${siteUrl}/api/articles?slug=${encodeURIComponent(slug)}&category=${encodeURIComponent(category)}&limit=1`,
-      { next: { revalidate: 60 } }
-    );
-    const articleData = await articleRes.json();
-    const article = Array.isArray(articleData?.data) ? articleData.data[0] : null;
-    return article ?? null;
-  } catch {
-    return null;
-  }
-}
-
-export async function generateMetadata({ params }: { params: Promise<{ category: string; slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { category, slug } = await params;
-  const post = await fetchArticle(category, slug);
-  const url = `${siteUrl}/${category}/${slug}`;
+  const article = await loadArticle(category, slug);
+  if (!article) notFound();
 
-  if (!post) {
-    return {
-      title: 'Post Not Found | The Market Stories',
-      description: 'This article does not exist on The Market Stories.',
-      alternates: { canonical: url },
-      openGraph: { url, siteName: 'The Market Stories', type: 'article' },
-    };
-  }
-
-  const title = clampTitle(post.title);
-  const rawDesc = post.excerpt || post.content?.replace(/<[^>]+>/g, '').slice(0, 200) || 'Read this article on The Market Stories.';
-  const description = clampDesc(rawDesc);
-  const coverImage = post.coverImage || post.image;
-  const validImage = coverImage && /^https:\/\//.test(coverImage) ? coverImage : undefined;
-
-  return {
-    title,
+  const description = summarize(article.metaDescription || article.excerpt || article.html);
+  const base = pageMetadata({
+    title: article.metaTitle || article.title,
     description,
-    alternates: { canonical: url },
+    path: article.path,
+    image: article.image || ogImageUrl(article.title, article.category?.name),
+    imageAlt: article.title,
+    noindex: article.noindex,
+    type: 'article',
+  });
+
+  // Syndicated third-party stories carry noindex (set by buildArticleView) rather than a cross-domain canonical.
+  return {
+    ...base,
     openGraph: {
-      title,
-      description,
-      url,
+      ...base.openGraph,
       type: 'article',
-      siteName: 'The Market Stories',
-      locale: 'en_US',
-      ...(validImage && { images: [{ url: validImage, width: 1200, height: 630, alt: title }] }),
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      ...(validImage && { images: [validImage] }),
+      ...(article.datePublished ? { publishedTime: article.datePublished } : {}),
+      ...(article.dateModified ? { modifiedTime: article.dateModified } : {}),
+      ...(article.category ? { section: article.category.name } : {}),
+      ...(article.author ? { authors: [article.author.href ? absoluteUrl(article.author.href) : article.author.name] } : {}),
+      tags: article.tags.map((tag) => tag.name),
     },
   };
 }
 
-function buildJsonLd(article: FullArticle, category: string): string {
-  const coverImage = article.image || article.coverImage || "";
-  const url = `${siteUrl}/${category}/${article.slug}`;
-  const authorName = article.author?.name || "The Market Stories";
-  const datePublished = article.publishedAt || article.createdAt || new Date().toISOString();
-  const dateModified = article.updatedAt || datePublished;
-  const keywords = Array.isArray(article.tags) ? article.tags.join(", ") : "";
-
-  const schema: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "NewsArticle",
-    headline: article.title,
-    description: article.excerpt || "",
-    url,
-    mainEntityOfPage: { "@type": "WebPage", "@id": url },
-    datePublished,
-    dateModified,
-    author: { "@type": "Person", name: authorName },
-    publisher: {
-      "@type": "Organization",
-      name: "The Market Stories",
-      logo: {
-        "@type": "ImageObject",
-        url: `${siteUrl}/logo.png`,
-      },
-    },
-  };
-
-  if (coverImage && /^https:\/\//.test(coverImage)) {
-    schema.image = {
-      "@type": "ImageObject",
-      url: coverImage,
-      width: 1200,
-      height: 630,
-    };
-  }
-
-  if (keywords) {
-    schema.keywords = keywords;
-  }
-
-  return JSON.stringify(schema);
-}
-
-export default async function BlogPostPage({ params }: { params: Promise<{ category: string; slug: string }> }) {
+export default async function BlogPostPage({ params }: { params: Params }) {
   const { category, slug } = await params;
-  const article = await fetchArticle(category, slug);
+  const article = await loadArticle(category, slug);
+  if (!article) notFound();
+
+  // One URL per story: /wrong-section/slug redirects to the story's own section.
+  if (article.kind !== 'external' && article.category && article.category.slug !== category) {
+    permanentRedirect(article.path);
+  }
+
+  const related = article.category ? await getRelatedStories(article.category.slug, slug) : [];
+
+  const crumbs = [
+    { name: 'Home', path: '/' },
+    ...(article.category ? [{ name: article.category.name, path: article.category.href }] : []),
+    { name: article.title, path: article.path },
+  ];
+
+  const schemaType = article.isOpinion ? 'OpinionNewsArticle' : 'NewsArticle';
 
   return (
     <>
-      {article && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: buildJsonLd(article, category) }}
+      {article.noindex ? null : (
+        <JsonLd
+          data={[
+            articleSchema({
+              type: schemaType,
+              path: article.path,
+              headline: article.title,
+              description: summarize(article.metaDescription || article.excerpt || article.html, 300),
+              images: article.image ? [article.image] : [],
+              datePublished: article.datePublished,
+              dateModified: article.dateModified,
+              section: article.category?.name,
+              keywords: article.tags.map((tag) => tag.name),
+              wordCount: article.wordCount,
+              author: {
+                name: article.author?.name || 'The Market Stories',
+                path: article.author?.isAi ? undefined : article.author?.href,
+                // AI Desk stories are attributed to the publisher, not to an invented person.
+                isOrganization: !article.author || article.author.isAi,
+              },
+            }),
+            breadcrumbSchema(crumbs),
+          ]}
         />
       )}
-      <BlogPostClient category={category} slug={slug} />
+      <BlogPostClient article={article} related={related as never} />
     </>
   );
 }

@@ -4,18 +4,13 @@ import TrendingSection from "@/components/crypto-converter/TrendingSection";
 import FAQSection from "@/components/crypto-converter/FAQSection";
 import FearGreedWidget from "@/components/crypto-converter/FearGreedWidget";
 import ConversionTablesContent from "@/components/crypto-converter/ConversionTablesContent";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
-  title: "Crypto Converter — Live Cryptocurrency Price Calculator | TheMarketStories",
-  description:
-    "Convert Bitcoin, Ethereum, and 65+ cryptocurrencies to USD, INR, EUR, and 30+ fiat currencies in real time. Live prices from CoinGecko, refreshed every 5 seconds.",
-  alternates: { canonical: "/crypto-converter" },
-  openGraph: {
-    title: "Crypto Converter — Live Cryptocurrency Price Calculator",
-    description: "Convert 65+ cryptocurrencies to 30+ fiat currencies in real time.",
-    type: "website",
-  },
-};
+export const metadata: Metadata = pageMetadata({
+  title: 'Crypto Converter',
+  description: 'Convert popular cryptocurrencies into fiat currencies using the latest available exchange rates.',
+  path: '/crypto-converter',
+});
 
 export default function CryptoConverterPage() {
   return (

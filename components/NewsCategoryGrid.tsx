@@ -12,7 +12,7 @@ interface Post {
   category: { name: string; slug: string };
   tags: { name: string; slug: string }[];
   author: { name: string };
-  createdAt: string;
+  publishedAt?: string | null;
   views: number;
   readingTime?: number;
 }
@@ -59,8 +59,8 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts, loading = fa
         </Link>
         <p className="mt-4 text-footnote text-ink-2">
           {featured.author?.name}
-          {featured.author?.name ? " · " : null}
-          {formatDate(featured.createdAt)}
+          {featured.author?.name && featured.publishedAt ? " · " : null}
+          {featured.publishedAt ? <time dateTime={featured.publishedAt}>{formatDate(featured.publishedAt)}</time> : null}
           {featured.readingTime ? ` · ${featured.readingTime} min read` : null}
         </p>
         <h3 className="mt-1 text-title2 text-ink">
@@ -84,7 +84,7 @@ const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts, loading = fa
                     {post.title}
                   </Link>
                 </h3>
-                <p className="mt-1 text-footnote text-ink-2">{formatDate(post.createdAt)}</p>
+                {post.publishedAt ? <p className="mt-1 text-footnote text-ink-2"><time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time></p> : null}
               </div>
             </li>
           ))}

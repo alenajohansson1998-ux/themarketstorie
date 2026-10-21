@@ -5,6 +5,10 @@ import { notFound } from "next/navigation";
 import { Check } from "lucide-react";
 import { StarRating } from "@/components/BrokerCard";
 import BrokerGuides from "@/components/BrokerGuides";
+import { getBrokerBySlug } from '@/lib/server/content';
+import { JsonLd, breadcrumbSchema, webPageSchema } from '@/lib/seo/jsonld';
+import { pageMetadata } from '@/lib/seo/metadata';
+import { summarize } from '@/lib/seo/site';
 
 interface BrokerDetail {
   name: string;
@@ -26,23 +30,19 @@ interface BrokerDetail {
   banner?: string;
 }
 
-async function getBroker(id: string): Promise<BrokerDetail | null> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/brokers?slug=${id}`, { cache: "no-store" });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.broker || null;
-}
-
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const broker = await getBroker(id);
-  const name = broker?.name ?? "Broker";
-  return {
-    title: `${name} Review`,
-    description: broker?.description?.slice(0, 155) || `Ratings, tradable assets and account details for ${name}.`,
-    alternates: { canonical: `https://themarketstories.com/brokers/${id}` },
-  };
+  const broker = await getBrokerBySlug(id) as BrokerDetail | null;
+  if (!broker) notFound();
+  return pageMetadata({
+    title: `${broker.name} Broker Profile`,
+    description: summarize(broker.description || `Broker profile and account information for ${broker.name}.`),
+    path: `/brokers/${encodeURIComponent(id)}`,
+    image: /^https:\/\//i.test(broker.logoUrl) ? broker.logoUrl : undefined,
+  });
 }
+
+export const revalidate = 600;
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -55,15 +55,26 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 
 export default async function BrokerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const broker = await getBroker(id);
+  const broker = await getBrokerBySlug(id) as BrokerDetail | null;
   if (!broker) return notFound();
 
   const features = (broker.features ?? []).filter(Boolean);
   const faq = (broker.faq ?? []).filter((item) => item.question && item.answer);
   const website = broker.website?.trim();
+  const description = summarize(broker.description || `Broker profile and account information for ${broker.name}.`);
 
   return (
     <div className="site-container px-4 py-10 md:px-6 lg:py-12">
+      <JsonLd
+        data={[
+          webPageSchema({ path: `/brokers/${encodeURIComponent(id)}`, name: `${broker.name} Broker Profile`, description, type: 'ProfilePage' }),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Brokers', path: '/brokers' },
+            { name: broker.name, path: `/brokers/${encodeURIComponent(id)}` },
+          ]),
+        ]}
+      />
       <nav aria-label="Breadcrumb" className="text-footnote text-ink-2">
         <ol className="flex items-center gap-1.5">
           <li>
