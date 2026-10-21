@@ -1,35 +1,22 @@
-"use client";
-
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 import { FAQ_ITEMS } from "@/lib/crypto-tokens";
 
 export default function FAQSection() {
-  const [open, setOpen] = useState<number | null>(0);
-
   return (
-    <section>
-      <p className="section-label mb-4">Frequently Asked Questions</p>
-      <div className="divide-y divide-[#1e2535] border border-[#1e2535] rounded-2xl overflow-hidden">
+    <section aria-labelledby="crypto-faq" className="max-w-3xl">
+      <h2 id="crypto-faq" className="mb-4 text-title2 text-ink">
+        Frequently asked questions
+      </h2>
+      <div className="divide-y divide-line-soft border-y border-line-soft">
         {FAQ_ITEMS.map((item, i) => (
-          <div key={i}>
-            <button
-              type="button"
-              onClick={() => setOpen(open === i ? null : i)}
-              className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-[#0d1117] transition-colors"
-            >
-              <span className="text-white text-sm font-semibold pr-4">{item.q}</span>
-              <ChevronDown
-                size={16}
-                className={`text-gray-500 shrink-0 transition-transform ${open === i ? "rotate-180" : ""}`}
-              />
-            </button>
-            {open === i && (
-              <div className="px-6 pb-5">
-                <p className="text-gray-400 text-sm leading-relaxed">{item.a}</p>
-              </div>
-            )}
-          </div>
+          <details key={item.q} className="group" open={i === 0}>
+            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 text-headline text-ink [&::-webkit-details-marker]:hidden">
+              {item.q}
+              <span className="text-title3 font-normal text-ink-2 transition-transform group-open:rotate-45" aria-hidden="true">
+                +
+              </span>
+            </summary>
+            <p className="pb-4 text-body text-ink-2">{item.a}</p>
+          </details>
         ))}
       </div>
     </section>

@@ -4,12 +4,11 @@ import GainersLosers from "./GainersLosers";
 
 export default function MarketSidebar() {
   return (
-    <aside className="w-full min-h-0 space-y-4 bg-white p-3 sm:p-4 lg:border-l">
+    <aside className="w-full space-y-5" aria-label="Market data">
+      <h2 className="text-headline text-ink">Markets</h2>
       <TradingViewOverview />
-
       <TradingViewMini symbol="NASDAQ:NVDA" />
       <TradingViewMini symbol="BINANCE:BTCUSDT" />
-
       <PolygonTickers />
       <GainersLosers />
     </aside>

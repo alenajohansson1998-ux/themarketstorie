@@ -1,99 +1,101 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { CURRENCIES } from '../../../lib/forex/currencies';
-import { getHeatmapColor } from './colorScale';
-
-const FLAG_API_KEY = process.env.NEXT_PUBLIC_NINJAS_API_KEY || '';
-const codeToCountry: Record<string, string> = {
-  EUR: 'EU', USD: 'US', GBP: 'GB', JPY: 'JP', CHF: 'CH', AUD: 'AU', CNY: 'CN', CAD: 'CA', INR: 'IN',
-};
-function Flag({ code, alt }: { code: string; alt?: string }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const cache = useRef<Record<string, string>>({});
-  useEffect(() => {
-    const country = codeToCountry[code];
-    if (!country) return;
-    // Try localStorage first
-    const localKey = `flag_url_${country}`;
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(localKey) : null;
-    if (stored) {
-      setUrl(stored);
-      cache.current[country] = stored;
-      return;
-    }
-    if (cache.current[country]) {
-      setUrl(cache.current[country]);
-      return;
-    }
-    fetch(`https://api.api-ninjas.com/v1/countryflag?country=${country}`, {
-      headers: { 'X-Api-Key': FLAG_API_KEY },
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.rectangle_image_url) {
-          cache.current[country] = data.rectangle_image_url;
-          setUrl(data.rectangle_image_url);
-          try {
-            if (typeof window !== 'undefined') {
-              localStorage.setItem(localKey, data.rectangle_image_url);
-            }
-          } catch {}
-        }
-      })
-      .catch(() => setUrl(null));
-  }, [code]);
-  if (!url) return <span className="inline-block mr-2 text-xl align-middle">{code}</span>;
-  return <img src={url} alt={alt || code} className="inline-block w-6 h-6 mr-2 align-middle rounded-full border" />;
-}
+import { formatPercent, getHeatmapColor } from './colorScale';
+import CurrencyFlag from '@/components/forex/CurrencyFlag';
 
 const TIME_FILTERS = ['1D', '1W', '1M', '3M', '6M', '1Y', 'YTD', 'All'];
 
-function Tooltip({ base, quote, value }: { base: string; quote: string; value: number | null }) {
-  if (value === null) return null;
-  return (
-    <div className="absolute z-50 p-3 text-sm bg-white border rounded-lg shadow-lg min-w-[120px]">
-      <div className="flex items-center gap-2 mb-1">
-        <Flag code={base} alt={base} /> <b>{base}</b>
-        <span className="text-gray-500">vs</span>
-        <Flag code={quote} alt={quote} /> <b>{quote}</b>
-      </div>
-      <div className="font-mono text-lg font-bold">{value > 0 ? '+' : ''}{value?.toFixed(2)}%</div>
-    </div>
-  );
-}
+type Cell = { base: string; quote: string; changePercent: number } | null;
 
-export default function HeatmapTable() {
-  const [matrix, setMatrix] = useState<Array<Array<{ base: string; quote: string; changePercent: number } | null>>>(Array(CURRENCIES.length).fill(null).map(() => Array(CURRENCIES.length).fill(null)));
+const emptyMatrix = (): Cell[][] =>
+  Array(CURRENCIES.length)
+    .fill(null)
+    .map(() => Array(CURRENCIES.length).fill(null));
+
+export default function HeatmapTable({ showAbout = true }: { showAbout?: boolean }) {
+  const [matrix, setMatrix] = useState<Cell[][]>(emptyMatrix);
   const [filter, setFilter] = useState('1D');
-  const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
   useEffect(() => {
+    let active = true;
+    setStatus('loading');
     fetch(`/api/tools/forex-heatmap?filter=${filter}`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return;
         if (Array.isArray(data.matrix) && data.matrix.length === CURRENCIES.length) {
           setMatrix(data.matrix);
+          setStatus('ready');
         } else {
-          setMatrix(Array(CURRENCIES.length).fill(null).map(() => Array(CURRENCIES.length).fill(null)));
+          setMatrix(emptyMatrix());
+          setStatus('error');
         }
       })
       .catch(() => {
-        setMatrix(Array(CURRENCIES.length).fill(null).map(() => Array(CURRENCIES.length).fill(null)));
+        if (!active) return;
+        setMatrix(emptyMatrix());
+        setStatus('error');
       });
+    return () => {
+      active = false;
+    };
   }, [filter]);
 
   return (
     <>
-      <div className="overflow-auto">
-        {/* ...existing code... */}
-        <table className="min-w-max w-full border-separate border-spacing-0 rounded-xl shadow bg-white text-xs sm:text-base">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div role="group" aria-label="Period" className="no-scrollbar inline-flex max-w-full overflow-x-auto rounded-control bg-fill p-1">
+          {TIME_FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={filter === f}
+              onClick={() => setFilter(f)}
+              className={`inline-flex h-9 min-w-11 items-center justify-center rounded-md px-2.5 text-subhead font-medium transition-colors ${
+                filter === f ? 'bg-canvas text-ink shadow-sm' : 'text-ink-2 hover:text-ink'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        <Link
+          href="/tools/forex-heatmap/all-rates"
+          className="inline-flex min-h-11 items-center text-subhead font-medium text-tint hover:underline"
+        >
+          All rates and cross rates
+        </Link>
+      </div>
+
+      {status === 'error' ? (
+        <p role="status" className="mb-4 rounded-control bg-surface px-4 py-3 text-subhead text-ink-2">
+          Currency data didn’t load. Choose a period to try again.
+        </p>
+      ) : null}
+
+      <div className="overflow-x-auto rounded-card border border-line-soft">
+        <table className="w-full min-w-max border-separate border-spacing-0 text-subhead tabular-nums" aria-busy={status === 'loading'}>
+          <caption className="sr-only">
+            Percentage change of each base currency (rows) against each quote currency (columns) over {filter}
+          </caption>
           <thead>
             <tr>
-              <th className="sticky left-0 top-0 bg-white z-20 rounded-tl-xl"></th>
-              {CURRENCIES.map((c, colIdx) => (
-                <th key={c.code} className={`sticky top-0 bg-white z-10 px-2 sm:px-4 py-2 sm:py-3 text-base font-bold border-b border-r first:rounded-tr-xl text-center`}>
-                  <Flag code={c.code} alt={c.code} />
-                  <span className="font-bold align-middle">{c.code}</span>
+              <th scope="col" className="sticky left-0 top-0 z-20 bg-canvas p-3">
+                <span className="sr-only">Base currency</span>
+              </th>
+              {CURRENCIES.map((c) => (
+                <th
+                  key={c.code}
+                  scope="col"
+                  className="sticky top-0 z-10 whitespace-nowrap border-b border-line-soft bg-canvas px-3 py-3 text-center font-semibold text-ink"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <CurrencyFlag code={c.code} />
+                    {c.code}
+                  </span>
                 </th>
               ))}
             </tr>
@@ -101,107 +103,75 @@ export default function HeatmapTable() {
           <tbody>
             {CURRENCIES.map((base, rowIdx) => (
               <tr key={base.code}>
-                <th className={`sticky left-0 bg-white z-10 px-2 sm:px-4 py-2 sm:py-3 text-base font-bold border-b border-r text-center ${rowIdx === CURRENCIES.length - 1 ? 'rounded-bl-xl' : ''}`}>
-                  <Flag code={base.code} alt={base.code} />
-                  <span className="font-bold align-middle">{base.code}</span>
+                <th
+                  scope="row"
+                  className="sticky left-0 z-10 whitespace-nowrap border-r border-line-soft bg-canvas px-3 py-3 text-left font-semibold text-ink"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <CurrencyFlag code={base.code} />
+                    {base.code}
+                  </span>
                 </th>
                 {CURRENCIES.map((quote, colIdx) => {
+                  if (rowIdx === colIdx) {
+                    return <td key={quote.code} className="border-b border-r border-canvas bg-surface" aria-hidden="true" />;
+                  }
                   const cell = matrix[rowIdx]?.[colIdx] ?? null;
-                  if (rowIdx === colIdx) return <td key={quote.code} className={`border bg-gray-50 text-center ${rowIdx === CURRENCIES.length - 1 && colIdx === CURRENCIES.length - 1 ? 'rounded-br-xl' : ''}`}></td>;
-                  const color = cell ? getHeatmapColor(cell.changePercent) : 'bg-gray-100';
+                  const value = cell ? formatPercent(cell.changePercent) : null;
                   return (
                     <td
                       key={quote.code}
-                      className={`border text-center font-bold text-base sm:text-lg cursor-pointer relative transition-colors duration-200 ${color} px-2 sm:px-4 py-2 sm:py-3`}
-                      style={{ minWidth: 56, minHeight: 40 }}
-                      onMouseEnter={() => setHover({ row: rowIdx, col: colIdx })}
-                      onMouseLeave={() => setHover(null)}
+                      title={value ? `${base.code}/${quote.code} ${value}` : undefined}
+                      className={`min-w-16 border-b border-r border-canvas px-3 py-3 text-center font-semibold transition-colors ${
+                        cell ? getHeatmapColor(cell.changePercent) : 'bg-surface text-ink-3'
+                      }`}
                     >
-                      {cell ? (cell.changePercent > 0 ? '+' : '') + cell.changePercent.toFixed(2) + '%' : ''}
-                      {hover?.row === rowIdx && hover?.col === colIdx && cell && (
-                        <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8, zIndex: 50 }}>
-                          <Tooltip base={base.code} quote={quote.code} value={cell.changePercent} />
-                        </div>
+                      {status === 'loading' ? (
+                        <span className="inline-block h-3 w-10 animate-pulse rounded bg-fill" aria-hidden="true" />
+                      ) : value ? (
+                        <>
+                          <span className="sr-only">
+                            {base.code} against {quote.code}:{' '}
+                          </span>
+                          {value}
+                        </>
+                      ) : (
+                        '—'
                       )}
                     </td>
                   );
                 })}
               </tr>
-            ))} 
+            ))}
           </tbody>
         </table>
-        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-2">
-          <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
-            {TIME_FILTERS.map(f => (
-              <button
-                key={f}
-                className={`px-3 py-1 rounded border font-semibold ${filter === f ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'}`}
-                onClick={() => setFilter(f)}
-              >{f}</button>
-            ))}
-          </div>
-          <a href="/tools/forex-heatmap/all-rates" className="text-blue-600 font-semibold hover:underline ml-4">See all rates ›</a>
-        </div>
       </div>
-      <section className="mt-8 bg-white rounded-xl shadow p-6 text-gray-800">
-        <h1 className="text-2xl font-bold mb-4">Forex Heatmap – Global Currency Strength Overview</h1>
-        <p className="mb-4">The Forex Heatmap displays live forex rates and global currency strength in a visual matrix. It helps users quickly identify strong and weak currencies, monitor forex market trends, and analyze currency pair performance in real time.</p>
-        <h2 className="text-xl font-semibold mt-6 mb-2">What This Forex Heatmap Shows</h2>
-        <ul className="list-disc ml-6 mb-4">
-          <li>Live forex heatmap comparing major global currencies</li>
-          <li>Currency strength meter based on percentage change</li>
-          <li>Real-time forex rates with color-coded momentum</li>
-          <li>Clear view of forex market sentiment</li>
-          <li>Fast comparison of major and cross currency pairs</li>
-        </ul>
-        <h2 className="text-xl font-semibold mt-6 mb-2">Currencies Covered</h2>
-        <ul className="list-disc ml-6 mb-4">
-          <li>US Dollar (USD)</li>
-          <li>Euro (EUR)</li>
-          <li>British Pound (GBP)</li>
-          <li>Japanese Yen (JPY)</li>
-          <li>Swiss Franc (CHF)</li>
-          <li>Australian Dollar (AUD)</li>
-          <li>Canadian Dollar (CAD)</li>
-          <li>Chinese Yuan (CNY)</li>
-          <li>Indian Rupee (INR)</li>
-        </ul>
-        <p className="mb-4">Supports analysis of major forex pairs, cross rates, and global currency movements.</p>
-        <h2 className="text-xl font-semibold mt-6 mb-2">Timeframe Analysis</h2>
-        <ul className="list-disc ml-6 mb-4">
-          <li>1D, 1W, 1M, 3M, 6M</li>
-          <li>1Y, YTD, All</li>
-        </ul>
-        <p className="mb-4">Allows tracking of intraday forex trends, short-term momentum, and long-term currency performance.</p>
-        <h2 className="text-xl font-semibold mt-6 mb-2">How Traders Use This Forex Tool</h2>
-        <ul className="list-disc ml-6 mb-4">
-          <li>Find the strongest and weakest currencies today</li>
-          <li>Confirm forex trend direction</li>
-          <li>Monitor currency strength vs weakness</li>
-          <li>Analyze forex market momentum across sessions</li>
-          <li>Support technical and fundamental analysis</li>
-        </ul>
-        <h2 className="text-xl font-semibold mt-6 mb-2">Market Session Coverage</h2>
-        <ul className="list-disc ml-6 mb-4">
-          <li>Asian forex session</li>
-          <li>European forex session</li>
-          <li>US forex session</li>
-        </ul>
-        <p className="mb-4">Reflects 24-hour global forex market activity.</p>
-        <h2 className="text-xl font-semibold mt-6 mb-2">Data & Update Information</h2>
-        <ul className="list-disc ml-6 mb-4">
-          <li>Live forex market data</li>
-          <li>Updates every 5–10 minutes</li>
-          <li>Indicative prices for market analysis and education</li>
-        </ul>
-        <h2 className="text-xl font-semibold mt-6 mb-2">Designed For</h2>
-        <ul className="list-disc ml-6 mb-4">
-          <li>Forex traders</li>
-          <li>Currency market analysts</li>
-          <li>Investors tracking exchange rates</li>
-          <li>Users monitoring global forex markets</li>
-        </ul>
-      </section>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-footnote text-ink-2" aria-hidden="true">
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-up" /> Stronger</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-down" /> Weaker</span>
+        <span>Rates from the European Central Bank, updated on business days.</span>
+      </div>
+
+      {showAbout ? (
+        <section className="article-body mt-12 border-t border-line-soft pt-8">
+          <h2>About the forex heatmap</h2>
+          <p>
+            Each cell shows how much the base currency (row) moved against the quote currency (column) over the
+            selected period. Green means the base currency strengthened; red means it weakened. Darker shades mean a
+            bigger move.
+          </p>
+          <h3>How traders use it</h3>
+          <ul>
+            <li>Find the strongest and weakest currencies at a glance</li>
+            <li>Confirm a trend before looking at an individual pair</li>
+            <li>Compare short-term momentum with longer periods (1D against 1M or YTD)</li>
+          </ul>
+          <h3>Currencies covered</h3>
+          <p>US dollar, euro, British pound, Japanese yen, Swiss franc, Australian dollar, Canadian dollar, Chinese yuan and Indian rupee.</p>
+          <p>Rates are indicative and for analysis only. They may differ from prices on trading platforms.</p>
+        </section>
+      ) : null}
     </>
   );
 }

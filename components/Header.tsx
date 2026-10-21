@@ -1,635 +1,617 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { DateTime } from 'luxon';
-// Real-time New York time component
-function NYTime() {
-  const [now, setNow] = useState(() => DateTime.now().setZone('America/New_York'));
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(DateTime.now().setZone('America/New_York'));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Example: "Wed, 24 Jan 2026 - 09:32:15 AM ET"
-  const formatted = now.toFormat("ccc, dd LLL yyyy - hh:mm:ss a 'ET'");
-  return (
-    <span
-      className="hidden sm:inline ml-3 text-xs font-medium text-gray-400 select-none font-mono"
-      style={{
-        letterSpacing: '0.01em',
-        minWidth: 210,
-        maxWidth: 210,
-        display: 'inline-block',
-        textAlign: 'left',
-        whiteSpace: 'nowrap',
-        fontVariantNumeric: 'tabular-nums',
-      }}
-      aria-label="New York time"
-      suppressHydrationWarning
-    >
-      {formatted}
-    </span>
-  );
-}
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Search, ChevronDown } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { ChevronDown, Menu, Search, X } from 'lucide-react';
 import AuthModal from './AuthModal';
+import Logo, { LogoMark } from './Logo';
+import { useNavData, type NavLink } from '@/lib/navData';
+import { trapFocus, useDismiss, useScrollLock } from '@/lib/useDismiss';
 
-interface Category {
-  _id: string;
-  name: string;
-  slug: string;
-  showInHeader?: boolean;
-  isMainHeader?: boolean;
-}
-
-interface NavItem {
-  _id: string;
-  name: string;
-  href: string;
-  order: number;
-  isActive: boolean;
-}
-
-interface HeaderLink {
-  name: string;
-  href: string;
-}
-
-interface Post {
+interface SearchResult {
   _id: string;
   title: string;
   slug: string;
-  excerpt: string;
-  category: { name: string; slug: string };
-  author: { name: string };
-  createdAt: string;
+  excerpt?: string;
+  category?: { name: string; slug: string };
 }
 
-const FALLBACK_PRIMARY_NAV: HeaderLink[] = [
+const PRIMARY_NAV: NavLink[] = [
+  { name: 'News', href: '/blog' },
   { name: 'Markets', href: '/markets' },
-  { name: 'Brokers', href: '/brokers' },
   { name: 'Learn', href: '/learn' },
-  { name: 'Screener', href: '/screener' },
+  { name: 'Brokers', href: '/brokers' },
 ];
 
 const TOOLS_NAV = [
-  { name: 'All Tools', href: '/tools', desc: 'Browse all financial tools' },
-  { name: 'Crypto Converter', href: '/crypto-converter', desc: 'Live crypto ↔ fiat converter' },
-  { name: 'Forex Heatmap', href: '/tools/forex-heatmap', desc: 'Real-time forex rate heatmap' },
+  { name: 'All Tools', href: '/tools', desc: 'Every converter, map and screener' },
+  { name: 'Crypto Converter', href: '/crypto-converter', desc: 'Convert 65+ coins into 30+ currencies' },
+  { name: 'Forex Heatmap', href: '/tools/forex-heatmap', desc: 'Currency strength at a glance' },
   { name: 'Stock Screener', href: '/screener', desc: 'Filter stocks by fundamentals' },
 ];
 
-const MOBILE_SECONDARY_LINKS: HeaderLink[] = [
-  { name: 'Blog', href: '/blog' },
+const SECONDARY_LINKS: NavLink[] = [
   { name: 'About', href: '/about' },
   { name: 'Contact', href: '/contact' },
-  { name: 'Terms & Conditions', href: '/terms' },
-  { name: 'Privacy Policy', href: '/privacy' },
-  { name: 'Subscription', href: '/subscription' },
+  { name: 'Advertise', href: '/advertise' },
+  { name: 'Newsletter', href: '/subscription' },
+  { name: 'Terms', href: '/terms' },
+  { name: 'Privacy', href: '/privacy' },
 ];
 
-const MOBILE_SECONDARY_LINK_HREFS = new Set(MOBILE_SECONDARY_LINKS.map((item) => item.href));
+const SECONDARY_HREFS = new Set(SECONDARY_LINKS.map((item) => item.href));
+const NEWS_PREFIXES = ['/blog', '/category/', '/tag/', '/author/', '/search'];
+
+function isCurrent(pathname: string, href: string) {
+  if (href === '/blog') {
+    return NEWS_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix));
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/* ---------- Search ---------- */
+
+function useArticleSearch(query: string) {
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done'>('idle');
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 3) {
+      setResults([]);
+      setStatus('idle');
+      return;
+    }
+    const controller = new AbortController();
+    setStatus('loading');
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ search: trimmed, limit: '5', status: 'published' });
+        const response = await fetch(`/api/cms/posts?${params}`, { signal: controller.signal });
+        const data = await response.json();
+        setResults(data?.success && Array.isArray(data.data) ? data.data : []);
+      } catch {
+        if (!controller.signal.aborted) setResults([]);
+      } finally {
+        if (!controller.signal.aborted) setStatus('done');
+      }
+    }, 250);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  return { results, status };
+}
+
+function SearchForm({
+  id,
+  autoFocus,
+  onNavigate,
+}: {
+  id: string;
+  autoFocus?: boolean;
+  onNavigate: () => void;
+}) {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const { results, status } = useArticleSearch(query);
+  const trimmed = query.trim();
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!trimmed) return;
+    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    onNavigate();
+  }
+
+  return (
+    <div>
+      <form role="search" onSubmit={submit} className="relative">
+        <label htmlFor={id} className="sr-only">
+          Search articles
+        </label>
+        <Search
+          size={18}
+          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-2"
+          aria-hidden="true"
+        />
+        <input
+          id={id}
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search news, markets and tools"
+          autoFocus={autoFocus}
+          autoComplete="off"
+          className="h-11 w-full rounded-control bg-surface pl-10 pr-4 text-body text-ink placeholder:text-ink-3"
+        />
+      </form>
+
+      {trimmed.length >= 3 ? (
+        <div className="mt-3" aria-live="polite">
+          {status === 'loading' && results.length === 0 ? (
+            <p className="px-1 py-2 text-subhead text-ink-2">Searching…</p>
+          ) : results.length === 0 && status === 'done' ? (
+            <p className="px-1 py-2 text-subhead text-ink-2">No articles match “{trimmed}”.</p>
+          ) : (
+            <ul className="divide-y divide-line-soft">
+              {results.map((post) => (
+                <li key={post._id}>
+                  <Link
+                    href={`/${post.category?.slug ?? 'blog'}/${post.slug}`}
+                    onClick={onNavigate}
+                    className="block rounded-control px-1 py-3 hover:bg-surface"
+                  >
+                    {post.category?.name ? (
+                      <span className="text-caption font-semibold uppercase tracking-wide text-ink-2">
+                        {post.category.name}
+                      </span>
+                    ) : null}
+                    <span className="mt-0.5 block text-headline text-ink">{post.title}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link
+            href={`/search?q=${encodeURIComponent(trimmed)}`}
+            onClick={onNavigate}
+            className="mt-2 inline-flex min-h-11 items-center px-1 text-subhead font-medium text-tint hover:underline"
+          >
+            See all results for “{trimmed}”
+          </Link>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* ---------- Dropdown menu ---------- */
+
+function NavMenu({
+  label,
+  buttonContent,
+  align = 'left',
+  current,
+  children,
+}: {
+  label: string;
+  buttonContent: React.ReactNode;
+  align?: 'left' | 'right';
+  current?: boolean;
+  children: (close: () => void) => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
+
+  const close = useCallback((reason?: 'outside' | 'escape') => {
+    setOpen(false);
+    if (reason === 'escape') buttonRef.current?.focus();
+  }, []);
+
+  useDismiss(containerRef, open, close);
+
+  function focusItem(index: number) {
+    const items = containerRef.current?.querySelectorAll<HTMLElement>('[data-menu-item]');
+    if (!items || items.length === 0) return;
+    const next = (index + items.length) % items.length;
+    items[next].focus();
+  }
+
+  function handleMenuKeys(event: React.KeyboardEvent<HTMLDivElement>) {
+    const items = Array.from(containerRef.current?.querySelectorAll<HTMLElement>('[data-menu-item]') ?? []);
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      focusItem(index + 1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      focusItem(index - 1);
+    } else if (event.key === 'Tab') {
+      setOpen(false);
+    }
+  }
+
+  return (
+    <div className="relative" ref={containerRef} onKeyDown={open ? handleMenuKeys : undefined}>
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' && !open) {
+            event.preventDefault();
+            setOpen(true);
+            requestAnimationFrame(() => focusItem(0));
+          }
+        }}
+        className={`inline-flex h-11 items-center gap-1 rounded-control px-3 text-subhead font-medium transition-colors hover:text-ink ${
+          current || open ? 'text-ink' : 'text-ink/75'
+        }`}
+      >
+        {buttonContent}
+      </button>
+      {open ? (
+        <div
+          id={menuId}
+          className={`elevated absolute top-full z-50 mt-1 w-72 p-2 ${align === 'right' ? 'right-0' : 'left-0'}`}
+        >
+          {children(() => setOpen(false))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+const menuItemClass =
+  'block rounded-control px-3 py-2.5 text-subhead text-ink hover:bg-surface focus-visible:bg-surface';
+
+/* ---------- Header ---------- */
 
 export default function Header() {
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  // isMoreDropdownOpen: false | 'blog' | 'more' | 'tools'
-  const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState<false | 'blog' | 'more' | 'tools'>(false);
-  const [allCategories, setAllCategories] = useState<Category[]>([]);
-  const [subHeaderCategories, setSubHeaderCategories] = useState<Category[]>([]);
-  const [navItems, setNavItems] = useState<NavItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Post[]>([]);
-  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  const pathname = usePathname() || '/';
   const { data: session } = useSession();
-  const router = useRouter();
-  const profileDropdownRef = useRef<HTMLDivElement>(null);
-  const moreDropdownRef = useRef<HTMLDivElement>(null);
+  const { navItems, categories } = useNavData();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
   const searchRef = useRef<HTMLDivElement>(null);
-  const activeNavItems = navItems
-    .filter((item) => item.isActive && !MOBILE_SECONDARY_LINK_HREFS.has(item.href))
-    .map((item) => ({ name: item.name, href: item.href }));
-  const primaryNavItems = activeNavItems.length > 0 ? activeNavItems : FALLBACK_PRIMARY_NAV;
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const desktopSearchId = useId();
+  const mobileSearchId = useId();
 
-  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      if (searchQuery.trim()) {
-        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-        setIsSearchDropdownOpen(false);
-      }
-    }
-  };
+  const adminNav = navItems.filter((item) => !SECONDARY_HREFS.has(item.href));
+  const primaryNav = adminNav.length > 0 ? adminNav : PRIMARY_NAV;
+  const toolsCurrent = TOOLS_NAV.some((tool) => isCurrent(pathname, tool.href));
 
-  // Search functionality
-  useEffect(() => {
-    const fetchSearchResults = async () => {
-      if (searchQuery.trim().length > 2) {
-        try {
-          const params = new URLSearchParams();
-          params.append('search', searchQuery.trim());
-          params.append('limit', '5');
-          params.append('status', 'published');
-
-          const response = await fetch(`/api/cms/posts?${params}`);
-          const data = await response.json();
-
-          if (data.success) {
-            setSearchResults(data.data);
-            setIsSearchDropdownOpen(true);
-          }
-        } catch (error) {
-          console.error('Error fetching search results:', error);
-        }
-      } else {
-        setSearchResults([]);
-        setIsSearchDropdownOpen(false);
-      }
-    };
-
-    const debounceTimer = setTimeout(fetchSearchResults, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
-        setIsProfileDropdownOpen(false);
-      }
-      if (moreDropdownRef.current && !moreDropdownRef.current.contains(event.target as Node)) {
-        setIsMoreDropdownOpen(false);
-      }
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setIsSearchDropdownOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+  const closeSearch = useCallback((reason?: 'outside' | 'escape') => {
+    setIsSearchOpen(false);
+    if (reason === 'escape') searchButtonRef.current?.focus();
   }, []);
+  useDismiss(searchRef, isSearchOpen, closeSearch);
 
-  // Fetch header data
-  useEffect(() => {
-    async function fetchAllCategories() {
-      try {
-        const response = await fetch('/api/cms/categories');
-        if (response.ok) {
-          const data = await response.json();
-          setAllCategories(data.data || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch all categories:', error);
-      }
-    }
-
-    async function fetchSubHeaderCategories() {
-      try {
-        const response = await fetch('/api/categories/subheader');
-        if (response.ok) {
-          const data = await response.json();
-          setSubHeaderCategories(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch sub header categories:', error);
-      }
-    }
-
-    async function fetchNavItems() {
-      try {
-        const response = await fetch('/api/admin/nav');
-        if (response.ok) {
-          const data = await response.json();
-          setNavItems(data.navItems);
-        }
-      } catch (error) {
-        console.error('Failed to fetch nav items:', error);
-      }
-    }
-
-    // Fetch immediately on mount
-    fetchAllCategories();
-    fetchSubHeaderCategories();
-    fetchNavItems();
-
-    // Set up interval to fetch every 10 seconds
-    const interval = setInterval(() => {
-      fetchAllCategories();
-      fetchSubHeaderCategories();
-      fetchNavItems();
-    }, 10000);
-
-    return () => clearInterval(interval);
+  const closeSheet = useCallback(() => {
+    setIsSheetOpen(false);
+    menuButtonRef.current?.focus();
   }, []);
+  useScrollLock(isSheetOpen);
 
+  useEffect(() => {
+    if (!isSheetOpen) return;
+    // Move focus into the sheet so keyboard and screen-reader users start inside it.
+    requestAnimationFrame(() => {
+      sheetRef.current?.querySelector<HTMLElement>('button[aria-label="Close menu"]')?.focus();
+    });
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') closeSheet();
+      else trapFocus(event, sheetRef.current);
+    }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isSheetOpen, closeSheet]);
 
+  const user = session?.user;
+  const initial = user?.name?.charAt(0).toUpperCase() ?? '?';
 
   return (
     <>
+      <header className="nav-material sticky top-0 z-50 border-b border-line-soft">
+        <div className="site-shell flex h-13 items-center gap-2 px-4 md:px-6" ref={searchRef}>
+          <Link href="/" aria-label="TheMarketStories home" className="mr-2 inline-flex h-11 shrink-0 items-center rounded-control">
+            <span className="hidden sm:inline-flex">
+              <Logo />
+            </span>
+            <span className="text-ink sm:hidden">
+              <LogoMark />
+            </span>
+          </Link>
 
-
-      <header className="fixed top-0 left-0 w-full z-50" style={{ background: 'transparent' }}>
-        {/* TOP HEADER */}
-        <div className="glass" style={{
-          position: 'relative',
-          width: '100%',
-          margin: 0,
-          padding: 0,
-          boxShadow: 'var(--glass-shadow)',
-          borderRadius: 0,
-          backdropFilter: 'blur(var(--glass-blur))',
-          WebkitBackdropFilter: 'blur(var(--glass-blur))',
-          background: 'rgba(5, 5, 7, 0.97)',
-        }}>
-          <div className="site-shell px-4 py-3 relative flex items-center justify-center">
-            {/* NY Time right-aligned absolute */}
-            <div className="hidden md:flex items-center absolute right-4 top-1/2 -translate-y-1/2">
-              <NYTime />
-            </div>
-            {/* Centered Logo (remains visually centered) */}
-            <div className="flex items-center justify-center w-full">
-              <Link href="/" className="flex items-center gap-2 text-xl font-bold justify-center w-full" style={{ color: '#fff', letterSpacing: '-0.5px' }}>
-                <img src="/logos/header-2.PNG" alt="Logo2" className="h-8 w-auto mr-2" style={{ display: 'inline-block' }} />
-                <span className="hidden md:inline">THEMARKETSTORIES</span>
-              </Link>
-              {/* Hamburger for mobile (absolute right) */}
-              <button
-                className="md:hidden flex items-center px-2 py-1 text-white focus:outline-none absolute right-0"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                aria-label="Open menu"
+          {/* Desktop navigation */}
+          <nav aria-label="Primary" className="hidden min-w-0 flex-1 items-center md:flex">
+            {primaryNav.slice(0, 2).map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isCurrent(pathname, item.href) ? 'page' : undefined}
+                className="inline-flex h-11 items-center rounded-control px-3 text-subhead font-medium text-ink/75 transition-colors hover:text-ink aria-[current=page]:text-ink"
               >
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile menu drawer */}
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex flex-col md:hidden" style={{backdropFilter:'blur(2px)'}}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-              <Link href="/" className="text-xl font-bold" style={{ color: '#fff', letterSpacing: '-0.5px' }}>
-                THEMARKETSTORIES
+                {item.name}
               </Link>
-              <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu" className="text-white p-2">
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <nav className="flex flex-col gap-2 px-4 py-4">
-              {primaryNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="py-2 text-white"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
-              <div className="border-t border-gray-700 pt-2 mt-1">
-                <p className="text-xs text-gray-500 uppercase tracking-widest mb-2 px-0">Tools</p>
-                {TOOLS_NAV.map((tool) => (
-                  <Link
-                    key={tool.href}
-                    href={tool.href}
-                    className="py-2 text-white block"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {tool.name}
-                  </Link>
-                ))}
-              </div>
-              {MOBILE_SECONDARY_LINKS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="py-2 text-white"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
-              {session?.user ? (
-                <button onClick={()=>{signOut(); setIsMobileMenuOpen(false);}} className="py-2 text-white text-left">Logout</button>
-              ) : (
-                <button onClick={()=>{setIsAuthModalOpen(true); setIsMobileMenuOpen(false);}} className="py-2 text-white text-left">Sign In</button>
-              )}
-            </nav>
-          </div>
-        )}
-
-        {/* MAIN NAV */}
-        <div className="glass hidden md:block" style={{
-          margin: 0,
-          borderRadius: 0,
-          boxShadow: 'none',
-          padding: 0,
-          background: 'rgba(36,36,40,0.96)',
-        }}>
-          <div className="site-shell px-4 py-2">
-            <nav className="flex items-center justify-between text-sm" style={{ color: '#ccc' }}>
-              <div className="flex items-center justify-between w-full">
-                {/* LEFT: Static Navigation */}
-                <div className="flex gap-5 items-center whitespace-nowrap flex-1 min-w-0">
-                  {primaryNavItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="glass-hover shrink-0"
-                      style={{ color: '#fff', fontWeight: 500 }}
-                    >
-                      {item.name}
-                    </Link>
+            ))}
+            <NavMenu
+              label="Tools"
+              current={toolsCurrent}
+              buttonContent={
+                <>
+                  Tools <ChevronDown size={14} aria-hidden="true" />
+                </>
+              }
+            >
+              {(close) => (
+                <ul>
+                  {TOOLS_NAV.map((tool) => (
+                    <li key={tool.href}>
+                      <Link href={tool.href} data-menu-item onClick={close} className={menuItemClass}>
+                        <span className="block font-medium">{tool.name}</span>
+                        <span className="block text-footnote text-ink-2">{tool.desc}</span>
+                      </Link>
+                    </li>
                   ))}
-                  <div className="flex items-center gap-5 shrink-0" ref={moreDropdownRef}>
+                </ul>
+              )}
+            </NavMenu>
+            {primaryNav.slice(2).map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isCurrent(pathname, item.href) ? 'page' : undefined}
+                className="inline-flex h-11 items-center rounded-control px-3 text-subhead font-medium text-ink/75 transition-colors hover:text-ink aria-[current=page]:text-ink"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
 
-                    {/* Tools dropdown */}
-                    <div className="relative">
-                      <button
-                        className="glass-hover shrink-0 flex items-center gap-1"
-                        style={{ color: '#fff', fontWeight: 500 }}
-                        onClick={() => setIsMoreDropdownOpen(isMoreDropdownOpen === 'tools' ? false : 'tools')}
-                      >
-                        Tools <ChevronDown size={16} />
-                      </button>
-                      {isMoreDropdownOpen === 'tools' && (
-                        <div
-                          className="absolute left-0 top-full mt-2 w-56 glass shadow-lg z-50"
-                          style={{ background: 'rgba(36,36,40,0.97)', color: '#fff' }}
-                          onMouseLeave={() => setIsMoreDropdownOpen(false)}
-                        >
-                          {TOOLS_NAV.map((tool) => (
-                            <Link
-                              key={tool.href}
-                              href={tool.href}
-                              className="block px-4 py-3 text-sm glass-hover border-b border-gray-800 last:border-0"
-                              style={{ color: '#fff' }}
-                              onClick={() => setIsMoreDropdownOpen(false)}
-                            >
-                              <span className="font-medium">{tool.name}</span>
-                              <span className="block text-xs text-gray-400 mt-0.5">{tool.desc}</span>
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              ref={searchButtonRef}
+              type="button"
+              aria-label={isSearchOpen ? 'Close search' : 'Search'}
+              aria-expanded={isSearchOpen}
+              aria-controls="site-search-panel"
+              onClick={() => setIsSearchOpen((value) => !value)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-control text-ink/80 hover:text-ink"
+            >
+              {isSearchOpen ? <X size={20} aria-hidden="true" /> : <Search size={20} aria-hidden="true" />}
+            </button>
 
-                    {/* Blog dropdown */}
-                    <div className="relative">
-                      <button
-                        className="glass-hover shrink-0 flex items-center gap-1"
-                        style={{ color: '#fff', fontWeight: 500 }}
-                        onClick={() => setIsMoreDropdownOpen(isMoreDropdownOpen === 'blog' ? false : 'blog')}
-                      >
-                        Blog <ChevronDown size={16} />
-                      </button>
-                      {isMoreDropdownOpen === 'blog' && (
-                        <div
-                          className="absolute left-0 top-full mt-2 w-56 glass shadow-lg z-50"
-                          style={{ background: 'rgba(36,36,40,0.97)', color: '#fff' }}
-                          onMouseLeave={() => setIsMoreDropdownOpen(false)}
-                        >
-                          <Link href="/blog" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
-                            All Blog Posts
-                          </Link>
-                          <div className="border-t border-gray-700 my-1" />
-                          {allCategories.length === 0 && (
-                            <div className="px-4 py-2 text-xs text-gray-400">No categories</div>
-                          )}
-                          {allCategories.map(category => (
-                            <Link
-                              key={category._id}
-                              href={`/category/${category.slug}`}
-                              className="block px-4 py-2 text-sm glass-hover"
-                              style={{ color: '#fff' }}
-                              onClick={() => setIsMoreDropdownOpen(false)}
-                            >
-                              {category.name}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* More dropdown */}
-                    <div className="relative">
-                      <button
-                        className="glass-hover shrink-0 flex items-center gap-1"
-                        style={{ color: '#fff', fontWeight: 500 }}
-                        onClick={() => setIsMoreDropdownOpen(isMoreDropdownOpen === 'more' ? false : 'more')}
-                      >
-                        More <ChevronDown size={16} />
-                      </button>
-                      {isMoreDropdownOpen === 'more' && (
-                        <div
-                          className="absolute left-0 top-full mt-2 w-48 glass shadow-lg z-50"
-                          style={{ background: 'rgba(36,36,40,0.97)', color: '#fff' }}
-                          onMouseLeave={() => setIsMoreDropdownOpen(false)}
-                        >
-                          <Link href="/about" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
-                            About
-                          </Link>
-                          <Link href="/contact" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
-                            Contact
-                          </Link>
-                          <Link href="/terms" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
-                            Terms & Conditions
-                          </Link>
-                          <Link href="/privacy" className="block px-4 py-2 text-sm glass-hover" style={{ color: '#fff' }} onClick={() => setIsMoreDropdownOpen(false)}>
-                            Privacy Policy
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {/* RIGHT: Search and Actions */}
-                <div className="flex items-center gap-4 ml-4 shrink-0">
-                  <div className="relative" ref={searchRef}>
-                    <div className="flex items-center glass" style={{ padding: '0.25rem 0.75rem', background: 'rgba(24,24,28,0.85)' }}>
-                      <Search size={14} className="mr-2" style={{ color: '#bbb' }} />
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="Search..."
-                        className="bg-transparent text-sm outline-none w-36"
-                        style={{ color: '#fff', fontWeight: 500, letterSpacing: '-0.2px' }}
-                      />
-                    </div>
-                    {isSearchDropdownOpen && searchResults.length > 0 && (
-                      <div className="absolute right-0 top-full mt-1 w-80 glass z-50 max-h-96 overflow-y-auto" style={{ background: 'rgba(36,36,40,0.98)', color: '#fff', boxShadow: 'var(--glass-shadow)' }}>
-                        {searchResults.map((post) => (
-                          <Link
-                            key={post._id}
-                            href={`/${post.category.slug}/${post.slug}`}
-                            className="block px-4 py-3 glass-hover"
-                            style={{ color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-                            onClick={() => setIsSearchDropdownOpen(false)}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-medium truncate" style={{ color: '#fff' }}>
-                                  {post.title}
-                                </h4>
-                                <p className="text-xs mt-1 line-clamp-2" style={{ color: '#bbb' }}>
-                                  {post.excerpt}
-                                </p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <span className="text-xs" style={{ color: '#90cdf4', background: '#1a2233', borderRadius: 8, padding: '0.1rem 0.5rem' }}>
-                                    {post.category.name}
-                                  </span>
-                                  <span className="text-xs" style={{ color: '#aaa' }}>
-                                    by {post.author.name}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </Link>
-                        ))}
-                        <div className="px-4 py-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                          <Link
-                            href={`/blog?search=${encodeURIComponent(searchQuery)}`}
-                            className="text-sm glass-hover"
-                            style={{ color: '#90cdf4' }}
-                            onClick={() => setIsSearchDropdownOpen(false)}
-                          >
-                            View all results -&gt;
-                          </Link>
-                        </div>
+            <div className="hidden md:block">
+              {user ? (
+                <NavMenu
+                  label="Account"
+                  align="right"
+                  buttonContent={
+                    user.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={user.image} alt="" className="h-8 w-8 rounded-full bg-fill object-cover" />
+                    ) : (
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-fill text-footnote font-semibold text-ink">
+                        {initial}
+                      </span>
+                    )
+                  }
+                >
+                  {(close) => (
+                    <>
+                      <div className="border-b border-line-soft px-3 pb-2 pt-1">
+                        <p className="truncate text-subhead font-semibold text-ink">{user.name}</p>
+                        {user.email ? <p className="truncate text-footnote text-ink-2">{user.email}</p> : null}
                       </div>
-                    )}
-                  </div>
-                  {session?.user ? (
-                    <div className="relative" ref={profileDropdownRef}>
-                      <button
-                        onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                        className="flex items-center gap-2 glass-hover"
-                        style={{ color: '#fff' }}
-                      >
-                        <span>{session.user.name}</span>
-                        {session.user.image ? (
-                          <img
-                            src={session.user.image}
-                            alt="Profile"
-                            className="w-8 h-8 rounded-full"
-                            style={{ background: '#222' }}
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold">
-                            {session.user.name?.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <ChevronDown size={16} />
-                      </button>
-                      {isProfileDropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-48 glass shadow-lg z-50" style={{ background: 'rgba(36,36,40,0.97)', color: '#fff' }}>
-                          <Link
-                            href="/dashboard"
-                            className="block px-4 py-2 text-sm glass-hover"
-                            style={{ color: '#fff' }}
-                            onClick={() => setIsProfileDropdownOpen(false)}
-                          >
-                            Profile
+                      <ul className="pt-1">
+                        <li>
+                          <Link href="/dashboard" data-menu-item onClick={close} className={menuItemClass}>
+                            Dashboard
                           </Link>
-                          {session.user.role === 'admin' ? (
-                            <Link
-                              href="/admin"
-                              className="block px-4 py-2 text-sm glass-hover"
-                              style={{ color: '#fff' }}
-                              onClick={() => setIsProfileDropdownOpen(false)}
-                            >
-                              Admin Dashboard
+                        </li>
+                        {user.role === 'admin' ? (
+                          <li>
+                            <Link href="/admin" data-menu-item onClick={close} className={menuItemClass}>
+                              Admin
                             </Link>
-                          ) : (
-                            <Link
-                              href="/dashboard"
-                              className="block px-4 py-2 text-sm glass-hover"
-                              style={{ color: '#fff' }}
-                              onClick={() => setIsProfileDropdownOpen(false)}
-                            >
-                              Dashboard
-                            </Link>
-                          )}
-                          <Link
-                            href="/subscription"
-                            className="block px-4 py-2 text-sm glass-hover"
-                            style={{ color: '#fff' }}
-                            onClick={() => setIsProfileDropdownOpen(false)}
-                          >
-                            Subscription
+                          </li>
+                        ) : null}
+                        <li>
+                          <Link href="/subscription" data-menu-item onClick={close} className={menuItemClass}>
+                            Newsletter
                           </Link>
+                        </li>
+                        <li>
                           <button
+                            type="button"
+                            data-menu-item
                             onClick={() => {
+                              close();
                               signOut();
-                              setIsProfileDropdownOpen(false);
                             }}
-                            className="block w-full text-left px-4 py-2 text-sm glass-hover"
-                            style={{ color: '#fff' }}
+                            className={`${menuItemClass} w-full text-left`}
                           >
-                            Logout
+                            Sign out
                           </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setIsAuthModalOpen(true)}
-                      className="px-4 py-2 text-white focus:outline-none"
-                      style={{ background: 'transparent', borderRadius: 0, boxShadow: 'none' }}
-                    >
-                      Sign In
-                    </button>
+                        </li>
+                      </ul>
+                    </>
                   )}
-                </div>
-              </div>
-            </nav>
-          </div>
-        </div>
-
-        {/* SUB NAV */}
-        <div className="glass" style={{
-          margin: 0,
-          borderRadius: 0,
-          boxShadow: 'none',
-          padding: 0,
-          background: '#ffffff',
-          borderTop: '1px solid #e5e7eb',
-          borderBottom: '1px solid #e5e7eb',
-        }}>
-          <div className="w-full overflow-x-auto">
-            <div className="site-shell px-4 py-2">
-              <nav className="flex w-max min-w-full gap-5 text-xs whitespace-nowrap" style={{ color: '#111827' }}>
-                {subHeaderCategories.map(category => (
-                  <Link
-                    key={category._id}
-                    href={`/category/${category.slug}`}
-                    className="glass-hover"
-                    style={{ color: '#111111', fontWeight: 500 }}
-                  >
-                    {category.name}
-                  </Link>
-                ))}
-              </nav>
+                </NavMenu>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="inline-flex h-11 items-center rounded-control px-3 text-subhead font-medium text-tint hover:text-tint-strong"
+                >
+                  Sign in
+                </button>
+              )}
             </div>
+
+            <button
+              ref={menuButtonRef}
+              type="button"
+              aria-label="Open menu"
+              aria-expanded={isSheetOpen}
+              aria-controls="site-menu-sheet"
+              onClick={() => {
+                setIsSearchOpen(false);
+                setIsSheetOpen(true);
+              }}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-control text-ink/80 hover:text-ink md:hidden"
+            >
+              <Menu size={22} aria-hidden="true" />
+            </button>
           </div>
+
+          {isSearchOpen ? (
+            <div
+              id="site-search-panel"
+              className="absolute inset-x-0 top-full border-b border-line-soft bg-canvas shadow-[0_16px_32px_rgb(0_0_0/0.08)]"
+            >
+              <div className="mx-auto max-w-2xl px-4 py-5 md:px-6">
+                <SearchForm id={desktopSearchId} autoFocus onNavigate={() => setIsSearchOpen(false)} />
+              </div>
+            </div>
+          ) : null}
         </div>
       </header>
 
-      {/* AUTH MODAL */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
+      {/* Mobile menu sheet */}
+      {isSheetOpen ? (
+        <div
+          id="site-menu-sheet"
+          ref={sheetRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu"
+          className="fixed inset-0 z-[60] overflow-y-auto bg-canvas md:hidden"
+        >
+          <div className="flex h-13 items-center justify-between border-b border-line-soft px-4">
+            <Link href="/" onClick={() => setIsSheetOpen(false)} className="inline-flex h-11 items-center">
+              <Logo />
+            </Link>
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={closeSheet}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-control text-ink"
+            >
+              <X size={22} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="space-y-8 px-4 pb-12 pt-4">
+            <SearchForm id={mobileSearchId} onNavigate={() => setIsSheetOpen(false)} />
+
+            <nav aria-label="Primary">
+              <ul className="divide-y divide-line-soft">
+                {primaryNav.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setIsSheetOpen(false)}
+                      aria-current={isCurrent(pathname, item.href) ? 'page' : undefined}
+                      className="flex min-h-12 items-center text-title3 text-ink"
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            <section aria-labelledby="sheet-tools">
+              <h2 id="sheet-tools" className="section-label mb-2">
+                Tools
+              </h2>
+              <ul>
+                {TOOLS_NAV.map((tool) => (
+                  <li key={tool.href}>
+                    <Link
+                      href={tool.href}
+                      onClick={() => setIsSheetOpen(false)}
+                      className="flex min-h-11 items-center text-body text-ink"
+                    >
+                      {tool.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {categories.length > 0 ? (
+              <section aria-labelledby="sheet-sections">
+                <h2 id="sheet-sections" className="section-label mb-2">
+                  Sections
+                </h2>
+                <ul className="flex flex-wrap gap-2">
+                  {categories.map((category) => (
+                    <li key={category._id}>
+                      <Link
+                        href={`/category/${category.slug}`}
+                        onClick={() => setIsSheetOpen(false)}
+                        className="inline-flex min-h-11 items-center rounded-full bg-surface px-4 text-subhead text-ink"
+                      >
+                        {category.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            <section aria-labelledby="sheet-account" className="border-t border-line-soft pt-6">
+              <h2 id="sheet-account" className="sr-only">
+                Account
+              </h2>
+              {user ? (
+                <div className="space-y-1">
+                  <p className="text-footnote text-ink-2">Signed in as {user.name}</p>
+                  <Link href="/dashboard" onClick={() => setIsSheetOpen(false)} className="flex min-h-11 items-center text-body text-ink">
+                    Dashboard
+                  </Link>
+                  {user.role === 'admin' ? (
+                    <Link href="/admin" onClick={() => setIsSheetOpen(false)} className="flex min-h-11 items-center text-body text-ink">
+                      Admin
+                    </Link>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSheetOpen(false);
+                      signOut();
+                    }}
+                    className="flex min-h-11 items-center text-body text-tint"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSheetOpen(false);
+                    setIsAuthModalOpen(true);
+                  }}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-control bg-ink text-headline text-canvas"
+                >
+                  Sign in or create account
+                </button>
+              )}
+            </section>
+
+            <ul className="flex flex-wrap gap-x-5 text-subhead text-ink-2">
+              {SECONDARY_LINKS.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} onClick={() => setIsSheetOpen(false)} className="inline-flex min-h-11 items-center hover:text-ink">
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ) : null}
+
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </>
   );
 }

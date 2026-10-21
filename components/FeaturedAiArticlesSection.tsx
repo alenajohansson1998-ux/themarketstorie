@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import SafeImage from '@/components/SafeImage';
 
 type ArticleItem = {
   _id: string;
@@ -18,25 +20,18 @@ type ArticleItem = {
   } | null;
 };
 
+const AUTOPLAY_MS = 6000;
+
 function formatDate(value?: string | null) {
   if (!value) return "";
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
 function buildArticleHref(article: ArticleItem) {
   const categorySlug = article.category?.slug;
-  if (!categorySlug) {
-    return `/blog/${article.slug}`;
-  }
-  return `/${categorySlug}/${article.slug}`;
+  return categorySlug ? `/${categorySlug}/${article.slug}` : `/blog/${article.slug}`;
 }
 
 function stripHtml(value?: string) {
@@ -44,132 +39,85 @@ function stripHtml(value?: string) {
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function truncateText(value: string, maxLength: number) {
-  if (value.length <= maxLength) {
-    return value;
-  }
-
-  return `${value.slice(0, maxLength).trimEnd()}...`;
-}
-
-const TITLE_MAX_LENGTH = 60;
-
-function getExcerpt(article: ArticleItem, maxLength = 140) {
-  const excerpt = stripHtml(article.excerpt);
-
-  if (!excerpt) {
-    return "AI-generated coverage, market context, and fast-moving developments from the global finance cycle.";
-  }
-
-  return truncateText(excerpt, maxLength);
-}
-
 function getCategoryLabel(article: ArticleItem) {
-  return article.category?.name || "AI";
+  return article.category?.name || "AI desk";
+}
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return reduced;
+}
+
+function SkeletonLines({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="space-y-6" aria-hidden="true">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="space-y-2">
+          <div className="h-3 w-24 animate-pulse rounded bg-fill" />
+          <div className="h-5 w-full animate-pulse rounded bg-fill" />
+          <div className="h-5 w-2/3 animate-pulse rounded bg-fill" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function FeaturedAiArticlesSection() {
   const [articles, setArticles] = useState<ArticleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [userPaused, setUserPaused] = useState(false);
+  const [interacting, setInteracting] = useState(false);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     let active = true;
 
     async function fetchArticles() {
       try {
-        const response = await fetch("/api/articles?limit=18&sort=-publishedAt", {
-          cache: "no-store",
-        });
+        const response = await fetch("/api/articles?limit=18&sort=-publishedAt", { cache: "no-store" });
         const data = await response.json();
-
-        if (!active || !data?.success || !Array.isArray(data.data)) {
-          return;
-        }
-
-        const filtered = data.data
-          .filter((item: ArticleItem) => item?.aiGenerated)
-          .slice(0, 9);
-
-        setArticles(filtered);
+        if (!active || !data?.success || !Array.isArray(data.data)) return;
+        setArticles(data.data.filter((item: ArticleItem) => item?.aiGenerated).slice(0, 9));
         setActiveIndex(0);
       } catch {
-        if (active) {
-          setArticles([]);
-          setActiveIndex(0);
-        }
+        if (active) setArticles([]);
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
     fetchArticles();
-
     return () => {
       active = false;
     };
   }, []);
 
-  const featuredSlides = articles.slice(0, 4);
-  const featured = featuredSlides[activeIndex] || articles[0];
-  const remainingArticles = featured
-    ? articles.filter((article) => article._id !== featured._id)
-    : articles;
-  const latestArticles = remainingArticles.slice(0, 3);
-  const mostReadArticles = remainingArticles.slice(3, 7).length > 0
-    ? remainingArticles.slice(3, 7)
-    : remainingArticles.slice(0, 4);
-  const categoryTabs = Array.from(
-    new Map(
-      articles
-        .filter((article) => article.category?.name)
-        .map((article) => [
-          article.category?.slug || article.category?.name || article._id,
-          {
-            name: article.category?.name || "AI",
-            slug: article.category?.slug,
-          },
-        ])
-    ).values()
-  ).slice(0, 3);
+  const slides = articles.slice(0, 4);
+  const slideCount = slides.length;
+  const featured = slides[activeIndex % Math.max(slideCount, 1)] || articles[0];
+  const remaining = featured ? articles.filter((article) => article._id !== featured._id) : articles;
+  const latestArticles = remaining.slice(0, 3);
+  const mostReadArticles = remaining.slice(3, 7).length > 0 ? remaining.slice(3, 7) : remaining.slice(0, 4);
+
+  const autoplay = slideCount > 1 && !reducedMotion && !userPaused && !interacting;
 
   useEffect(() => {
-    if (featuredSlides.length <= 1) {
-      setActiveIndex(0);
-      return;
-    }
+    if (!autoplay) return;
+    const id = setInterval(() => setActiveIndex((prev) => (prev + 1) % slideCount), AUTOPLAY_MS);
+    return () => clearInterval(id);
+  }, [autoplay, slideCount]);
 
-    setActiveIndex((prev) => prev % featuredSlides.length);
-  }, [featuredSlides.length]);
-
-  useEffect(() => {
-    if (featuredSlides.length <= 1) {
-      return;
-    }
-
-    const intervalId = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % featuredSlides.length);
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [featuredSlides.length]);
-
-  function handlePrevSlide() {
-    if (featuredSlides.length <= 1) {
-      return;
-    }
-
-    setActiveIndex((prev) => (prev - 1 + featuredSlides.length) % featuredSlides.length);
-  }
-
-  function handleNextSlide() {
-    if (featuredSlides.length <= 1) {
-      return;
-    }
-
-    setActiveIndex((prev) => (prev + 1) % featuredSlides.length);
+  function go(delta: number) {
+    if (slideCount <= 1) return;
+    setActiveIndex((prev) => (prev + delta + slideCount) % slideCount);
   }
 
   if (!loading && articles.length === 0) {
@@ -177,233 +125,176 @@ export default function FeaturedAiArticlesSection() {
   }
 
   return (
-    <section className="w-full bg-[#f8f6f2] px-4 py-4 md:px-6 md:py-5 xl:px-8">
-      <div className="site-container">
-        <div className="mb-4 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="section-label">
-              Editorial Layout
-            </p>
-            <h2 className="mt-1 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">
-              Featured AI News
-            </h2>
-          </div>
+    <section aria-labelledby="featured-ai" className="border-t border-line-soft pt-12">
+      <div className="mb-6">
+        <p className="section-label">AI desk</p>
+        <h2 id="featured-ai" className="mt-1 text-title2 text-ink sm:text-title1">
+          Featured AI news
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-1 gap-10 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(260px,0.8fr)] xl:gap-0 xl:divide-x xl:divide-line-soft">
+        {/* Spotlight carousel */}
+        <div
+          className="xl:pr-8"
+          aria-roledescription="carousel"
+          aria-label="AI spotlight"
+          onMouseEnter={() => setInteracting(true)}
+          onMouseLeave={() => setInteracting(false)}
+          onFocus={() => setInteracting(true)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node)) setInteracting(false);
+          }}
+        >
+          {featured ? (
+            <article
+              aria-roledescription="slide"
+              aria-label={slideCount > 1 ? `${(activeIndex % slideCount) + 1} of ${slideCount}` : undefined}
+              aria-live={autoplay ? "off" : "polite"}
+            >
+              <Link href={buildArticleHref(featured)} className="group block" tabIndex={-1} aria-hidden="true">
+                <div className="aspect-16/10 overflow-hidden rounded-media bg-fill">
+                  <SafeImage
+                    src={featured.image || "/herobaner.png"}
+                    alt=""
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  />
+                </div>
+              </Link>
+
+              <p className="mt-4 text-footnote text-ink-2">
+                <span className="font-semibold text-ink">{getCategoryLabel(featured)}</span>
+                {" · "}
+                <time dateTime={featured.publishedAt || featured.createdAt || undefined}>
+                  {formatDate(featured.publishedAt || featured.createdAt)}
+                </time>
+              </p>
+              <h3 className="mt-1 text-title2 text-ink">
+                <Link href={buildArticleHref(featured)} className="line-clamp-3 hover:underline">
+                  {featured.title}
+                </Link>
+              </h3>
+              <p className="mt-2 line-clamp-3 text-body text-ink-2">
+                {stripHtml(featured.excerpt) || "AI-generated coverage and market context from the global finance cycle."}
+              </p>
+            </article>
+          ) : (
+            <div aria-hidden="true">
+              <div className="aspect-16/10 animate-pulse rounded-media bg-fill" />
+              <div className="mt-4">
+                <SkeletonLines rows={1} />
+              </div>
+            </div>
+          )}
+
+          {slideCount > 1 ? (
+            <div className="mt-4 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => go(-1)}
+                aria-label="Previous story"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-ink hover:bg-surface"
+              >
+                <ChevronLeft size={20} aria-hidden="true" />
+              </button>
+              <div className="flex items-center">
+                {slides.map((article, index) => {
+                  const current = index === activeIndex % slideCount;
+                  return (
+                    <button
+                      key={article._id}
+                      type="button"
+                      onClick={() => setActiveIndex(index)}
+                      aria-label={`Show story ${index + 1}`}
+                      aria-current={current ? "true" : undefined}
+                      className="inline-flex h-11 w-7 items-center justify-center"
+                    >
+                      <span
+                        className={`block h-2 rounded-full transition-all ${current ? "w-5 bg-ink" : "w-2 bg-fill-2"}`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                onClick={() => go(1)}
+                aria-label="Next story"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-ink hover:bg-surface"
+              >
+                <ChevronRight size={20} aria-hidden="true" />
+              </button>
+              {!reducedMotion ? (
+                <button
+                  type="button"
+                  onClick={() => setUserPaused((value) => !value)}
+                  aria-pressed={userPaused}
+                  aria-label={userPaused ? "Play slideshow" : "Pause slideshow"}
+                  className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-2 hover:bg-surface hover:text-ink"
+                >
+                  {userPaused ? <Play size={16} aria-hidden="true" /> : <Pause size={16} aria-hidden="true" />}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
-        <div className="overflow-hidden rounded-[26px] border border-[#e9e0d4] bg-white shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
-          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.14fr)_minmax(0,0.96fr)_minmax(280px,0.82fr)] xl:divide-x xl:divide-[#ece5dc]">
-            <div className="p-5 sm:p-6">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-xl font-bold tracking-tight text-[#18130f]">AI Spotlight</h3>
-                  <span className="text-[#7e7063]">&rsaquo;</span>
-                </div>
-
-                <div className="flex flex-wrap gap-3 text-[11px] uppercase tracking-[0.18em] text-[#7c6f64]">
-                  {categoryTabs.map((tab) =>
-                    tab.slug ? (
-                      <Link key={tab.slug} href={`/category/${tab.slug}`} className="transition hover:text-black">
-                        {tab.name}
-                      </Link>
-                    ) : (
-                      <span key={tab.name}>{tab.name}</span>
-                    )
-                  )}
-                </div>
-              </div>
-
-              {featured ? (
-                <article>
-                  <div className="relative">
-                    <Link href={buildArticleHref(featured)} className="group block">
-                      <div className="overflow-hidden rounded-[18px] bg-white">
-                        <div className="aspect-[4/3] overflow-hidden bg-white p-2 sm:p-3">
-                          <img
-                            src={featured.image || "/herobaner.png"}
-                            alt={featured.title}
-                            className="h-full w-full rounded-[14px] bg-white object-contain transition duration-300 group-hover:scale-[1.02]"
-                          />
-                        </div>
-                      </div>
-                    </Link>
-
-                    {featuredSlides.length > 1 ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={handlePrevSlide}
-                          className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/92 text-xl text-black shadow-[0_8px_24px_rgba(15,23,42,0.16)] transition hover:bg-white"
-                          aria-label="Previous featured AI story"
-                        >
-                          &#8592;
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleNextSlide}
-                          className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/92 text-xl text-black shadow-[0_8px_24px_rgba(15,23,42,0.16)] transition hover:bg-white"
-                          aria-label="Next featured AI story"
-                        >
-                          &#8594;
-                        </button>
-                      </>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-3 text-[11px] text-[#8e8174]">
-                    {formatDate(featured.publishedAt || featured.createdAt)}
-                  </div>
-
-                  <Link href={buildArticleHref(featured)} className="group mt-2 block">
-                    <h4 className="text-[1.9rem] font-black leading-[1.05] tracking-tight text-[#18130f] transition group-hover:text-[#4c1d95]">
-                      {truncateText(featured.title, TITLE_MAX_LENGTH)}
-                    </h4>
-                  </Link>
-
-                  <p className="mt-3 text-[15px] leading-7 text-[#5e5449]">
-                    {getExcerpt(featured, 185)}
+        {/* Latest */}
+        <div className="xl:px-8">
+          <h3 className="mb-4 text-headline text-ink">Latest</h3>
+          {loading && latestArticles.length === 0 ? (
+            <SkeletonLines rows={3} />
+          ) : (
+            <ul className="divide-y divide-line-soft">
+              {latestArticles.map((article) => (
+                <li key={article._id} className="py-5 first:pt-0">
+                  <p className="text-footnote text-ink-2">
+                    <span className="font-semibold text-ink">{getCategoryLabel(article)}</span>
+                    {" · "}
+                    {formatDate(article.publishedAt || article.createdAt)}
                   </p>
-
-                  <div className="mt-3">
-                    <Link
-                      href={buildArticleHref(featured)}
-                      className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4338ca] transition hover:text-black"
-                    >
-                      Continue Reading
+                  <h4 className="mt-1 text-title3 text-ink">
+                    <Link href={buildArticleHref(article)} className="line-clamp-3 hover:underline">
+                      {article.title}
                     </Link>
-                  </div>
-
-                  {featuredSlides.length > 1 ? (
-                    <div className="mt-4 flex items-center gap-2">
-                      {featuredSlides.map((article, index) => (
-                        <button
-                          key={article._id}
-                          type="button"
-                          onClick={() => setActiveIndex(index)}
-                          className={`h-2.5 rounded-full transition ${
-                            index === activeIndex
-                              ? "w-8 bg-[#18130f]"
-                              : "w-2.5 bg-[#d9cec1] hover:bg-[#b9aa99]"
-                          }`}
-                          aria-label={`Go to featured AI story ${index + 1}`}
-                        />
-                      ))}
-                    </div>
-                  ) : null}
-
-                </article>
-              ) : (
-                <div className="rounded-[18px] border border-dashed border-[#ddd2c5] bg-[#fbf8f4] px-6 py-16 text-center text-sm text-[#796d61]">
-                  Loading featured AI stories...
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-[#ece5dc] p-5 sm:p-6 xl:border-t-0">
-              <div className="mb-4 flex items-center gap-1.5">
-                <h3 className="text-xl font-bold tracking-tight text-[#18130f]">Latest News</h3>
-                <span className="text-[#7e7063]">&rsaquo;</span>
-              </div>
-
-              <div className="space-y-5">
-                {loading && latestArticles.length === 0 ? (
-                  <div className="rounded-[18px] border border-dashed border-[#ddd2c5] bg-[#fbf8f4] px-6 py-12 text-center text-sm text-[#796d61]">
-                    Loading latest AI coverage...
-                  </div>
-                ) : (
-                  latestArticles.map((article) => (
-                    <article
-                      key={article._id}
-                      className="border-b border-dashed border-[#e8ded2] pb-5 last:border-b-0 last:pb-0"
-                    >
-                      <div className="mb-2 flex flex-wrap items-center gap-3 text-[11px] text-[#8b7f72]">
-                        <span className="rounded-full bg-[#f4eee6] px-2.5 py-1 font-semibold text-[#3f372f]">
-                          {getCategoryLabel(article)}
-                        </span>
-                        <span>{formatDate(article.publishedAt || article.createdAt)}</span>
-                      </div>
-
-                      <Link href={buildArticleHref(article)} className="group block">
-                        <h4 className="text-[1.55rem] font-black leading-tight tracking-tight text-[#18130f] transition group-hover:text-[#4c1d95]">
-                          {truncateText(article.title, TITLE_MAX_LENGTH)}
-                        </h4>
-                      </Link>
-
-                      <p className="mt-3 text-sm leading-6 text-[#605549]">
-                        {getExcerpt(article, 132)}
-                      </p>
-
-                      <div className="mt-3">
-                        <Link
-                          href={buildArticleHref(article)}
-                          className="text-xs font-semibold uppercase tracking-[0.18em] text-[#4338ca] transition hover:text-black"
-                        >
-                          Continue Reading
-                        </Link>
-                      </div>
-                    </article>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <aside className="border-t border-[#ece5dc] bg-[#fbf8f4] p-5 sm:p-6 xl:border-t-0">
-              <div className="mb-4 flex items-center gap-1.5">
-                <h3 className="text-xl font-bold tracking-tight text-[#18130f]">Most Read</h3>
-                <span className="text-[#7e7063]">&rsaquo;</span>
-              </div>
-
-              <div className="space-y-3">
-                {loading && mostReadArticles.length === 0 ? (
-                  <div className="rounded-[18px] border border-dashed border-[#ddd2c5] bg-white px-6 py-12 text-center text-sm text-[#796d61]">
-                    Loading list...
-                  </div>
-                ) : (
-                  mostReadArticles.map((article) => (
-                    <article
-                      key={article._id}
-                      className="grid grid-cols-[minmax(0,1fr)_88px] gap-3 border-b border-[#ece5dc] pb-3 last:border-b-0 last:pb-0"
-                    >
-                      <div className="min-w-0">
-                        <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[#8b7f72]">
-                          <span>{getCategoryLabel(article)}</span>
-                          <span className="text-[#b7ac9f]">{formatDate(article.publishedAt || article.createdAt)}</span>
-                        </div>
-
-                        <Link href={buildArticleHref(article)} className="group block">
-                          <h4 className="line-clamp-3 text-[15px] font-bold leading-6 text-[#18130f] transition group-hover:text-[#4c1d95]">
-                            {truncateText(article.title, TITLE_MAX_LENGTH)}
-                          </h4>
-                        </Link>
-
-                        <div className="mt-2">
-                          <Link
-                            href={buildArticleHref(article)}
-                            className="text-[11px] font-semibold text-[#4338ca] transition hover:text-black"
-                          >
-                            Continue Reading
-                          </Link>
-                        </div>
-                      </div>
-
-                      <Link
-                        href={buildArticleHref(article)}
-                        className="group overflow-hidden rounded-[10px] border border-[#e8ded2] bg-white"
-                      >
-                        <div className="aspect-[1.1/1] overflow-hidden">
-                          <img
-                            src={article.image || "/herobaner.png"}
-                            alt={article.title}
-                            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
-                          />
-                        </div>
-                      </Link>
-                    </article>
-                  ))
-                )}
-              </div>
-            </aside>
-          </div>
+                  </h4>
+                  <p className="mt-1.5 line-clamp-2 text-subhead text-ink-2">{stripHtml(article.excerpt)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
+
+        {/* Most read */}
+        <aside className="xl:pl-8" aria-labelledby="most-read-ai">
+          <h3 id="most-read-ai" className="mb-4 text-headline text-ink">
+            Most read
+          </h3>
+          {loading && mostReadArticles.length === 0 ? (
+            <SkeletonLines rows={4} />
+          ) : (
+            <ol className="divide-y divide-line-soft">
+              {mostReadArticles.map((article) => (
+                <li key={article._id} className="grid grid-cols-[minmax(0,1fr)_72px] gap-3 py-4 first:pt-0">
+                  <div className="min-w-0">
+                    <p className="text-caption font-semibold uppercase tracking-wide text-ink-2">
+                      {getCategoryLabel(article)}
+                    </p>
+                    <h4 className="mt-1 text-subhead font-semibold text-ink">
+                      <Link href={buildArticleHref(article)} className="line-clamp-3 hover:underline">
+                        {article.title}
+                      </Link>
+                    </h4>
+                    <p className="mt-1 text-footnote text-ink-2">{formatDate(article.publishedAt || article.createdAt)}</p>
+                  </div>
+                  <div className="aspect-square overflow-hidden rounded-control bg-fill">
+                    <SafeImage src={article.image || "/herobaner.png"} alt="" className="h-full w-full object-cover" />
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </aside>
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { formatDate } from "@/lib/cms-utils-client";
+import SafeImage from '@/components/SafeImage';
 
 interface Post {
   _id: string;
@@ -18,152 +19,100 @@ interface Post {
 
 interface NewsCategoryGridProps {
   posts: Post[];
+  loading?: boolean;
 }
 
-const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts }) => {
-  if (!posts || posts.length === 0) {
+const NewsCategoryGrid: React.FC<NewsCategoryGridProps> = ({ posts, loading = false }) => {
+  if (loading) {
     return (
-      <section className="w-full mb-8">
-        <p className="section-label">News</p>
-        <h2 className="mt-1 mb-6 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">News Category</h2>
-        <div className="flex h-[260px] items-center justify-center rounded-xl bg-white text-gray-400 shadow-sm sm:h-[320px] lg:h-[360px]">
-          No news posts available.
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]" aria-hidden="true">
+        <div className="aspect-16/10 animate-pulse rounded-media bg-fill" />
+        <div className="space-y-5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-12 animate-pulse rounded bg-fill" />
+          ))}
         </div>
-      </section>
+      </div>
     );
   }
-  const featured = posts[0];
-  const gridPosts = posts.slice(1, 5 + 1);
+
+  if (!posts || posts.length === 0) {
+    return <p className="text-body text-ink-2">No news stories yet. Check back soon.</p>;
+  }
+
+  const [featured, ...rest] = posts;
+  const listPosts = rest.slice(0, 4);
 
   return (
-    <section className="w-full mb-8">
-      <p className="section-label">News</p>
-      <h2 className="mt-1 mb-6 text-2xl font-black tracking-tight text-[#17130f] sm:text-3xl">News Category</h2>
-
-      {/* GRID: 40 / 20 / 40 */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.7fr)_minmax(0,1fr)]">
-        {/* LEFT – FEATURED (40%) */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-          {featured ? (
-            <>
-              <Link
-                href={`/${featured.category?.slug}/${featured.slug}`}
-                className="relative block h-[260px] w-full sm:h-[320px] lg:h-[360px]"
-              >
-                {featured.coverImage ? (
-                  <img
-                    src={featured.coverImage}
-                    alt={featured.title}
-                    className="w-full h-full object-cover absolute inset-0 hover:scale-105 transition-transform duration-300"
-                    style={{ zIndex: 0 }}
-                  />
-                ) : (
-                  <div className="w-full h-full absolute inset-0 bg-linear-to-br from-blue-400 to-blue-600" style={{ zIndex: 0 }} />
-                )}
-
-                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" style={{ zIndex: 1 }} />
-
-                <div className="absolute bottom-4 left-4 right-4 text-white z-10">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span>{featured.author?.name}</span>
-                    <span>•</span>
-                    <span>{formatDate(featured.createdAt)}</span>
-                    {featured.readingTime && (
-                      <>
-                        <span>•</span>
-                        <span>{featured.readingTime} min read</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </Link>
-
-              <div className="p-4 sm:p-6">
-                <Link
-                  href={`/${featured.category?.slug}/${featured.slug}`}
-                >
-                  <h3 className="text-xl font-bold leading-tight hover:underline sm:text-2xl">
-                    {featured.title}
-                  </h3>
-                </Link>
-                {featured.excerpt && (
-                  <p className="mt-2 text-gray-600 text-base line-clamp-3">{featured.excerpt}</p>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="flex h-[260px] items-center justify-center text-gray-400 sm:h-[320px] lg:h-[360px]">
-              Loading...
-            </div>
-          )}
-        </div>
-
-        {/* MIDDLE – NEWS LIST (20%) */}
-        <div className="space-y-4">
-          {gridPosts.slice(0, 4).map((post, index) => (
-            <div
-              key={post._id}
-              className="bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-7 h-7 bg-black text-white rounded-full flex items-center justify-center text-xs font-bold">
-                  #{index + 2}
-                </div>
-
-                <div className="flex-1">
-                  <Link href={`/${post.category?.slug}/${post.slug}`}>
-                    <h4 className="font-semibold leading-tight line-clamp-3 hover:underline">
-                      {post.title}
-                    </h4>
-                  </Link>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {formatDate(post.createdAt)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <div className="pt-3 text-right">
-            <Link
-              href="/category/news"
-              className="text-blue-600 text-sm font-medium hover:underline"
-            >
-              View More →
-            </Link>
+    <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_300px]">
+      <article className="group">
+        <Link href={`/${featured.category?.slug}/${featured.slug}`} className="block" tabIndex={-1} aria-hidden="true">
+          <div className="aspect-16/10 overflow-hidden rounded-media bg-fill">
+            {featured.coverImage ? (
+              <SafeImage
+                src={featured.coverImage}
+                alt=""
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              />
+            ) : null}
           </div>
-        </div>
+        </Link>
+        <p className="mt-4 text-footnote text-ink-2">
+          {featured.author?.name}
+          {featured.author?.name ? " · " : null}
+          {formatDate(featured.createdAt)}
+          {featured.readingTime ? ` · ${featured.readingTime} min read` : null}
+        </p>
+        <h3 className="mt-1 text-title2 text-ink">
+          <Link href={`/${featured.category?.slug}/${featured.slug}`} className="hover:underline">
+            {featured.title}
+          </Link>
+        </h3>
+        {featured.excerpt ? <p className="mt-2 line-clamp-3 text-body text-ink-2">{featured.excerpt}</p> : null}
+      </article>
 
-        {/* RIGHT – MANUAL AD (40%) */}
-        <aside className="hidden xl:block">
-          <div className="sticky top-24">
-            <div className="bg-white rounded-xl shadow-sm p-4 border">
-              <span className="block text-xs text-gray-400 mb-2">
-                Advertisement
+      <div>
+        <ol className="divide-y divide-line-soft">
+          {listPosts.map((post, index) => (
+            <li key={post._id} className="flex gap-4 py-4 first:pt-0">
+              <span className="w-6 shrink-0 text-title3 font-semibold tabular-nums text-ink-3" aria-hidden="true">
+                {index + 2}
               </span>
-
-              <a
-                href="https://www.phoenixcreativegroup.us/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <img
-                  src="/phoenixcreativegroup.png"
-                  alt="Phoenix Creative Group"
-                  className="max-w-[300px] w-full mx-auto rounded-lg hover:opacity-90 transition"
-                />
-              </a>
-
-              <p className="mt-3 text-sm text-gray-600 leading-snug">
-                Digital marketing, branding, and web development solutions for
-                growing businesses.
-              </p>
-            </div>
-          </div>
-        </aside>
+              <div className="min-w-0">
+                <h3 className="text-headline text-ink">
+                  <Link href={`/${post.category?.slug}/${post.slug}`} className="line-clamp-3 hover:underline">
+                    {post.title}
+                  </Link>
+                </h3>
+                <p className="mt-1 text-footnote text-ink-2">{formatDate(post.createdAt)}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <Link
+          href="/category/news"
+          className="mt-2 inline-flex min-h-11 items-center text-subhead font-medium text-tint hover:underline"
+        >
+          More news
+        </Link>
       </div>
-    </section>
+
+      <aside className="hidden xl:block" aria-label="Advertisement">
+        <div className="sticky top-20 rounded-card bg-surface p-4">
+          <p className="mb-3 text-caption font-semibold uppercase tracking-wide text-ink-2">Advertisement</p>
+          <a href="https://www.phoenixcreativegroup.us/" target="_blank" rel="noopener noreferrer sponsored" className="block">
+            <SafeImage
+              src="/phoenixcreativegroup.png"
+              alt="Phoenix Creative Group"
+              className="mx-auto w-full max-w-[300px] rounded-control"
+            />
+          </a>
+          <p className="mt-3 text-footnote text-ink-2">
+            Digital marketing, branding and web development for growing businesses.
+          </p>
+        </div>
+      </aside>
+    </div>
   );
 };
 

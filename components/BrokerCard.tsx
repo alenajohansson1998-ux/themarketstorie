@@ -1,4 +1,7 @@
 import React from "react";
+import SafeImage from '@/components/SafeImage';
+import Link from "next/link";
+import { Star } from "lucide-react";
 
 interface BrokerCardProps {
   name: string;
@@ -11,7 +14,32 @@ interface BrokerCardProps {
   badge?: string;
   terms?: string;
   description?: string;
-  ctaUrl?: string;
+  /** Internal review page */
+  detailUrl: string;
+  /** Broker's own site, when known */
+  websiteUrl?: string;
+}
+
+export function StarRating({ rating }: { rating: number }) {
+  const rounded = Math.round(rating * 2) / 2;
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+      {Array.from({ length: 5 }).map((_, i) => {
+        const filled = rounded >= i + 1;
+        const half = !filled && rounded >= i + 0.5;
+        return (
+          <span key={i} className="relative inline-block h-4 w-4">
+            <Star className="absolute inset-0 h-4 w-4 text-fill-2" fill="currentColor" strokeWidth={0} />
+            {filled || half ? (
+              <span className="absolute inset-0 overflow-hidden" style={{ width: half ? "50%" : "100%" }}>
+                <Star className="h-4 w-4 text-brand" fill="currentColor" strokeWidth={0} />
+              </span>
+            ) : null}
+          </span>
+        );
+      })}
+    </span>
+  );
 }
 
 const BrokerCard: React.FC<BrokerCardProps> = ({
@@ -25,109 +53,69 @@ const BrokerCard: React.FC<BrokerCardProps> = ({
   accounts,
   badge,
   description,
-  ctaUrl = "#",
+  detailUrl,
+  websiteUrl,
 }) => {
   return (
-    <div className="group relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0b0b0b] via-black to-[#0b0b0b]">
+    <article className="flex flex-col gap-6 rounded-media bg-surface p-6 sm:flex-row sm:items-center sm:p-8">
+      <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-card bg-white p-3 sm:h-32 sm:w-32">
+        <SafeImage src={logo} fallbackSrc="/default-broker-logo.svg" alt={`${name} logo`} className="max-h-full w-auto object-contain" />
+      </div>
 
-      {/* OUTER BORDER */}
-      <div className="pointer-events-none absolute inset-0 rounded-[28px] border border-white/25 opacity-80 transition group-hover:opacity-100" />
-
-      {/* INNER BORDER (KEY FIX) */}
-      <div className="pointer-events-none absolute inset-[1px] rounded-[27px] border border-white/10 opacity-70 transition group-hover:opacity-90" />
-
-      {/* SUBTLE GLOW */}
-      <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.06),transparent_60%)]" />
-
-      {/* CARD CONTENT */}
-      <div className="relative z-10 flex items-center justify-between gap-10 p-10">
-        
-        {/* LEFT CONTENT */}
-        <div className="max-w-2xl">
-          <div className="mb-3 flex items-center gap-3">
-            <h2 className="text-3xl font-extrabold tracking-tight text-white">
-              {name}
-            </h2>
-
-            {badge && (
-              <span className="rounded-full bg-[#1f2933] px-3 py-1 text-xs font-semibold text-gray-200">
-                {badge}
-              </span>
-            )}
-          </div>
-
-          <p className="mb-5 text-sm text-gray-300">
-            Tradable assets: {assets}
-          </p>
-
-          {/* RATING ROW */}
-          <div className="mb-6 flex flex-wrap items-center gap-4 text-sm text-gray-300">
-            <span className="flex items-center gap-1 font-semibold text-white">
-              {rating}
-              <span className="text-gray-400">• {ratingText}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-title2 text-ink">{name}</h2>
+          {badge ? (
+            <span className="rounded-full bg-brand/15 px-2.5 py-0.5 text-caption font-semibold uppercase tracking-wide text-brand">
+              {badge}
             </span>
-
-            <span>⭐⭐⭐⭐⭐</span>
-
-            <span className="flex items-center gap-1">
-              🗨 {reviews}
-              <span className="text-gray-400">Reviews</span>
-            </span>
-
-            <span className="flex items-center gap-1">
-              👤 {accounts}
-              <span className="text-gray-400">Accounts</span>
-            </span>
-          </div>
-
-          {/* PROMOTION */}
-          {terms && (
-            <>
-              <h3 className="mb-1 text-2xl font-bold text-white">
-                {terms}
-              </h3>
-              <p className="mb-6 text-sm text-gray-400">Promotion</p>
-            </>
-          )}
-
-          {/* CTA */}
-          <div className="flex gap-4">
-            <a
-              href={ctaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition hover:bg-gray-200"
-            >
-              Open account ↗
-            </a>
-
-            <a
-              href={ctaUrl}
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/40"
-            >
-              Learn more
-            </a>
-          </div>
+          ) : null}
         </div>
 
-        {/* RIGHT LOGO STACK */}
-        <div className="relative h-44 w-44 shrink-0">
-          <div className="absolute inset-0 translate-x-4 translate-y-4 rounded-[28px] bg-white/20" />
-          <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-[28px] bg-white/40" />
-          <div className="relative z-10 flex h-full w-full items-center justify-center rounded-[28px] bg-[#f4f7fb]">
-            <img
-              src={logo}
-              alt={`${name} logo`}
-              className="h-20 w-auto object-contain"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  "/default-broker-logo.svg";
-              }}
-            />
-          </div>
+        <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-subhead text-ink-2">
+          <span className="inline-flex items-center gap-1.5">
+            <StarRating rating={rating} />
+            <span className="font-semibold text-ink">{rating.toFixed(1)}</span>
+            <span className="sr-only">out of 5,</span>
+            {ratingText}
+          </span>
+          <span aria-hidden="true">·</span>
+          <span>{reviews.toLocaleString()} reviews</span>
+          <span aria-hidden="true">·</span>
+          <span>{accounts} accounts</span>
+        </p>
+
+        <p className="mt-2 text-subhead text-ink-2">
+          <span className="font-medium text-ink">Assets:</span> {assets}
+        </p>
+        {description ? <p className="mt-2 line-clamp-2 text-subhead text-ink-2">{description}</p> : null}
+        {terms ? (
+          <p className="mt-2 text-subhead text-ink">
+            <span className="font-medium">Offer:</span> {terms}
+          </p>
+        ) : null}
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link
+            href={detailUrl}
+            className="inline-flex h-11 items-center rounded-control bg-ink px-5 text-headline text-canvas transition-opacity hover:opacity-85"
+          >
+            Read review<span className="sr-only">: {name}</span>
+          </Link>
+          {websiteUrl ? (
+            <a
+              href={websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className="inline-flex h-11 items-center rounded-control bg-fill px-5 text-headline text-ink transition-colors hover:bg-fill-2"
+            >
+              Visit {name}
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          ) : null}
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 

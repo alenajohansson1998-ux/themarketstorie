@@ -1,13 +1,12 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BrokerCard from "@/components/BrokerCard";
-import BlogCarousel from "@/components/BlogCarousel";
-import { useBrokerCategoryPosts } from "@/lib/useBrokerCategoryPosts";
+import BrokerGuides from "@/components/BrokerGuides";
 
 interface Broker {
   _id: string;
   name: string;
+  slug?: string;
   logoUrl: string;
   rating: number;
   ratingText: string;
@@ -16,114 +15,130 @@ interface Broker {
   accounts: string;
   badge?: string;
   description?: string;
+  terms?: string;
+  website?: string;
 }
+
+function slugify(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+/** Split "Stocks, Forex & Futures" into ["Stocks", "Forex", "Futures"]. */
+function assetTags(assets: string) {
+  return assets
+    .split(/,|&|\/|\band\b/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+const ALL = "All brokers";
 
 export default function BrokersPage() {
   const [brokers, setBrokers] = useState<Broker[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { posts: blogPosts, isLoading: blogLoading } = useBrokerCategoryPosts();
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [filter, setFilter] = useState(ALL);
 
   useEffect(() => {
     fetch("/api/admin/brokers")
       .then((res) => res.json())
       .then((data) => {
-        setBrokers(data.brokers || []);
-        setLoading(false);
-      });
+        setBrokers(Array.isArray(data.brokers) ? data.brokers : []);
+        setStatus("ready");
+      })
+      .catch(() => setStatus("error"));
   }, []);
 
+  // Filters come from the brokers' own asset lists, so every option returns results.
+  const filters = useMemo(() => {
+    const counts = new Map<string, number>();
+    brokers.forEach((broker) => {
+      new Set(assetTags(broker.assets || "")).forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1));
+    });
+    return [ALL, ...Array.from(counts.keys()).sort()];
+  }, [brokers]);
+
+  const visible =
+    filter === ALL ? brokers : brokers.filter((broker) => assetTags(broker.assets || "").includes(filter));
+
   return (
-    <main className="flex-1 w-full bg-white text-black">
-      {/* HERO */}
-      <section className="site-container px-4 md:px-6 xl:px-8 pt-24 pb-20 text-center">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-black leading-tight">
-            Trade with confidence
-          </h1>
+    <div className="site-container px-4 py-10 md:px-6 lg:py-12">
+      <header className="mx-auto max-w-2xl text-center">
+        <p className="section-label">Brokers</p>
+        <h1 className="mt-1 text-title1 text-ink sm:text-display">Compare trading brokers</h1>
+        <p className="mt-4 text-title3 font-normal text-ink-2">
+          Ratings, assets, account numbers and offers from the brokers we review.
+        </p>
+      </header>
 
-          <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-            Get trading with verified brokers today.
-          </p>
+      {filters.length > 2 ? (
+        <div className="mt-8 flex justify-center">
+          <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
+            <div role="group" aria-label="Filter by asset" className="inline-flex min-w-max gap-0.5 rounded-control bg-fill p-1">
+              {filters.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={filter === item}
+                  onClick={() => setFilter(item)}
+                  className={`inline-flex h-9 items-center whitespace-nowrap rounded-md px-4 text-subhead font-medium transition-colors ${
+                    filter === item ? "bg-canvas text-ink shadow-sm" : "text-ink-2 hover:text-ink"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
-          {/* FILTER PILLS */}
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            {[
-              "All brokers",
-              "Stocks",
-              "Forex",
-              "Futures",
-              "Options",
-            ].map((item, i) => (
-              <button
-                key={item}
-                className={`px-4 py-2 rounded-full text-sm border transition ${
-                  i === 0
-                    ? "bg-black text-white border-black"
-                    : "bg-gray-100 text-gray-700 border-gray-300 hover:border-gray-400"
-                }`}
-              >
-                {item}
-              </button>
+      <section aria-label="Brokers" className="mx-auto mt-10 max-w-4xl">
+        <p className="sr-only" aria-live="polite">
+          {status === "ready" ? `${visible.length} brokers shown` : ""}
+        </p>
+        {status === "loading" ? (
+          <div className="space-y-6" aria-hidden="true">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-48 animate-pulse rounded-media bg-surface" />
             ))}
           </div>
-        </section>
-
-        {/* LIST */}
-        <section className="site-container px-4 md:px-6 xl:px-8 pb-20">
-          {/* SEO H1 */}
-          <h1 className="sr-only">Broker List</h1>
-
-          <div className="flex flex-col gap-8">
-            {loading ? (
-              <div className="text-center text-gray-500 py-24 text-lg">
-                Loading brokers…
-              </div>
-            ) : brokers.length === 0 ? (
-              <div className="text-center text-gray-500 py-24 text-lg">
-                No brokers found.
-              </div>
-            ) : (
-              brokers.map((broker) => (
-                <BrokerCard
-                  key={broker._id}
-                  name={broker.name}
-                  logo={broker.logoUrl}
-                  rating={broker.rating}
-                  ratingText={broker.ratingText}
-                  assets={broker.assets}
-                  reviews={broker.reviews}
-                  accounts={broker.accounts}
-                  badge={broker.badge}
-                  description={broker.description}
-                  ctaUrl={`/brokers/${broker.name
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "-")
-                    .replace(/^-+|-+$/g, "")}`}
-                />
-              ))
-            )}
+        ) : status === "error" ? (
+          <p className="text-center text-body text-ink-2">Brokers didn’t load. Refresh the page to try again.</p>
+        ) : visible.length === 0 ? (
+          <p className="text-center text-body text-ink-2">No brokers match this filter.</p>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {visible.map((broker) => (
+              <BrokerCard
+                key={broker._id}
+                name={broker.name}
+                logo={broker.logoUrl}
+                rating={broker.rating}
+                ratingText={broker.ratingText}
+                assets={broker.assets}
+                reviews={broker.reviews}
+                accounts={broker.accounts}
+                badge={broker.badge}
+                description={broker.description}
+                terms={broker.terms}
+                detailUrl={`/brokers/${broker.slug || slugify(broker.name)}`}
+                websiteUrl={broker.website || undefined}
+              />
+            ))}
           </div>
+        )}
+      </section>
 
-          {/* SEO CONTENT */}
-          <div className="mt-24 max-w-3xl">
-            <h2 className="text-2xl md:text-3xl font-bold text-black mb-3">
-              How to Choose the Best Broker
-            </h2>
+      <BrokerGuides />
 
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              Broker Comparison & Reviews
-            </h3>
-
-            <p className="text-gray-600 leading-relaxed">
-              Our comprehensive broker comparison and review section helps you make
-              informed decisions by providing detailed insights into each broker’s
-              offerings, reputation, and user experiences. Explore ratings,
-              account types, supported assets, and more to find the best fit for
-              your trading needs. We regularly update our reviews to ensure you
-              have access to the latest information and expert recommendations.
-            </p>
-          </div>
-        </section>
-      </main>
-    );
+      <section className="article-body mx-auto mt-16 border-t border-line-soft pt-8">
+        <h2>How to choose a broker</h2>
+        <p>
+          Compare regulation, the assets you want to trade, fees and the platform you’ll use every day. Our reviews
+          list each broker’s ratings, tradable assets and account numbers so you can compare them side by side. We
+          update reviews regularly.
+        </p>
+      </section>
+    </div>
+  );
 }
-

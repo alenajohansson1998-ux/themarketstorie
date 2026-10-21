@@ -17,6 +17,12 @@ import {
   timeframeBucketSeconds,
   toFinnhubSymbol,
 } from "@/lib/finnhub";
+import { useColorScheme } from "@/lib/useColorScheme";
+
+const CHART_COLORS = {
+  light: { text: "#6e6e73", grid: "rgba(0, 0, 0, 0.05)", border: "#d2d2d7", crosshair: "#86868b", up: "#1a7f37", down: "#cf222e" },
+  dark: { text: "#a1a1a6", grid: "rgba(255, 255, 255, 0.07)", border: "#38383a", crosshair: "#8e8e93", up: "#30d158", down: "#ff6961" },
+};
 
 interface MarketChartProps {
   symbol: string;
@@ -65,6 +71,7 @@ export default function MarketChart({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
+  const scheme = useColorScheme();
 
   const lastPrice = useMemo(
     () => (bars.length ? bars[bars.length - 1].close : null),
@@ -78,34 +85,16 @@ export default function MarketChart({
       width: containerRef.current.clientWidth,
       height: 420,
       layout: {
-        background: { type: ColorType.Solid, color: "#ffffff" },
-        textColor: "#374151",
-      },
-      grid: {
-        horzLines: { color: "#f3f4f6" },
-        vertLines: { color: "#f9fafb" },
-      },
-      rightPriceScale: {
-        borderColor: "#e5e7eb",
+        background: { type: ColorType.Solid, color: "transparent" },
+        textColor: CHART_COLORS.light.text,
       },
       timeScale: {
-        borderColor: "#e5e7eb",
         timeVisible: true,
         secondsVisible: false,
       },
-      crosshair: {
-        horzLine: { color: "#9ca3af" },
-        vertLine: { color: "#9ca3af" },
-      },
     });
 
-    const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#10b981",
-      downColor: "#ef4444",
-      borderVisible: false,
-      wickUpColor: "#10b981",
-      wickDownColor: "#ef4444",
-    });
+    const series = chart.addSeries(CandlestickSeries, { borderVisible: false });
 
     chartRef.current = chart;
     seriesRef.current = series;
@@ -126,6 +115,27 @@ export default function MarketChart({
       seriesRef.current = null;
     };
   }, [initialData]);
+
+  // Follow the reader's light or dark appearance.
+  useEffect(() => {
+    const chart = chartRef.current;
+    const series = seriesRef.current;
+    if (!chart || !series) return;
+    const colors = CHART_COLORS[scheme];
+    chart.applyOptions({
+      layout: { textColor: colors.text },
+      grid: { horzLines: { color: colors.grid }, vertLines: { color: colors.grid } },
+      rightPriceScale: { borderColor: colors.border },
+      timeScale: { borderColor: colors.border },
+      crosshair: { horzLine: { color: colors.crosshair }, vertLine: { color: colors.crosshair } },
+    });
+    series.applyOptions({
+      upColor: colors.up,
+      downColor: colors.down,
+      wickUpColor: colors.up,
+      wickDownColor: colors.down,
+    });
+  }, [scheme, initialData]);
 
   useEffect(() => {
     if (!seriesRef.current || !chartRef.current) return;
@@ -150,9 +160,7 @@ export default function MarketChart({
         }
         const nextBars = Array.isArray(payload.candles) ? payload.candles : [];
         if (!nextBars.length) {
-          setError(
-            "Historical candles are unavailable for this symbol on the current API plan. Live ticks will still update when available."
-          );
+          setError("Price history for this timeframe isn’t available. Live prices will still appear as they arrive.");
           return;
         }
         setBars(nextBars);
@@ -164,8 +172,8 @@ export default function MarketChart({
           (err.message.includes("Finnhub request failed (403)") ||
             err.message.includes("Finnhub request failed (401)"));
         const message = isPermissionIssue
-          ? "Historical candles are unavailable for this symbol on the current API plan."
-          : "Failed to load chart timeframe. Please try again.";
+          ? "Price history for this symbol isn’t available."
+          : "This timeframe didn’t load. Choose it again to retry.";
         setError(message);
       } finally {
         setLoading(false);
@@ -287,47 +295,56 @@ export default function MarketChart({
   }, [symbol, timeframe]);
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+    <section aria-labelledby="price-chart-heading">
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Price Chart</h2>
-          <p className="text-sm text-gray-500">
-            {lastPrice !== null ? `Last: ${lastPrice.toFixed(2)}` : "Waiting for price..."}
+          <h2 id="price-chart-heading" className="text-title3 text-ink">
+            Price chart
+          </h2>
+          <p className="text-footnote tabular-nums text-ink-2">
+            {lastPrice !== null ? `Last ${lastPrice.toFixed(2)}` : "Waiting for the first price…"}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {TIMEFRAMES.map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => handleTimeframeChange(item)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                timeframe === item
-                  ? "bg-gray-900 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {TIMEFRAME_LABELS[item]}
-            </button>
-          ))}
+        <div role="group" aria-label="Timeframe" className="inline-flex self-start rounded-control bg-fill p-1">
+          {TIMEFRAMES.map((item) => {
+            const selected = timeframe === item;
+            return (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => handleTimeframeChange(item)}
+                className={`inline-flex h-9 min-w-10 items-center justify-center rounded-md px-2.5 text-subhead font-medium transition-colors ${
+                  selected ? "bg-canvas text-ink shadow-sm" : "text-ink-2 hover:text-ink"
+                }`}
+              >
+                {TIMEFRAME_LABELS[item]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {error ? (
-        <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="status" className="mb-3 rounded-control bg-surface px-3 py-2 text-subhead text-ink-2">
           {error}
         </p>
       ) : null}
 
-      <div
-        ref={containerRef}
-        className="min-h-[420px] w-full overflow-hidden rounded-lg border border-gray-100"
-      />
+      <div ref={containerRef} className="min-h-[420px] w-full overflow-hidden rounded-card border border-line-soft" />
 
-      <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-        <span>{loading ? "Loading timeframe data..." : "Live WebSocket updates enabled"}</span>
-        <span>Updated: {new Date(lastUpdated).toLocaleTimeString()}</span>
+      <div className="mt-2 flex items-center justify-between text-footnote text-ink-2">
+        <span className="inline-flex items-center gap-1.5" aria-live="polite">
+          {loading ? (
+            "Loading…"
+          ) : (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-up" aria-hidden="true" /> Live
+            </>
+          )}
+        </span>
+        <span>Updated {new Date(lastUpdated).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
       </div>
     </section>
   );

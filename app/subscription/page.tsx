@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { Check } from 'lucide-react';
+import NewsletterForm from '@/components/NewsletterForm';
 
 export const metadata: Metadata = {
   title: 'Subscribe | The Market Stories',
@@ -15,62 +16,38 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const BENEFITS = [
+  'The day’s market recap and top stories',
+  'Stock, crypto and commodity analysis',
+  'Economic calendar highlights for the week ahead',
+  'Expert opinion and technical breakdowns',
+];
+
 export default function SubscriptionPage() {
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="site-container px-4 md:px-6 xl:px-8 py-16 max-w-2xl mx-auto text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Stay Ahead of the Market
-        </h1>
-        <p className="text-xl text-gray-600 mb-10">
-          Get daily financial news, stock market analysis, and investment insights delivered straight to your inbox — free.
+    <div className="site-container px-4 py-14 md:px-6 lg:py-20">
+      <div className="mx-auto max-w-xl">
+        <p className="section-label text-center">Newsletter</p>
+        <h1 className="mt-2 text-center text-title1 text-ink sm:text-display">Stay ahead of the market</h1>
+        <p className="mt-4 text-center text-title3 font-normal text-ink-2">
+          Financial news, market analysis and investment insight in your inbox. Free.
         </p>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Free Newsletter</h2>
-          <p className="text-gray-500 mb-6">
-            Join thousands of traders and investors who trust The Market Stories.
-          </p>
-          <ul className="text-left text-gray-700 space-y-3 mb-8">
-            <li className="flex items-start gap-2">
-              <span className="text-green-500 font-bold mt-0.5">✓</span>
-              Daily market recap & top stories
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-500 font-bold mt-0.5">✓</span>
-              Stock, crypto & commodity analysis
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-500 font-bold mt-0.5">✓</span>
-              Economic calendar highlights
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-500 font-bold mt-0.5">✓</span>
-              Expert opinions & technical breakdowns
-            </li>
+        <div className="mt-10 rounded-media bg-surface p-6 sm:p-8">
+          <ul className="space-y-3">
+            {BENEFITS.map((benefit) => (
+              <li key={benefit} className="flex items-start gap-3 text-body text-ink">
+                <Check className="mt-1 h-4 w-4 shrink-0 text-up" aria-hidden="true" />
+                {benefit}
+              </li>
+            ))}
           </ul>
-
-          <form className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="email"
-              placeholder="Enter your email address"
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-              required
-            />
-            <button
-              type="submit"
-              className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Subscribe Free
-            </button>
-          </form>
-          <p className="text-xs text-gray-400 mt-3">No spam. Unsubscribe anytime.</p>
+          <div className="mt-8">
+            <NewsletterForm />
+          </div>
+          <p className="mt-3 text-footnote text-ink-2">No spam. Unsubscribe at any time.</p>
         </div>
-
-        <Link href="/" className="text-blue-600 hover:underline text-sm">
-          ← Back to Home
-        </Link>
       </div>
-    </main>
+    </div>
   );
 }

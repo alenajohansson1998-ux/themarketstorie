@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { formatDate, truncateText } from "@/lib/cms-utils-client";
+import { formatDate } from "@/lib/cms-utils-client";
+import SafeImage from '@/components/SafeImage';
 
 interface Post {
   _id: string;
@@ -17,6 +18,51 @@ interface Post {
   views: number;
 }
 
+function postHref(post: Post) {
+  return `/${post.category?.slug}/${post.slug}`;
+}
+
+function Meta({ post }: { post: Post }) {
+  return (
+    <p className="mt-1 text-footnote text-ink-2">
+      {post.category?.name}
+      {post.category?.name ? " · " : null}
+      <time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time>
+    </p>
+  );
+}
+
+function HeadlineList({ title, posts, loading }: { title: string; posts: Post[]; loading: boolean }) {
+  return (
+    <div>
+      <h3 className="mb-3 text-headline text-ink">{title}</h3>
+      {loading ? (
+        <div className="space-y-5" aria-hidden="true">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-4 w-full animate-pulse rounded bg-fill" />
+              <div className="h-3 w-1/3 animate-pulse rounded bg-fill" />
+            </div>
+          ))}
+        </div>
+      ) : posts.length === 0 ? (
+        <p className="text-subhead text-ink-2">No stories yet. Check back soon.</p>
+      ) : (
+        <ul className="divide-y divide-line-soft">
+          {posts.map((post) => (
+            <li key={post._id} className="py-3 first:pt-0">
+              <Link href={postHref(post)} className="line-clamp-2 text-subhead font-semibold text-ink hover:underline">
+                {post.title}
+              </Link>
+              <Meta post={post} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 const HomeTopNewsGrid: React.FC = () => {
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
   const [latestPosts, setLatestPosts] = useState<Post[]>([]);
@@ -25,25 +71,15 @@ const HomeTopNewsGrid: React.FC = () => {
   useEffect(() => {
     const fetchTrendingAndLatest = async () => {
       try {
-        setLoading(true);
-
-        const trendingRes = await fetch(
-          "/api/cms/posts?status=published&trending=true&limit=10&sortBy=-createdAt"
-        );
-        const trendingData = await trendingRes.json();
-        if (trendingData.success) {
-          setTrendingPosts(trendingData.data);
-        }
-
-        const latestRes = await fetch(
-          "/api/cms/posts?status=published&limit=7&sortBy=-createdAt"
-        );
-        const latestData = await latestRes.json();
-        if (latestData.success) {
-          setLatestPosts(latestData.data);
-        }
+        const [trendingRes, latestRes] = await Promise.all([
+          fetch("/api/cms/posts?status=published&trending=true&limit=10&sortBy=-createdAt"),
+          fetch("/api/cms/posts?status=published&limit=7&sortBy=-createdAt"),
+        ]);
+        const [trendingData, latestData] = await Promise.all([trendingRes.json(), latestRes.json()]);
+        if (trendingData.success) setTrendingPosts(trendingData.data);
+        if (latestData.success) setLatestPosts(latestData.data);
       } catch {
-        // silent
+        // Lists fall back to their empty state.
       } finally {
         setLoading(false);
       }
@@ -57,157 +93,71 @@ const HomeTopNewsGrid: React.FC = () => {
   const moreTrending = trendingPosts.slice(3, 10);
 
   return (
-    /* HEADER OFFSET FIX */
-    <section className="mb-6 w-full px-0 pt-4 sm:pt-6">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.7fr)_minmax(260px,0.7fr)]">
-
-        {/* LEFT COLUMN */}
-        <div className="space-y-4">
-
-          {/* FEATURED POST */}
-          <div className="group relative h-[320px] overflow-hidden rounded-lg shadow sm:h-[380px] lg:h-[420px]">
-            {featured ? (
-              <Link
-                href={`/${featured.category?.slug}/${featured.slug}`}
-                className="block relative h-full"
-              >
+    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)_minmax(0,0.7fr)] lg:gap-8">
+      <div className="space-y-6">
+        {/* Lead story */}
+        {featured ? (
+          <article className="group relative overflow-hidden rounded-media bg-fill">
+            <Link href={postHref(featured)} className="block">
+              <div className="relative aspect-16/10 w-full sm:aspect-video">
                 {featured.coverImage ? (
-                  <img
+                  <SafeImage
                     src={featured.coverImage}
-                    alt={featured.title}
-                    className="w-full h-full object-cover object-center"
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                   />
-                ) : (
-                  <div className="w-full h-full bg-linear-to-br from-blue-400 to-blue-600" />
-                )}
-
-                {/* OVERLAY */}
-                <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-transparent" />
-
-                {/* CONTENT */}
-                <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-wide mb-2 opacity-90">
-                    <span className="bg-white/20 px-2 py-0.5 rounded">
-                      {featured.category?.name}
-                    </span>
-                    <span>{formatDate(featured.createdAt)}</span>
-                  </div>
-
-                  <h2 className="text-xl font-bold leading-tight line-clamp-2 mb-2">
-                    {featured.title}
-                  </h2>
-
-                  <p className="text-sm text-gray-200 line-clamp-3">
-                    {truncateText(featured.excerpt || "", 120)}
+                ) : null}
+                <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/35 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
+                  <p className="text-footnote text-white/85">
+                    <span className="font-semibold text-white">{featured.category?.name}</span>
+                    {" · "}
+                    {formatDate(featured.createdAt)}
                   </p>
+                  <h3 className="mt-1 line-clamp-3 text-title3 text-white sm:text-title2">{featured.title}</h3>
+                  {featured.excerpt ? (
+                    <p className="mt-2 hidden text-subhead text-white/85 sm:line-clamp-2">{featured.excerpt}</p>
+                  ) : null}
                 </div>
-              </Link>
-            ) : loading ? (
-              <div className="flex items-center justify-center text-gray-400 h-full">
-                Loading...
               </div>
-            ) : (
-              <div className="flex items-center justify-center text-gray-400 h-full">
-                No trending post
-              </div>
-            )}
+            </Link>
+          </article>
+        ) : (
+          <div className="aspect-16/10 animate-pulse rounded-media bg-fill sm:aspect-video" aria-hidden={loading}>
+            {!loading ? <p className="p-6 text-subhead text-ink-2">No trending story right now.</p> : null}
           </div>
+        )}
 
-          {/* TWO GRID POSTS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {gridPosts.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             {gridPosts.map((post) => (
-              <div
-                key={post._id}
-                className="bg-white rounded-lg shadow overflow-hidden flex flex-col min-h-[200px]"
-              >
-                <Link href={`/${post.category?.slug}/${post.slug}`}>
-                  {post.coverImage ? (
-                    <img
-                      src={post.coverImage}
-                      alt={post.title}
-                      className="object-cover object-center w-full h-40"
-                    />
-                  ) : (
-                    <div className="w-full h-32 bg-linear-to-br from-blue-400 to-blue-600" />
-                  )}
-                </Link>
-                <div className="p-3 flex flex-col flex-1">
-                  <Link href={`/${post.category?.slug}/${post.slug}`}>
-                    <h3 className="text-sm font-semibold mb-1 leading-tight line-clamp-2">
-                      {post.title}
-                    </h3>
-                  </Link>
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <span>{post.category?.name}</span>
-                    <span aria-hidden="true">|</span>
-                    <span>{formatDate(post.createdAt)}</span>
+              <article key={post._id} className="group">
+                <Link href={postHref(post)} className="block" tabIndex={-1} aria-hidden="true">
+                  <div className="aspect-16/10 overflow-hidden rounded-card bg-fill">
+                    {post.coverImage ? (
+                      <SafeImage
+                        src={post.coverImage}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                    ) : null}
                   </div>
-                </div>
-              </div>
+                </Link>
+                <h3 className="mt-3 text-headline text-ink">
+                  <Link href={postHref(post)} className="line-clamp-2 hover:underline">
+                    {post.title}
+                  </Link>
+                </h3>
+                <Meta post={post} />
+              </article>
             ))}
           </div>
-        </div>
-
-        {/* MIDDLE COLUMN */}
-        <div className="flex min-h-[280px] flex-col rounded-lg bg-white p-4 shadow sm:min-h-[320px]">
-          <p className="section-label">Trending</p>
-          <h3 className="mt-1 mb-4 text-xl font-black tracking-tight text-[#18130f]">Trending Posts</h3>
-          {loading ? (
-            <div className="flex-1 flex items-center justify-center text-gray-400">
-              Loading...
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {moreTrending.map((post) => (
-                <li key={post._id}>
-                  <Link
-                    href={`/${post.category?.slug}/${post.slug}`}
-                    className="font-light text-black"
-                  >
-                    {truncateText(post.title, 60)}
-                  </Link>
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <span>{post.category?.name}</span>
-                    <span aria-hidden="true">|</span>
-                    <span>{formatDate(post.createdAt)}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="flex min-h-[280px] flex-col rounded-lg bg-white p-4 shadow sm:min-h-[320px]">
-          <p className="section-label">Latest</p>
-          <h3 className="mt-1 mb-4 text-xl font-black tracking-tight text-[#18130f]">Latest Posts</h3>
-          {loading ? (
-            <div className="flex-1 flex items-center justify-center text-gray-400">
-              Loading...
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {latestPosts.map((post) => (
-                <li key={post._id}>
-                  <Link
-                    href={`/${post.category?.slug}/${post.slug}`}
-                    className="font-light text-black"
-                  >
-                    {truncateText(post.title, 60)}
-                  </Link>
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <span>{post.category?.name}</span>
-                    <span aria-hidden="true">|</span>
-                    <span>{formatDate(post.createdAt)}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
+        ) : null}
       </div>
-    </section>
+
+      <HeadlineList title="Trending" posts={moreTrending} loading={loading} />
+      <HeadlineList title="Latest" posts={latestPosts} loading={loading} />
+    </div>
   );
 };
 

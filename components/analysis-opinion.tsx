@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { formatDate } from "@/lib/cms-utils-client"
 
@@ -16,108 +14,92 @@ interface Post {
   createdAt: string
 }
 
+/** Analysis & Opinion list. The page supplies the section heading. */
 export function AnalysisOpinionSection() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const params = new URLSearchParams({
-          category: 'analysis--opinion',
-          status: 'published',
-          limit: '4'
-        })
+        const params = new URLSearchParams({ category: "analysis--opinion", status: "published", limit: "4" })
         const response = await fetch(`/api/cms/posts?${params}`)
         const data = await response.json()
-        if (data.success) {
-          setPosts(data.data)
-        } else {
-          setError("Failed to fetch posts")
-        }
+        if (data.success) setPosts(data.data)
+        else setError(true)
       } catch (err) {
-        setError("Failed to fetch posts")
+        setError(true)
         console.error("Error fetching posts:", err)
       } finally {
         setLoading(false)
       }
     }
-
     fetchPosts()
   }, [])
 
   if (loading) {
     return (
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <p className="section-label">Opinion</p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-[#17130f]">Analysis & Opinion</h2>
-        </div>
-        <div className="flex items-center justify-center h-32">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span className="ml-2">Loading posts...</span>
-        </div>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <p className="section-label">Opinion</p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-[#17130f]">Analysis & Opinion</h2>
-        </div>
-        <div className="text-red-600 text-center py-8">{error}</div>
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="p-6 border-0">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <p className="section-label">Opinion</p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-[#17130f]">Analysis & Opinion</h2>
-        </div>
-        <Link href="/category/analysis--opinion" className="text-blue-600 hover:underline text-sm">
-          View all posts
-        </Link>
-      </div>
-      <div className="space-y-4">
-        {posts.map((post: Post, i: number) => (
-          <div key={post._id} className="flex items-start space-x-3 pb-4">
-            <div className="w-16 h-12 bg-gray-200 rounded shrink-0 overflow-hidden">
-              {post.coverImage && (
-                <img
-                  src={post.coverImage}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none"
-                  }}
-                />
-              )}
-            </div>
-            <div className="flex-1">
-              <Link href={`/analysis--opinion/${post.slug}`}>
-                <h3 className="font-medium text-sm leading-tight mb-1 hover:text-blue-600 transition-colors cursor-pointer">
-                  {post.title}
-                </h3>
-              </Link>
-              <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                {post.excerpt}
-              </p>
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                <span>{post.author.name}</span>
-                <span>•</span>
-                <span>{formatDate(post.createdAt)}</span>
-              </div>
+      <div className="grid gap-6 sm:grid-cols-2" aria-hidden="true">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex gap-4">
+            <div className="h-20 w-28 shrink-0 animate-pulse rounded-control bg-fill" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-full animate-pulse rounded bg-fill" />
+              <div className="h-4 w-2/3 animate-pulse rounded bg-fill" />
             </div>
           </div>
         ))}
       </div>
-    </Card>
+    )
+  }
+
+  if (error || posts.length === 0) {
+    return (
+      <p className="text-body text-ink-2">
+        {error ? "Analysis is unavailable right now. Try again in a few minutes." : "No analysis published yet."}
+      </p>
+    )
+  }
+
+  return (
+    <div>
+      <ul className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+        {posts.map((post) => (
+          <li key={post._id} className="flex gap-4">
+            <div className="h-20 w-28 shrink-0 overflow-hidden rounded-control bg-fill">
+              {post.coverImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={post.coverImage}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none"
+                  }}
+                />
+              ) : null}
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-headline text-ink">
+                <Link href={`/analysis--opinion/${post.slug}`} className="line-clamp-2 hover:underline">
+                  {post.title}
+                </Link>
+              </h3>
+              <p className="mt-1 line-clamp-2 text-subhead text-ink-2">{post.excerpt}</p>
+              <p className="mt-1 text-footnote text-ink-2">
+                {post.author?.name} · {formatDate(post.createdAt)}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <Link
+        href="/category/analysis--opinion"
+        className="mt-4 inline-flex min-h-11 items-center text-subhead font-medium text-tint hover:underline"
+      >
+        All analysis and opinion
+      </Link>
+    </div>
   )
 }

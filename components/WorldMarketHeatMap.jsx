@@ -202,13 +202,16 @@ export default function WorldMarketHeatMap({
           Number(payload?.meta?.count || "") ||
           Object.keys(data).length;
 
+        if (responseCount === 0) {
+          console.warn("World market globe: no data. Set POLYGON_API_KEY or NEXT_PUBLIC_FINNHUB_KEY.");
+        }
         setMarketData(data);
         setDirectCodes(nextDirectCodes);
         setCount(responseCount);
       } catch (err) {
         if (!active || controller.signal.aborted || err?.name === "AbortError") return;
-        const message = err instanceof Error ? err.message : "Failed to load market data";
-        setError(message);
+        console.warn("World market globe failed to load", err);
+        setError("unavailable");
       } finally {
         if (active) {
           setLoading(false);
@@ -345,8 +348,8 @@ export default function WorldMarketHeatMap({
   };
 
   const shellClassName = compact
-    ? "flex w-full flex-col items-center py-1 text-zinc-700 sm:py-2"
-    : "flex w-full flex-col items-center p-2 text-zinc-700 sm:p-4";
+    ? "flex w-full flex-col items-center py-1 text-ink-2 sm:py-2"
+    : "flex w-full flex-col items-center p-2 text-ink-2 sm:p-4";
   const globeClassName = compact
     ? "relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-full bg-[radial-gradient(circle_at_center,_rgba(96,165,250,0.16),_rgba(255,255,255,0)_64%)]"
     : "relative mx-auto aspect-square w-full max-w-[620px] overflow-hidden rounded-full bg-[radial-gradient(circle_at_center,_rgba(96,165,250,0.16),_rgba(255,255,255,0)_64%)]";
@@ -402,44 +405,43 @@ export default function WorldMarketHeatMap({
         ) : null}
 
         {loading ? (
-          <div className="pointer-events-none absolute inset-x-0 top-3 text-center text-xs text-zinc-500">
-            Loading live world market globe...
+          <div className="pointer-events-none absolute inset-x-0 top-3 text-center text-footnote text-ink-2" role="status">
+            Loading market globe…
           </div>
         ) : null}
 
         {error ? (
-          <div className="pointer-events-none absolute inset-x-0 top-3 text-center text-xs text-red-500">
-            {error}
+          <div className="pointer-events-none absolute inset-x-0 top-3 text-center text-footnote text-ink-2" role="status">
+            Market data is unavailable right now.
           </div>
         ) : null}
 
         {!loading && !error && count === 0 ? (
-          <div className="pointer-events-none absolute inset-x-0 top-3 text-center text-xs text-amber-700">
-            No market data available. Add <code>POLYGON_API_KEY</code> or <code>NEXT_PUBLIC_FINNHUB_KEY</code> in{" "}
-            <code>.env.local</code> and restart dev server.
+          <div className="pointer-events-none absolute inset-x-0 top-3 text-center text-footnote text-ink-2" role="status">
+            Market data is unavailable right now.
           </div>
         ) : null}
       </div>
 
       {showLegend ? (
-        <div className={`flex flex-wrap items-center justify-center gap-3 text-xs text-zinc-600 sm:gap-4 ${compact ? "mt-2" : "mt-3"}`}>
+        <div className={`flex flex-wrap items-center justify-center gap-3 text-footnote text-ink-2 sm:gap-4 ${compact ? "mt-2" : "mt-3"}`}>
           <div className="inline-flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#10b981]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-up" aria-hidden="true" />
             Positive
           </div>
           <div className="inline-flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#ef4444]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-down" aria-hidden="true" />
             Negative
           </div>
           <div className="inline-flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#64748b]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-ink-3" aria-hidden="true" />
             No data
           </div>
         </div>
       ) : null}
 
       {showFootnote ? (
-        <p className={`text-center text-[11px] text-zinc-500 ${compact ? "mt-1.5" : "mt-2"}`}>
+        <p className={`text-center text-caption text-ink-2 ${compact ? "mt-1.5" : "mt-2"}`}>
           {footnoteText}
         </p>
       ) : null}
@@ -449,10 +451,10 @@ export default function WorldMarketHeatMap({
           {summaryMarkets.map((market) => (
             <div
               key={market.code}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+              className={`rounded-full border px-3 py-1.5 text-caption font-medium ${
                 market.change >= 0
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-rose-200 bg-rose-50 text-rose-700"
+                  ? "border-transparent bg-up/10 text-up"
+                  : "border-transparent bg-down/10 text-down"
               }`}
             >
               {market.label}

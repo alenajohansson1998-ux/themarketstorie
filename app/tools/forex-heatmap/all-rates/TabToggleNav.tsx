@@ -10,49 +10,34 @@ interface TabToggleNavProps {
   onViewChange: (view: "cross" | "heatmap") => void;
 }
 
-const TabToggleNav: React.FC<TabToggleNavProps> = ({
-  regions,
-  selectedRegion,
-  onRegionChange,
-  view,
-  onViewChange,
-}) => (
-  <div className="flex items-center justify-between mb-6">
-    <div className="flex gap-2">
-      {regions.map((region) => (
-        <button
-          key={region}
-          className={`px-4 py-1 rounded-full border transition-colors text-sm font-medium ${
-            selectedRegion === region
-              ? "bg-black text-white border-black"
-              : "bg-white text-black border-gray-300 hover:bg-gray-100"
-          }`}
-          onClick={() => onRegionChange(region)}
-        >
-          {region}
-        </button>
-      ))}
+const segment = (selected: boolean) =>
+  `inline-flex h-9 items-center whitespace-nowrap rounded-md px-3.5 text-subhead font-medium transition-colors ${
+    selected ? "bg-canvas text-ink shadow-sm" : "text-ink-2 hover:text-ink"
+  }`;
+
+const TabToggleNav: React.FC<TabToggleNavProps> = ({ regions, selectedRegion, onRegionChange, view, onViewChange }) => (
+  <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="no-scrollbar -mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+      <div role="group" aria-label="Region" className="inline-flex min-w-max rounded-control bg-fill p-1">
+        {regions.map((region) => (
+          <button
+            key={region}
+            type="button"
+            aria-pressed={selectedRegion === region}
+            className={segment(selectedRegion === region)}
+            onClick={() => onRegionChange(region)}
+          >
+            {region}
+          </button>
+        ))}
+      </div>
     </div>
-    <div className="flex gap-1">
-      <button
-        className={`px-3 py-1 rounded border text-sm font-medium ${
-          view === "cross"
-            ? "bg-white text-black border-gray-400"
-            : "bg-gray-100 text-gray-600 border-gray-200"
-        }`}
-        onClick={() => onViewChange("cross")}
-      >
-        Cross rates
-      </button>
-      <button
-        className={`px-3 py-1 rounded border text-sm font-medium ${
-          view === "heatmap"
-            ? "bg-black text-white border-black"
-            : "bg-white text-black border-gray-200"
-        }`}
-        onClick={() => onViewChange("heatmap")}
-      >
+    <div role="group" aria-label="View" className="inline-flex self-start rounded-control bg-fill p-1">
+      <button type="button" aria-pressed={view === "heatmap"} className={segment(view === "heatmap")} onClick={() => onViewChange("heatmap")}>
         Heatmap
+      </button>
+      <button type="button" aria-pressed={view === "cross"} className={segment(view === "cross")} onClick={() => onViewChange("cross")}>
+        Cross rates
       </button>
     </div>
   </div>

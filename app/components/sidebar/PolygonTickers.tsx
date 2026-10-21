@@ -1,46 +1,47 @@
 "use client";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+interface TickerRow {
+  ticker: string;
+  todaysChangePerc: number;
+}
 
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+function formatPct(value: number) {
+  const sign = value > 0 ? "+" : value < 0 ? "−" : "";
+  return `${sign}${Math.abs(value).toFixed(2)}%`;
+}
 
 export default function PolygonTickers() {
-  const { data: crypto } = useSWR("/api/twelvedata/crypto", fetcher);
+  const { data, error } = useSWR<TickerRow[] | { error: string }>("/api/twelvedata/crypto", fetcher);
 
-  const renderSection = (title: string, data: any) => {
-    if (!data) return <div className="text-gray-400 text-sm">Loading...</div>;
-    if (data.error) return <div className="text-red-500 text-sm">{data.error}</div>;
-    if (!Array.isArray(data) || data.length === 0) return <div className="text-gray-400 text-sm">No data available.</div>;
-    return data.map((t: any) => (
-      <Row key={t.ticker} name={t.ticker} value={t.todaysChangePerc} />
-    ));
-  };
+  const rows = Array.isArray(data) ? data : [];
+  const failed = Boolean(error) || (data && !Array.isArray(data));
 
   return (
-    <div className="space-y-4">
-      <Section title="Crypto">
-        {renderSection("Crypto", crypto)}
-      </Section>
-    </div>
-  );
-}
-
-function Section({ title, children }: any) {
-  return (
-    <div className="border rounded-xl p-3">
-      <h3 className="font-semibold text-sm mb-2">{title}</h3>
-      {children}
-    </div>
-  );
-}
-
-function Row({ name, value }: any) {
-  return (
-    <div className="flex justify-between text-sm py-1">
-      <span>{name}</span>
-      <span className={value >= 0 ? "text-green-600" : "text-red-600"}>
-        {value?.toFixed(2)}%
-      </span>
-    </div>
+    <section className="border-t border-line-soft pt-4">
+      <h3 className="mb-2 text-headline text-ink">Crypto</h3>
+      {!data && !error ? (
+        <div className="space-y-2" aria-hidden="true">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-5 animate-pulse rounded bg-fill" />
+          ))}
+        </div>
+      ) : failed || rows.length === 0 ? (
+        <p className="text-subhead text-ink-2">Crypto prices are unavailable right now.</p>
+      ) : (
+        <ul className="tabular-nums">
+          {rows.map((row) => (
+            <li key={row.ticker} className="flex justify-between py-1.5 text-subhead">
+              <span className="font-medium text-ink">{row.ticker}</span>
+              <span className={row.todaysChangePerc >= 0 ? "text-up" : "text-down"}>
+                {formatPct(row.todaysChangePerc ?? 0)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

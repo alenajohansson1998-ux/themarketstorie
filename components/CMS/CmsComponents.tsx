@@ -10,12 +10,14 @@ interface PaginationProps {
 }
 
 export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
-  const pages = [];
+  if (totalPages <= 1) return null;
+
+  const pages: number[] = [];
   const maxVisiblePages = 5;
   const halfVisible = Math.floor(maxVisiblePages / 2);
 
   let startPage = Math.max(1, currentPage - halfVisible);
-  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
   if (endPage - startPage < maxVisiblePages - 1) {
     startPage = Math.max(1, endPage - maxVisiblePages + 1);
@@ -25,42 +27,33 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
     pages.push(i);
   }
 
-  return (
-    <div className="flex items-center gap-2 mt-6 justify-center">
-      <button
-        onClick={() => onPageChange(1)}
-        disabled={currentPage === 1}
-        className="px-3 py-2 rounded bg-gray-200 disabled:opacity-50 hover:bg-gray-300"
-      >
-        First
-      </button>
+  const base =
+    'inline-flex h-11 min-w-11 items-center justify-center rounded-control px-3 text-subhead font-medium transition-colors disabled:pointer-events-none disabled:opacity-40';
+  const quiet = `${base} text-ink hover:bg-fill`;
 
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="px-3 py-2 rounded bg-gray-200 disabled:opacity-50 hover:bg-gray-300"
-      >
+  return (
+    <nav aria-label="Pagination" className="mt-8 flex flex-wrap items-center justify-center gap-1">
+      <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className={quiet}>
         Previous
       </button>
 
       {startPage > 1 && (
         <>
-          <button onClick={() => onPageChange(1)} className="px-3 py-2">
+          <button type="button" onClick={() => onPageChange(1)} className={quiet} aria-label="Page 1">
             1
           </button>
-          {startPage > 2 && <span className="px-2">...</span>}
+          {startPage > 2 && <span className="px-1 text-ink-2" aria-hidden="true">…</span>}
         </>
       )}
 
       {pages.map((page) => (
         <button
+          type="button"
           key={page}
           onClick={() => onPageChange(page)}
-          className={`px-3 py-2 rounded ${
-            page === currentPage
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 hover:bg-gray-300'
-          }`}
+          aria-label={`Page ${page}`}
+          aria-current={page === currentPage ? 'page' : undefined}
+          className={page === currentPage ? `${base} bg-ink text-canvas` : quiet}
         >
           {page}
         </button>
@@ -68,29 +61,22 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
 
       {endPage < totalPages && (
         <>
-          {endPage < totalPages - 1 && <span className="px-2">...</span>}
-          <button onClick={() => onPageChange(totalPages)} className="px-3 py-2">
+          {endPage < totalPages - 1 && <span className="px-1 text-ink-2" aria-hidden="true">…</span>}
+          <button type="button" onClick={() => onPageChange(totalPages)} className={quiet} aria-label={`Page ${totalPages}`}>
             {totalPages}
           </button>
         </>
       )}
 
       <button
+        type="button"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-3 py-2 rounded bg-gray-200 disabled:opacity-50 hover:bg-gray-300"
+        className={quiet}
       >
         Next
       </button>
-
-      <button
-        onClick={() => onPageChange(totalPages)}
-        disabled={currentPage === totalPages}
-        className="px-3 py-2 rounded bg-gray-200 disabled:opacity-50 hover:bg-gray-300"
-      >
-        Last
-      </button>
-    </div>
+    </nav>
   );
 }
 
@@ -171,7 +157,7 @@ export function ConfirmDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-sm mx-4">
         <h3 className="text-lg font-bold mb-2">{title}</h3>
         <p className="text-gray-600 mb-6">{message}</p>
