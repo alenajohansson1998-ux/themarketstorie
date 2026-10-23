@@ -4,8 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Trash2, Edit, Plus, Search, Filter } from 'lucide-react';
-import { Pagination, StatusBadge, ConfirmDialog } from '@/components/CMS/CmsComponents';
+import { Trash2, Edit, Plus, Search, Check, FileText } from 'lucide-react';
+import { Pagination, ConfirmDialog } from '@/components/CMS/CmsComponents';
 
 interface Post {
   _id: string;
@@ -26,6 +26,14 @@ interface PaginationData {
   limit: number;
   pages: number;
 }
+
+const statusStyles: Record<Post['publicationStatus'], string> = {
+  draft: 'border-gray-200 bg-gray-50 text-gray-700',
+  pending_review: 'border-amber-200 bg-amber-50 text-amber-800',
+  approved: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  rejected: 'border-red-200 bg-red-50 text-red-700',
+  published: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+};
 
 
 
@@ -132,56 +140,59 @@ export default function PostsManagementPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading...</div>
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="text-sm text-gray-500">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="w-full p-8 px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full min-w-0">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Manage Posts</h1>
-            <p className="text-gray-600 mt-1">Total: {pagination.total} posts</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">Manage Posts</h1>
+            <p className="mt-2 text-sm text-gray-500">Review, edit, and publish your stories.</p>
           </div>
           <Link
             href="/admin/cms/posts/create"
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 self-start rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
           >
-            <Plus size={20} />
+            <Plus size={18} aria-hidden="true" />
             Create Post
           </Link>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_15rem]">
+            <div className="relative min-w-0">
+              <label htmlFor="post-search" className="sr-only">Search posts</label>
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} aria-hidden="true" />
               <input
-                type="text"
+                id="post-search"
+                type="search"
                 placeholder="Search posts..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setPagination({ ...pagination, page: 1 });
                 }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="min-h-11 w-full rounded-lg border border-gray-200 bg-white py-2.5 pr-4 pl-10 text-sm text-gray-900 placeholder:text-gray-400"
               />
             </div>
 
             <select
+              aria-label="Filter posts by publication status"
               value={filterPublicationStatus}
               onChange={(e) => {
                 setFilterPublicationStatus(e.target.value);
                 setPagination({ ...pagination, page: 1 });
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="min-h-11 min-w-0 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700"
             >
-              <option value="">All Publication Status</option>
+              <option value="">All publication statuses</option>
               <option value="draft">Draft</option>
               <option value="pending_review">Pending Review</option>
               <option value="approved">Approved</option>
@@ -192,70 +203,81 @@ export default function PostsManagementPage() {
         </div>
 
         {/* Posts Table */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-4 py-4 sm:px-5">
+            <h2 className="text-sm font-semibold text-gray-900">All posts</h2>
+            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{pagination.total} posts</span>
+          </div>
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading posts...</div>
+            <div role="status" className="p-12 text-center text-sm text-gray-500">Loading posts...</div>
           ) : posts.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <p>No posts found</p>
+            <div className="px-4 py-16 text-center text-sm text-gray-500">
+              <FileText size={28} className="mx-auto mb-3 text-gray-300" aria-hidden="true" />
+              <p className="font-medium text-gray-900">No posts found</p>
               <Link href="/admin/cms/posts/create" className="text-blue-600 hover:underline mt-2 inline-block">
                 Create your first post
               </Link>
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+              <div role="region" aria-label="Posts table" tabIndex={0} className="w-full overflow-x-auto overscroll-x-contain">
+                <table className="w-full min-w-[960px] table-fixed">
+                  <caption className="sr-only">Posts and their publication status, publisher, category, views, and management actions.</caption>
+                  <colgroup>
+                    <col className="w-[26%]" /><col className="w-[17%]" /><col className="w-[11%]" />
+                    <col className="w-[15%]" /><col className="w-[6%]" /><col className="w-[11%]" /><col className="w-[14%]" />
+                  </colgroup>
+                  <thead className="border-b border-gray-100 bg-gray-50/80">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500">
                         Title
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500">
                         Publisher
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500">
                         Category
                       </th>
                       
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        Publication Status
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500">
+                        Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500">
                         Views
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500">
                         Date
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500">
                         Actions
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {posts.map((post) => (
-                      <tr key={post._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                      <tr key={post._id} className="transition-colors hover:bg-gray-50/70">
+                        <td className="px-4 py-4">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {post.title.length > 60 ? post.title.slice(0, 60) + '…' : post.title}
-                            </p>
+                            <Link href={`/admin/cms/posts/edit/${post._id}`} title={post.title} className="line-clamp-2 break-words text-sm font-medium leading-5 text-gray-900 hover:text-blue-600">
+                              {post.title}
+                            </Link>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {post.author?.name}
+                        <td className="px-4 py-4 text-sm text-gray-600">
+                          <span className="block truncate" title={post.author?.name}>{post.author?.name || 'Unknown publisher'}</span>
                           {post.author?.email ? (
-                            <span className="block text-xs text-gray-400">{post.author.email}</span>
+                            <span className="mt-1 block truncate text-xs text-gray-400" title={post.author.email}>{post.author.email}</span>
                           ) : null}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {post.category.name}
+                        <td className="break-words px-4 py-4 text-sm text-gray-600">
+                          {post.category?.name || 'Uncategorized'}
                         </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 py-4">
                           {/* Editable Publication Status Dropdown */}
                           <select
-                            className="px-2 py-1 rounded border text-xs font-semibold"
+                            aria-label={`Publication status for ${post.title}`}
+                            className={`min-h-9 w-full rounded-lg border px-2 py-1 text-xs font-medium ${statusStyles[post.publicationStatus]}`}
                             value={post.publicationStatus}
                             onChange={async (e) => {
                               const newStatus = e.target.value as Post['publicationStatus'];
@@ -274,43 +296,46 @@ export default function PostsManagementPage() {
                               }
                             }}
                           >
-                            <option value="draft">📝 Draft</option>
-                            <option value="pending_review">🟡 Pending Review</option>
-                            <option value="approved">🟢 Approved</option>
-                            <option value="rejected">⛔ Rejected</option>
-                            <option value="published">✅ Published</option>
+                            <option value="draft">Draft</option>
+                            <option value="pending_review">Pending review</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="published">Published</option>
                           </select>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <td className="px-3 py-4 text-sm tabular-nums text-gray-600">
                           {post.views}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <td className="px-3 py-4 text-xs tabular-nums text-gray-500">
                           {new Date(post.createdAt).toLocaleDateString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex gap-2">
+                        <td className="px-3 py-4">
+                          <div className="flex flex-wrap items-center justify-end gap-1">
                             {/* Only allow approve if pending_review */}
                             {post.publicationStatus === 'pending_review' && (
                               <button
                                 onClick={() => handleApprove(post._id)}
                                 disabled={approvingId === post._id}
-                                className="text-green-600 hover:text-green-900 p-2 disabled:opacity-50"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-50"
                                 title="Approve"
+                                aria-label={`Approve ${post.title}`}
                               >
-                                {approvingId === post._id ? '...' : '✓'}
+                                {approvingId === post._id ? '...' : <Check size={16} />}
                               </button>
                             )}
                             <Link
                               href={`/admin/cms/posts/edit/${post._id}`}
-                              className="text-blue-600 hover:text-blue-900 p-2"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                               title="Edit"
+                              aria-label={`Edit ${post.title}`}
                             >
                               <Edit size={18} />
                             </Link>
                             <button
                               onClick={() => setDeleteId(post._id)}
-                              className="text-red-600 hover:text-red-900 p-2"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600"
                               title="Delete"
+                              aria-label={`Delete ${post.title}`}
                             >
                               <Trash2 size={18} />
                             </button>
@@ -322,11 +347,16 @@ export default function PostsManagementPage() {
                 </table>
               </div>
 
-              <Pagination
-                currentPage={pagination.page}
-                totalPages={pagination.pages}
-                onPageChange={handlePageChange}
-              />
+              <div className="border-t border-gray-100 px-4 pb-5">
+                <p className="pt-4 text-center text-xs text-gray-500">
+                  Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} posts
+                </p>
+                <Pagination
+                  currentPage={pagination.page}
+                  totalPages={pagination.pages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
             </>
           )}
         </div>

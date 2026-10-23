@@ -1,48 +1,27 @@
-import React from "react";
-import { FaTachometerAlt, FaFileAlt, FaUsers, FaTags, FaChartBar, FaCog, FaRobot } from "react-icons/fa";
-import Link from "next/link";
+'use client';
 
-import { FaShieldAlt, FaEnvelope } from "react-icons/fa";
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, FileText, Users, Tags, ChartNoAxesCombined, Settings, Bot, ShieldCheck, Mail, Megaphone } from 'lucide-react';
+import DashboardSidebar from '@/components/DashboardSidebar';
 const adminLinks = [
-  { label: "Dashboard", icon: <FaTachometerAlt />, href: "/admin" },
-  { label: "Posts", icon: <FaFileAlt />, href: "/admin/cms/posts" },
-  { label: "AI Articles", icon: <FaRobot />, href: "/admin/articles" },
-  { label: "Categories", icon: <FaTags />, href: "/admin/cms/categories" },
-  { label: "Users", icon: <FaUsers />, href: "/admin/users" },
-  { label: "Brokers", icon: <FaShieldAlt />, href: "/admin/brokers/list" },
-  { label: "Markets", icon: <FaChartBar />, href: "/admin/markets" },
-  { label: "Contact Requests", icon: <FaEnvelope />, href: "/admin/contact-requests" },
-  { label: "Ad Enquiries", icon: <FaEnvelope />, href: "/admin/advertising-enquiries" },
-  { label: "Settings", icon: <FaCog />, href: "/admin/settings" },
+  { label: 'Dashboard', icon: <LayoutDashboard />, href: '/admin' },
+  { label: 'Posts', icon: <FileText />, href: '/admin/cms/posts' },
+  { label: 'AI Articles', icon: <Bot />, href: '/admin/articles' },
+  { label: 'Categories', icon: <Tags />, href: '/admin/cms/categories' },
+  { label: 'Users', icon: <Users />, href: '/admin/users' },
+  { label: 'Brokers', icon: <ShieldCheck />, href: '/admin/brokers/list', match: '/admin/brokers' },
+  { label: 'Markets', icon: <ChartNoAxesCombined />, href: '/admin/markets' },
+  { label: 'Contact Requests', icon: <Mail />, href: '/admin/contact-requests' },
+  { label: 'Ad Enquiries', icon: <Megaphone />, href: '/admin/advertising-enquiries' },
+  { label: 'Settings', icon: <Settings />, href: '/admin/settings' },
 ];
 
-const AdminSidebar = () => (
-  <aside style={{ width: 240, background: "#fff", height: "100vh", padding: 24, boxShadow: "2px 0 8px #f0f1f2" }}>
-    <h2 style={{ fontWeight: 700, fontSize: 26, marginBottom: 32 }}>Admin</h2>
-    <nav>
-      {adminLinks.map((item) => (
-        <Link
-          key={item.label}
-          href={item.href}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            padding: "12px 16px",
-            borderRadius: 8,
-            marginBottom: 8,
-            color: "#222",
-            textDecoration: "none",
-            fontWeight: 500,
-            fontSize: 17,
-            transition: "background 0.2s",
-          }}
-        >
-          <span style={{ marginRight: 12, fontSize: 20 }}>{item.icon}</span>
-          {item.label}
-        </Link>
-      ))}
-    </nav>
-  </aside>
-);
-
-export default AdminSidebar;
+export default function AdminSidebar() {
+  const pathname = usePathname() || '/';
+  return <DashboardSidebar title="Admin" items={adminLinks.map((item) => ({
+    ...item,
+    active: item.href === '/admin'
+      ? pathname === '/admin' || pathname === '/dashboard'
+      : pathname === (item.match || item.href) || pathname.startsWith(`${item.match || item.href}/`),
+  }))} />;
+}

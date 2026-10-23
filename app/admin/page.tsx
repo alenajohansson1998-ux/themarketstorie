@@ -1,5 +1,4 @@
 'use client';
-'use client';
 
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -334,16 +333,16 @@ export default function AdminDashboard() {
     }
 
     return (
-    <div className="w-full p-8">
+    <div className="w-full min-w-0">
       {/* Dashboard Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
-        <p className="text-lg text-muted">Welcome back! Here's an overview of your platform.</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl mb-2">Admin Dashboard</h1>
+        <p className="text-sm text-gray-500">Welcome back! Here's an overview of your platform.</p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-        <div className="bg-white shadow rounded-lg p-6 flex flex-col justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4 mb-8">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-500">TOTAL USERS</span>
             <UserCheck className="w-5 h-5 text-blue-500" />
@@ -351,7 +350,7 @@ export default function AdminDashboard() {
           <div className="text-3xl font-bold text-gray-900">{stats?.totalUsers ?? 0}</div>
           <div className="text-xs text-gray-500 mt-2">Registered users</div>
         </div>
-        <div className="bg-white shadow rounded-lg p-6 flex flex-col justify-between">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-500">TOTAL POSTS</span>
             <Folder className="w-5 h-5 text-orange-500" />
@@ -359,7 +358,7 @@ export default function AdminDashboard() {
           <div className="text-3xl font-bold text-gray-900">{postsCount}</div>
           <div className="text-xs text-gray-500 mt-2">Total posts published</div>
         </div>
-        <div className="bg-white shadow rounded-lg p-6 flex flex-col justify-between">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-500">TOTAL LIKES</span>
             <Heart className="w-5 h-5 text-red-500" />
@@ -367,7 +366,7 @@ export default function AdminDashboard() {
           <div className="text-3xl font-bold text-gray-900">{totalLikes}</div>
           <div className="text-xs text-gray-500 mt-2">Across all articles</div>
         </div>
-        <div className="bg-white shadow rounded-lg p-6 flex flex-col justify-between">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-500">TOTAL COMMENTS</span>
             <MessageCircle className="w-5 h-5 text-indigo-500" />
@@ -375,7 +374,7 @@ export default function AdminDashboard() {
           <div className="text-3xl font-bold text-gray-900">{totalComments}</div>
           <div className="text-xs text-gray-500 mt-2">Across all articles</div>
         </div>
-        <div className="bg-white shadow rounded-lg p-6 flex flex-col justify-between">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-500">CONTACT REQUESTS</span>
             <Bell className="w-5 h-5 text-green-500" />
@@ -383,7 +382,7 @@ export default function AdminDashboard() {
           <div className="text-3xl font-bold text-gray-900">{contactRequestsCount}</div>
           <div className="text-xs text-gray-500 mt-2">Total contact requests</div>
         </div>
-        <div className="bg-white shadow rounded-lg p-6 flex flex-col justify-between">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-500">ACTIONS</span>
             <Edit className="w-5 h-5 text-purple-500" />
@@ -396,7 +395,7 @@ export default function AdminDashboard() {
       {/* Main Grid: Recent Activity & Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Recent Activity */}
-        <div className="md:col-span-2 bg-white shadow rounded-lg p-6">
+        <div className="md:col-span-2 rounded-xl border border-gray-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
             <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
               {/* Show up to 5 recent activities, scrollable if more */}
@@ -405,7 +404,7 @@ export default function AdminDashboard() {
                   type: 'user',
                   key: user._id,
                   content: (
-                    <div key={user._id} className="flex items-center gap-3 bg-blue-50 rounded-lg px-4 py-2">
+                    <div key={user._id} className="flex min-w-0 flex-wrap sm:flex-nowrap items-center gap-3 bg-blue-50 rounded-lg px-4 py-2">
                       <User className="w-4 h-4 text-blue-500" />
                       <span className="font-medium">New user:</span>
                       <span>{user.name}</span>
@@ -418,10 +417,10 @@ export default function AdminDashboard() {
                   type: 'post',
                   key: post._id,
                   content: (
-                    <div key={post._id} className="flex items-center gap-3 bg-orange-50 rounded-lg px-4 py-2">
+                    <div key={post._id} className="flex min-w-0 flex-wrap sm:flex-nowrap items-center gap-3 bg-orange-50 rounded-lg px-4 py-2">
                       <FolderPlus className="w-4 h-4 text-orange-500" />
                       <span className="font-medium">New post:</span>
-                      <span>{post.title}</span>
+                      <span className="min-w-0 flex-1 truncate">{post.title}</span>
                       <span className="ml-auto text-xs text-gray-500">{post.createdAt ? new Date(post.createdAt).toLocaleString() : ''}</span>
                     </div>
                   ),
@@ -431,7 +430,7 @@ export default function AdminDashboard() {
                   type: 'contact',
                   key: req._id,
                   content: (
-                    <div key={req._id} className="flex items-center gap-3 bg-green-50 rounded-lg px-4 py-2">
+                    <div key={req._id} className="flex min-w-0 flex-wrap sm:flex-nowrap items-center gap-3 bg-green-50 rounded-lg px-4 py-2">
                       <Bell className="w-4 h-4 text-green-500" />
                       <span className="font-medium">Contact request:</span>
                       <span>{req.name}</span>
@@ -444,7 +443,7 @@ export default function AdminDashboard() {
                   type: 'comment',
                   key: comment._id,
                   content: (
-                    <div key={comment._id} className="flex items-center gap-3 bg-indigo-50 rounded-lg px-4 py-2">
+                    <div key={comment._id} className="flex min-w-0 flex-wrap sm:flex-nowrap items-center gap-3 bg-indigo-50 rounded-lg px-4 py-2">
                       <MessageCircle className="w-4 h-4 text-indigo-500 shrink-0" />
                       <span className="font-medium shrink-0">Comment:</span>
                       <span className="truncate text-gray-700">{comment.userName}: {comment.text}</span>
@@ -460,7 +459,7 @@ export default function AdminDashboard() {
             </div>
         </div>
         {/* Quick Actions */}
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-4">
             <Link href="/admin/cms/posts/create" className="block bg-blue-100 hover:bg-blue-200 text-blue-900 font-semibold px-4 py-3 rounded-lg">Create Post</Link>
@@ -471,7 +470,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Comments Management */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-indigo-500" />

@@ -20,12 +20,9 @@ interface LayoutShellProps {
 export default function LayoutShell({ children, footer, initialCategories = [] }: LayoutShellProps) {
   const pathname = usePathname() || '/';
 
-  if (pathname.startsWith('/admin')) {
-    return <div className="site-root">{children}</div>;
-  }
-
   // Signed-in app screens keep the light appearance; the public site follows the system.
-  const isAppScreen = pathname.startsWith('/dashboard') || pathname.startsWith('/editor');
+  const isAdminScreen = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isAppScreen = isAdminScreen || pathname.startsWith('/dashboard') || pathname.startsWith('/editor');
   const showTicker = TICKER_PATHS.some((pattern) => pattern.test(pathname));
   const showCategories = CATEGORY_PATHS.some((pattern) => pattern.test(pathname));
 
@@ -40,7 +37,7 @@ export default function LayoutShell({ children, footer, initialCategories = [] }
       <main id="main-content" tabIndex={-1} className="site-main outline-none">
         {children}
       </main>
-      {footer}
+      {isAdminScreen ? null : footer}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { CMS_IMAGE_ACCEPT, uploadCmsImage } from "@/lib/cms-images";
 
 interface FAQItem {
   question: string;
@@ -72,27 +73,15 @@ export default function AdminBrokerForm({ initialValues, mode = 'add', brokerId 
     const { name, value } = e.target;
     if ((name === "logo" || name === "banner") && "files" in e.target && e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      e.target.value = "";
       setForm((f) => ({ ...f, [name]: file }));
-      // Upload to Cloudinary
-      const data = new FormData();
-      data.append("file", file);
-      data.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "backlinkfusion");
+      setError("");
       setLoading(true);
       try {
-        const res = await fetch(process.env.NEXT_PUBLIC_CLOUDINARY_URL || "https://api.cloudinary.com/v1_1/drwlimidd/image/upload", {
-          method: "POST",
-          body: data,
-        });
-        const result = await res.json();
-        if (result.secure_url) {
-          if (name === "logo") {
-            setForm((f) => ({ ...f, logoUrl: result.secure_url }));
-          } else if (name === "banner") {
-            setForm((f) => ({ ...f, bannerUrl: result.secure_url }));
-          }
-        }
+        const url = await uploadCmsImage(file, file.name);
+        setForm((f) => ({ ...f, [name === "logo" ? "logoUrl" : "bannerUrl"]: url }));
       } catch (err) {
-        setError("Image upload failed");
+        setError(err instanceof Error ? err.message : "Image upload failed");
       } finally {
         setLoading(false);
       }
@@ -309,11 +298,11 @@ export default function AdminBrokerForm({ initialValues, mode = 'add', brokerId 
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mt-6">
           <div className="grid grid-cols-12 items-center gap-2 w-full md:w-1/2">
             <label className="col-span-5 font-medium text-right pr-2" htmlFor="logo">Broker Logo :</label>
-            <input id="logo" name="logo" type="file" accept="image/*" onChange={handleChange} className={inputStyle + " col-span-7"} />
+            <input id="logo" name="logo" type="file" accept={CMS_IMAGE_ACCEPT} disabled={loading} onChange={handleChange} className={inputStyle + " col-span-7"} />
           </div>
           <div className="grid grid-cols-12 items-center gap-2 w-full md:w-1/2 mt-4 md:mt-0">
             <label className="col-span-5 font-medium text-right pr-2" htmlFor="banner">Banner Image :</label>
-            <input id="banner" name="banner" type="file" accept="image/*" onChange={handleChange} className={inputStyle + " col-span-7 mb-2"} />
+            <input id="banner" name="banner" type="file" accept={CMS_IMAGE_ACCEPT} disabled={loading} onChange={handleChange} className={inputStyle + " col-span-7 mb-2"} />
             <input
               id="bannerUrl"
               name="bannerUrl"
