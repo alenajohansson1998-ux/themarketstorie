@@ -2,6 +2,7 @@
 "use client";
 import React, { useState } from "react";
 import { FaHome, FaUser, FaCogs, FaBell, FaChartLine } from "react-icons/fa";
+import DashboardSidebar from "@/components/DashboardSidebar";
 
 
 
@@ -22,45 +23,20 @@ const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("Dashboard");
 
   return (
-    <div style={{ display: "flex", minHeight: "80vh", background: "#fafbfc" }}>
+    <div className="flex min-h-[80vh] min-w-0 flex-col bg-[#fafbfc] lg:flex-row">
       {/* Sidebar */}
-      <aside style={{ width: 250, background: "#fff", height: "100vh", padding: 24, boxShadow: "2px 0 8px #f0f1f2" }}>
-        <h2 style={{ fontWeight: 700, fontSize: 28, marginBottom: 32 }}>Dashboard</h2>
-        <nav>
-          {sidebarItems.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => setActiveTab(item.label)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "12px 16px",
-                borderRadius: 8,
-                marginBottom: 8,
-                color: activeTab === item.label ? "#222" : "#555",
-                background: activeTab === item.label ? "#f5f6fa" : "transparent",
-                fontWeight: 500,
-                fontSize: 18,
-                border: "none",
-                width: "100%",
-                textAlign: "left",
-                cursor: "pointer",
-                transition: "background 0.2s",
-              }}
-            >
-              <span style={{ marginRight: 12, fontSize: 20 }}>{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-      </aside>
+      <DashboardSidebar title="Dashboard" items={sidebarItems.map((item) => ({
+        ...item,
+        active: activeTab === item.label,
+        onClick: () => setActiveTab(item.label),
+      }))} />
 
       {/* Main Content */}
-      <main style={{ flex: 1, padding: "40px 48px" }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 12 }}>
+      <div className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">
           Welcome back, {mockUser.name}!
         </h1>
-        <p style={{ fontSize: 18, color: "#555", marginBottom: 32 }}>
+        <p className="mb-8 text-sm text-gray-500 sm:text-base">
           Your personal dashboard for market insights and account management.
         </p>
 
@@ -99,7 +75,7 @@ const UserDashboard = () => {
             <p>Your alerts feed will appear here.</p>
           </section>
         )}
-      </main>
+      </div>
     </div>
   );
 };

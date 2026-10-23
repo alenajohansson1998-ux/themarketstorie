@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { Editor as TinyMCEEditor } from '@tinymce/tinymce-react';
+import type { Editor } from 'tinymce';
+import { CMS_IMAGE_ACCEPT, CMS_IMAGE_EXTENSIONS, prepareCmsContent, uploadCmsImage } from '@/lib/cms-images';
 
 interface CategoryOption {
   _id: string;
@@ -46,34 +48,37 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
   const [trending, setTrending] = useState(initialPost?.trending || false);
   const [coverImage, setCoverImage] = useState(initialPost?.coverImage || '');
   const [uploadingImage, setUploadingImage] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Cloudinary upload handler
-  const CLOUDINARY_UPLOAD_URL = process.env.NEXT_PUBLIC_CLOUDINARY_URL || 'https://api.cloudinary.com/v1_1/drwlimidd/image/upload';
-  const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'backlinkfusion';
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [editorImageUploads, setEditorImageUploads] = useState(0);
+  const [preparingContent, setPreparingContent] = useState(false);
+  const editorRef = useRef<Editor | null>(null);
+  const submittingRef = useRef(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Allow selecting the same file again after a failed upload or removal.
+    e.target.value = '';
     if (!file) return;
     setUploadingImage(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    setImageError(null);
     try {
-      const res = await fetch(CLOUDINARY_UPLOAD_URL, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.secure_url) {
-        setCoverImage(data.secure_url);
-      } else {
-        alert('Image upload failed');
-      }
+      setCoverImage(await uploadCmsImage(file, file.name));
     } catch (err) {
-      alert('Image upload error');
+      setImageError(err instanceof Error ? err.message : 'Image upload failed. Please try again.');
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const handleEditorImageUpload = async (blobInfo: { blob: () => Blob; filename: () => string }) => {
+    setEditorImageUploads((count) => count + 1);
+    try {
+      return await uploadCmsImage(blobInfo.blob(), blobInfo.filename());
+    } catch (err) {
+      // TinyMCE displays rejected strings in its image dialog/notification.
+      throw err instanceof Error ? err.message : 'Image upload failed. Please try again.';
+    } finally {
+      setEditorImageUploads((count) => count - 1);
     }
   };
 
@@ -149,14 +154,14 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
   // Auto-expand textarea as content grows
   // Remove textarea auto-expand effect (not needed for Tiptap)
 
-  async function saveDraft(overrides?: { paymentStatus?: 'pending' | 'failed' | 'paid', publicationStatus?: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'published' }) {
+  async function saveDraft(savedContent: string, overrides?: { paymentStatus?: 'pending' | 'failed' | 'paid', publicationStatus?: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'published' }) {
     // Validate required fields
     if (!title.trim()) {
       console.warn('Cannot save: title is required');
       return { ok: false, error: 'Title is required' };
     }
 
-    if (!content.trim()) {
+    if (!savedContent.trim()) {
       console.warn('Cannot save: content is required');
       return { ok: false, error: 'Content is required' };
     }
@@ -174,9 +179,9 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
       category: category.trim(), // MongoDB ObjectId string
       tags: tags.filter(Boolean), // Array of MongoDB ObjectIds
       excerpt: excerpt.trim() || undefined,
-      content: content.trim(),
+      content: savedContent.trim(),
       trending,
-      coverImage: coverImage || undefined,
+      coverImage,
     };
 
     const payloadStr = JSON.stringify(toSave);
@@ -238,7 +243,7 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
     }
   }
 
-  // Autosave every 15 seconds (only if form is valid)
+  // Cancel pending saves only when leaving the form, including after editor uploads.
   useEffect(() => {
     // Auto-save disabled - users must manually save
     return () => {
@@ -247,8 +252,7 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
       }
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, content, category]);
+  }, []);
 
   const handleInsertH2 = () => {
     const ta = contentRef.current;
@@ -270,7 +274,8 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
     if (ta) ta.focus();
   };
 
-  const handleSaveClick = async () => {
+  const submitPost = async (publish: boolean) => {
+    if (submittingRef.current || uploadingImage || editorImageUploads > 0 || isLoading || isSaving) return;
     if (!title.trim()) {
       alert('Title is required');
       return;
@@ -283,66 +288,54 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
       alert('Category is required');
       return;
     }
-    if (onSubmit) {
-      const data = {
-        title: title.trim(),
-        slug: slug.trim() || generateSlug(title),
-        paymentStatus: isUserMode ? 'pending' : paymentStatus,
-        publicationStatus: isUserMode ? 'draft' : publicationStatus,
-        category: category.trim(),
-        tags: tags.filter(Boolean),
-        excerpt: excerpt.trim() || undefined,
-        content: content.trim(),
-        trending,
-        coverImage: coverImage || undefined,
-      };
-      await onSubmit(data);
-    } else {
-      const res = await saveDraft({ paymentStatus: isUserMode ? 'pending' : paymentStatus, publicationStatus: isUserMode ? 'draft' : publicationStatus });
-      if (!res.ok && !res.aborted) {
-        alert(`Save failed: ${res.error}`);
+    if (publish && isUserMode) {
+      alert('Payment processing is not available.');
+      return;
+    }
+
+    submittingRef.current = true;
+    setPreparingContent(true);
+    try {
+      const savedContent = await prepareCmsContent(editorRef.current, content);
+      setContent(savedContent);
+      if (!savedContent.trim()) {
+        throw new Error('Content is required');
       }
+      if (onSubmit) {
+        const data = {
+          title: title.trim(),
+          slug: slug.trim() || generateSlug(title),
+          paymentStatus: isUserMode ? 'pending' : paymentStatus,
+          publicationStatus: publish ? 'published' : isUserMode ? 'draft' : publicationStatus,
+          category: category.trim(),
+          tags: tags.filter(Boolean),
+          excerpt: excerpt.trim() || undefined,
+          content: savedContent.trim(),
+          trending,
+          coverImage,
+        };
+        await onSubmit(data);
+      } else {
+        const res = await saveDraft(savedContent, {
+          paymentStatus: isUserMode ? 'pending' : paymentStatus,
+          publicationStatus: publish ? 'published' : isUserMode ? 'draft' : publicationStatus,
+        });
+        if (!res.ok && !res.aborted) {
+          alert(`${publish ? 'Publish' : 'Save'} failed: ${res.error}`);
+        } else if (publish && res.ok) {
+          alert('Published successfully');
+        }
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not prepare images for saving. Please try again.');
+    } finally {
+      submittingRef.current = false;
+      setPreparingContent(false);
     }
   };
 
-  const handlePublish = async () => {
-    if (!title.trim()) {
-      alert('Title is required to publish');
-      return;
-    }
-    if (!content.trim()) {
-      alert('Content is required to publish');
-      return;
-    }
-    if (!category.trim()) {
-      alert('Category is required to publish');
-      return;
-    }
-    if (isUserMode) {
-        alert('Payment processing is not available.');
-    } else if (onSubmit) {
-      const data = {
-        title: title.trim(),
-        slug: slug.trim() || generateSlug(title),
-        paymentStatus,
-        publicationStatus: 'published',
-        category: category.trim(),
-        tags: tags.filter(Boolean),
-        excerpt: excerpt.trim() || undefined,
-        content: content.trim(),
-        trending,
-        coverImage: coverImage || undefined,
-      };
-      await onSubmit(data);
-    } else {
-      const res = await saveDraft({ publicationStatus: 'published' });
-      if (res.ok) {
-        alert('Published successfully');
-      } else if (!res.aborted) {
-        alert(`Publish failed: ${res.error}`);
-      }
-    }
-  };
+  const handleSaveClick = () => submitPost(false);
+  const handlePublish = () => submitPost(true);
 
   const toggleTag = (tagId: string) => {
     setTags((prev) =>
@@ -356,12 +349,13 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
     .map((t) => t.name);
 
   const isFormValid = title.trim() && content.trim() && category.trim();
+  const isBusy = !!isLoading || isSaving || preparingContent || uploadingImage || editorImageUploads > 0;
 
   return (
     <div className="w-full bg-white min-h-screen">
-      <div className="flex h-full">
+      <div className="flex h-full min-w-0 flex-col lg:flex-row">
         {/* Sidebar */}
-        <aside className="w-full lg:w-80 bg-white border-r border-gray-200 overflow-y-auto">
+        <aside className="w-full shrink-0 lg:w-80 bg-white border-r border-gray-200 overflow-y-auto">
           <div className="p-6 space-y-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -471,26 +465,36 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
 
             {/* Feature Image (Cloudinary) */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Feature Image</label>
+              <label htmlFor="cover-image" className="block text-sm font-semibold text-gray-900 mb-2">Feature Image</label>
               {coverImage && (
                 <div className="mb-2">
                   <img src={coverImage} alt="Feature" className="rounded-lg max-h-40 border" />
                 </div>
               )}
               <input
+                id="cover-image"
                 type="file"
-                accept="image/*"
-                ref={fileInputRef}
+                accept={CMS_IMAGE_ACCEPT}
+                aria-describedby="cover-image-help cover-image-status"
+                aria-invalid={!!imageError}
                 onChange={handleImageUpload}
                 className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                disabled={uploadingImage}
+                disabled={isBusy}
               />
-              {uploadingImage && <div className="text-xs text-indigo-600 mt-1">Uploading...</div>}
+              <p id="cover-image-help" className="text-xs text-gray-500 mt-2">JPG, PNG, WebP, GIF, or AVIF. Maximum 10 MB.</p>
+              <div id="cover-image-status" aria-live="polite">
+                {uploadingImage && <p className="text-xs text-indigo-600 mt-1">Uploading image...</p>}
+                {imageError && <p role="alert" className="text-xs text-red-600 mt-1">{imageError}</p>}
+              </div>
               {coverImage && (
                 <button
                   type="button"
-                  className="mt-2 text-xs text-red-600 underline"
-                  onClick={() => setCoverImage('')}
+                  disabled={isBusy}
+                  className="mt-2 text-xs text-red-600 underline disabled:opacity-50"
+                  onClick={() => {
+                    setCoverImage('');
+                    setImageError(null);
+                  }}
                 >Remove Image</button>
               )}
             </div>
@@ -539,9 +543,9 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
             <div className="space-y-2 pt-4 border-t border-gray-200">
               <button
                 onClick={handleSaveClick}
-                disabled={!isFormValid || isLoading}
+                disabled={!isFormValid || isBusy}
                 className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg transition ${
-                  isFormValid && !isLoading
+                  isFormValid && !isBusy
                     ? 'border border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
                     : 'border border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
@@ -549,13 +553,13 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                {isLoading ? 'Saving...' : 'Save Draft'}
+                {uploadingImage || editorImageUploads > 0 ? 'Uploading images...' : isLoading || isSaving || preparingContent ? 'Saving...' : 'Save Draft'}
               </button>
               <button
                 onClick={handlePublish}
-                disabled={!isFormValid || isLoading}
+                disabled={!isFormValid || isBusy}
                 className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg transition ${
-                  isFormValid && !isLoading
+                  isFormValid && !isBusy
                     ? 'bg-indigo-600 text-white hover:bg-indigo-700 border border-indigo-600'
                     : 'bg-gray-200 text-gray-500 cursor-not-allowed border border-gray-200'
                 }`}
@@ -563,7 +567,7 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2 1m2-1l-2-1m2 1v2.5" />
                 </svg>
-                {isLoading ? 'Publishing...' : 'Publish Post'}
+                {uploadingImage || editorImageUploads > 0 ? 'Uploading images...' : isLoading || isSaving || preparingContent ? 'Saving...' : 'Publish Post'}
               </button>
             </div>
 
@@ -596,7 +600,7 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="p-6 lg:p-8 max-w-5xl mx-auto w-full">
             {/* Title */}
             <div className="mb-8">
@@ -619,9 +623,15 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
                 <TinyMCEEditor
                   apiKey="cqjhaf886qrh4n1is5ihif9u3fv1yr9c17bme0ojdbvb3chw"
                   value={content}
+                  onInit={(_event, editor) => { editorRef.current = editor; }}
                   onEditorChange={(newValue) => setContent(newValue)}
                   init={{
                     height: 400,
+                    automatic_uploads: true,
+                    paste_data_images: true,
+                    image_uploadtab: true,
+                    images_file_types: CMS_IMAGE_EXTENSIONS,
+                    images_upload_handler: handleEditorImageUpload,
                     menubar: true,
                     plugins: [
                       'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'anchor',
@@ -631,7 +641,7 @@ export default function AdminPostForm({ initialPost, postId, isUserMode, onSubmi
                     toolbar:
                       'undo redo | formatselect | bold italic backcolor | \
                       alignleft aligncenter alignright alignjustify | \
-                      bullist numlist outdent indent | removeformat | help',
+                      bullist numlist outdent indent | link image | removeformat | help',
                   }}
                 />
               </div>

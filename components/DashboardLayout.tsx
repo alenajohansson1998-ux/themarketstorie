@@ -12,14 +12,15 @@ interface SidebarProps {
 export default function DashboardLayout({ children }: SidebarProps) {
   const { data: session } = useSession();
   const role = session?.user?.role;
+  const isStaff = role === 'admin' || role === 'editor';
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="flex min-h-[calc(100dvh-var(--site-header-height))] w-full min-w-0 flex-col bg-[#fafbfc] text-gray-900 lg:flex-row">
       {/* Sidebar for admin/editor */}
       {role === 'admin' && <AdminSidebar />}
       {role === 'editor' && <EditorSidebar />}
-      <main className="flex-1 flex flex-col px-4 py-6">
+      <div className={`min-w-0 flex-1 ${isStaff ? 'p-4 sm:p-6 lg:p-8' : ''}`}>
         {children}
-      </main>
+      </div>
     </div>
   );
 }

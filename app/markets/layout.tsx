@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo/metadata';
 
-// Metadata for this route lives here because the page itself is a client component.
+// Shared canonical metadata for the markets intelligence workspace.
 export const metadata: Metadata = pageMetadata({
-  title: 'Live Markets: Indices, Stocks, Crypto, Commodities and Forex',
-  description: 'Live prices and charts for global and Indian stock indices, large-cap stocks, crypto, commodities, government bonds, ETFs and currency pairs, plus an economic calendar.',
+  title: 'Market Impact Radar: News, Market Connections and Evidence',
+  description: 'Explore source-linked market events, documented economic exposures, observed price history, and your personal radar. Compare potential impacts with actual market observations.',
   path: '/markets',
 });
 
